@@ -15,7 +15,11 @@ export const env = {
     return required('NEXT_PUBLIC_SUPABASE_ANON_KEY', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   },
   get siteUrl() {
-    return (process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')).replace(/\/$/, '');
+    // On Vercel, fall back to the project's public production domain (exposed automatically for Next.js),
+    // not the per-deployment URL, which is behind Vercel login.
+    const vercelProd = process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL;
+    const fallback = vercelProd ? `https://${vercelProd}` : 'http://localhost:3000';
+    return (process.env.NEXT_PUBLIC_SITE_URL || fallback).replace(/\/$/, '');
   },
 };
 

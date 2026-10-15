@@ -35,11 +35,11 @@ Emails sent locally (confirmations, login codes, resets) are captured at `http:/
 
 ## 2. Environment variables
 
-| Name                            | Where it's used                 | Where to find it                                                                                        |
-| ------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | browser + server                | Supabase → Project Settings → API → Project URL                                                         |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser + server                | Supabase → Project Settings → API → `anon` public key                                                   |
-| `NEXT_PUBLIC_SITE_URL`          | links in emails, calendar files | Your site URL, e.g. `https://businessgroupwebsite.vercel.app` (falls back to the Vercel deployment URL) |
+| Name                            | Where it's used                 | Where to find it                                                                                                         |
+| ------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`      | browser + server                | Supabase → Project Settings → API → Project URL                                                                          |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser + server                | Supabase → Project Settings → API → `anon` public key                                                                    |
+| `NEXT_PUBLIC_SITE_URL`          | links in emails, calendar files | Your site URL, e.g. `https://businessgroupwebsite.vercel.app` (on Vercel, falls back to the project's production domain) |
 
 The app never uses the service-role key. `.env.local` is git-ignored; `.env.example` holds placeholders only.
 
