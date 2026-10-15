@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { EmptyState, Pill } from '@/components/ui';
 import { requireMember } from '@/lib/auth';
-import { guestStatusLabels, referralStatusLabels } from '@/lib/content';
+import { guestStatusLabels, referralStatusLabels, site } from '@/lib/content';
 import { getMemberOptions, getMyStats, getTopInviters } from '@/lib/data/member';
 import { formatShortDate, money } from '@/lib/dates';
 import { env } from '@/lib/env';
@@ -41,7 +41,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
   if (guestsRes.error || refsRes.error) throw new Error('Could not load your referrals');
 
   const link = `${env.siteUrl}/visit?ref=${me.referral_code}`;
-  const invite = encodeURIComponent(`I'd love for you to visit the San Carlos Business Networking Group as my guest: ${link}`);
+  const invite = encodeURIComponent(`I'd love for you to visit ${site.name} as my guest: ${link}`);
   const funnel = [
     { l: 'Invited', v: stats.guests_invited },
     { l: 'Visited', v: stats.guests_visited },
@@ -58,7 +58,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <div>
           <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Referral tracker</h1>
-          <p className="text-ink-muted m-0 mt-1">Track the people you bring to SCBNG and the business you pass to fellow members.</p>
+          <p className="text-ink-muted m-0 mt-1">Track the people you bring to {site.name} and the business you pass to fellow members.</p>
         </div>
 
         <div className="flex flex-wrap gap-5">
@@ -71,7 +71,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
               Anyone who requests a guest invite or applies through this link is credited to you, all the way to membership.
             </p>
             <div className="flex flex-wrap gap-2">
-              <a className="btn btn-ghost-band btn-sm" href={`mailto:?subject=${encodeURIComponent('Join me at SCBNG')}&body=${invite}`}>
+              <a className="btn btn-ghost-band btn-sm" href={`mailto:?subject=${encodeURIComponent(`Join me at ${site.name}`)}&body=${invite}`}>
                 Email an invite
               </a>
               <a className="btn btn-ghost-band btn-sm" href={`sms:?&body=${invite}`}>

@@ -308,7 +308,7 @@ describe('seed data', () => {
         await c.query(
           `select distinct to_char(starts_at at time zone 'America/Los_Angeles', 'Dy HH24:MI') as start,
                   to_char(ends_at at time zone 'America/Los_Angeles', 'HH24:MI') as finish
-           from meetings where slug like 'scbng-meeting-%'`,
+           from meetings where slug like 'group-meeting-%'`,
         )
       ).rows;
       expect(rows).toEqual([{ start: 'Mon 08:15', finish: '09:30' }]);

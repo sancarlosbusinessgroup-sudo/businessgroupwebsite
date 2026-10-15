@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getViewer, safeNext } from '@/lib/auth';
 import { LoginForms } from './LoginForms';
+import { site } from '@/lib/content';
 
 export const metadata: Metadata = { title: 'Member login' };
 
 const features = [
-  { t: 'Zero membership dues', d: 'Participation, not payment, is what SCBNG values.' },
+  { t: 'Zero membership dues', d: `Participation, not payment, is what ${site.name} values.` },
   { t: 'Local San Carlos & Peninsula focus', d: 'Connections that are relevant to your local market.' },
   { t: 'Community beyond business', d: 'Friendly and collaborative, inside and outside of meetings.' },
   { t: 'Accountability through tracking', d: 'One-on-ones, referrals and closed business keep results real.' },
@@ -22,7 +23,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <>
       <section className="container-site flex flex-wrap items-start gap-12 pt-14 pb-[72px]">
         <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-5">
-          <p className="eyebrow m-0">SCBNG member growth dashboard</p>
+          <p className="eyebrow m-0">{site.name} member growth dashboard</p>
           <h1 className="font-display m-0 text-[clamp(32px,4vw,46px)] leading-[1.08] font-extrabold">More than networking. A system for business growth.</h1>
           <p className="text-ink-soft m-0">
             Log in to find meeting links, track referrals, one-on-ones and closed business, and see the relationships helping your business grow.

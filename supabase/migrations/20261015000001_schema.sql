@@ -1,4 +1,4 @@
--- SCBNG core schema
+-- Core schema
 -- Every table has Row Level Security enabled in 20261015000002_rls.sql.
 
 create type public.member_status as enum ('pending', 'approved', 'declined', 'inactive');

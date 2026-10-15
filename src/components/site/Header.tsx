@@ -51,7 +51,7 @@ export async function Header() {
           Log in
         </Link>
         <Link href="/join" className="btn btn-primary btn-sm">
-          Join SCBNG
+          Join {site.shortName}
         </Link>
       </>
     );
@@ -64,8 +64,7 @@ export async function Header() {
       </a>
       <div className="container-site flex flex-wrap items-center gap-x-7 gap-y-3 py-3.5">
         <Link href="/" className="flex min-h-14 flex-none flex-col justify-center leading-none no-underline">
-          <span className="text-teal-text text-[26px] font-extrabold tracking-tight">SCBNG</span>
-          <span className="text-ink-muted mt-1 text-[11px] font-bold sm:text-xs">{site.name}</span>
+          <span className="text-teal-text text-[26px] font-extrabold tracking-tight">{site.shortName}</span>
         </Link>
         <NavLinks items={approved ? memberNav : publicNav} actions={actions} />
       </div>

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -uo pipefail
-STACK="${STACK_DIR:-/tmp/scbng-local-stack}"
+STACK="${STACK_DIR:-/tmp/businessgroup-local-stack}"
 PG_BIN="${PG_BIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
 pkill -f "scripts/local-stack/gateway.mjs" 2>/dev/null
 pkill -f "scripts/local-stack/smtp-sink.mjs" 2>/dev/null

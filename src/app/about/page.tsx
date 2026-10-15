@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { PageHero, SectionHead } from '@/components/ui';
-import { leadership, metrics, timeline, values } from '@/lib/content';
+import { leadership, metrics, timeline, values, site } from '@/lib/content';
 
 export const metadata: Metadata = { title: 'About' };
 
@@ -15,15 +15,19 @@ const icons = [
 export default function AboutPage() {
   return (
     <>
-      <PageHero crumb="About" title="About SCBNG" lead="Since 2016, we've helped small businesses and entrepreneurs connect, grow and thrive, together." />
+      <PageHero
+        crumb="About"
+        title={`About ${site.name}`}
+        lead="Since 2016, we've helped small businesses and entrepreneurs connect, grow and thrive, together."
+      />
 
       <section className="container-site flex flex-wrap items-center gap-12 py-16">
         <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-4 text-lg">
           <p className="eyebrow m-0">Our history</p>
           <h2 className="h2">Where it all began</h2>
           <p className="m-0">
-            The San Carlos Business Networking Group started in 2016 as part of the San Carlos Chamber of Commerce. It was created for local professionals who
-            believe in the power of connection and community-driven referrals.
+            {site.name} started in 2016 as part of the San Carlos Chamber of Commerce. It was created for local professionals who believe in the power of
+            connection and community-driven referrals.
           </p>
           <p className="m-0">
             When the Chamber closed during the COVID-19 pandemic, our group made a choice: dissolve or keep going. We chose growth, and we&apos;ve been thriving
@@ -56,8 +60,8 @@ export default function AboutPage() {
             <p className="eyebrow m-0">Leadership</p>
             <h2 className="h2">Consistent leadership</h2>
             <p className="m-0">
-              SCBNG has been led since day one by <strong>{leadership.name}</strong> of <em>{leadership.business}</em>. Her steady, committed leadership has
-              helped shape a community that values authenticity, generosity and professionalism.
+              {site.name} has been led since day one by <strong>{leadership.name}</strong> of <em>{leadership.business}</em>. Her steady, committed leadership
+              has helped shape a community that values authenticity, generosity and professionalism.
             </p>
             <div>
               <Link className="btn btn-outline" href="/members">
@@ -69,7 +73,7 @@ export default function AboutPage() {
       </section>
 
       <section className="container-site flex flex-col gap-7 py-16">
-        <SectionHead eyebrow="Our values" title="What makes SCBNG special" />
+        <SectionHead eyebrow="Our values" title={`What makes ${site.name} special`} />
         <ul className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-5 p-0">
           {values.map((v, i) => (
             <li key={v.title} className="card flex flex-col gap-2.5 p-7">

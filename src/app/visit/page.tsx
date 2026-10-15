@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Countdown } from '@/components/Countdown';
 import { CheckIcon, PageHero, SectionHead } from '@/components/ui';
-import { joinSteps, meetingFormat, visitTips } from '@/lib/content';
+import { joinSteps, meetingFormat, visitTips, site } from '@/lib/content';
 import { getNextMeeting, getUpcomingMeetings } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
@@ -31,8 +31,8 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHero
-        crumb="Visit SCBNG"
-        title="Come visit SCBNG"
+        crumb={`Visit ${site.name}`}
+        title={`Come visit ${site.name}`}
         lead={
           <>
             You&apos;re welcome to attend up to <strong>two meetings for free</strong>. No pressure, just connection.

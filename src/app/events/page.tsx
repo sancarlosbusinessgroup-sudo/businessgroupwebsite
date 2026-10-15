@@ -7,6 +7,7 @@ import { getViewer, isApproved } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { getMeetingsBetween, getNextMeeting, getUpcomingMeetings } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime, localDateKey, monthGrid } from '@/lib/dates';
+import { site } from '@/lib/content';
 
 export const metadata: Metadata = { title: 'Events' };
 
@@ -176,7 +177,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                                     e.is_online ? 'bg-teal text-on-teal' : 'bg-amber-tint text-amber'
                                   }`}
                                 >
-                                  {formatMeetingTime(new Date(e.starts_at))} {e.category === 'Networking' ? 'SCBNG' : e.title}
+                                  {formatMeetingTime(new Date(e.starts_at))} {e.category === 'Networking' ? site.shortName : e.title}
                                 </Link>
                               ))}
                             </td>

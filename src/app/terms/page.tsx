@@ -8,7 +8,7 @@ export default function TermsPage() {
     <>
       <PageHero crumb="Terms of use" title="Terms of use" />
       <section className="container-site max-w-[760px] py-12">
-        <p className="m-0">[Terms of use to be provided by SCBNG leadership.]</p>
+        <p className="m-0">[Terms of use to be provided by group leadership.]</p>
       </section>
     </>
   );

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { PublicProfile, PublicStats } from '@/lib/data/public';
 import { mediaUrl } from '@/lib/env';
 import { Avatar } from './ui';
+import { site } from '@/lib/content';
 
 type Props = {
   profile: PublicProfile;
@@ -114,7 +115,7 @@ export function ProfileView({ profile: p, stats, contact, viewerIsMember, isSelf
           </section>
           {stats ? (
             <section className="card flex flex-col gap-2.5 p-[22px]">
-              <h2 className="h3">SCBNG activity</h2>
+              <h2 className="h3">{site.name} activity</h2>
               <dl className="m-0 grid grid-cols-2 gap-2.5">
                 {[
                   { k: 'Attendance', v: stats.attendance_pct === null ? '—' : `${stats.attendance_pct}%` },

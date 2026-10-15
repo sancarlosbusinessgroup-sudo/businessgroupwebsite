@@ -17,10 +17,17 @@ const stamp = (d: Date) =>
 
 /** Minimal RFC 5545 calendar (no Zoom links: those stay members-only). */
 export function buildIcs(events: IcsEvent[], calName: string): string {
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//SCBNG//Meetings//EN', 'CALSCALE:GREGORIAN', `X-WR-CALNAME:${esc(calName)}`];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//businessgroupwebsite//Meetings//EN', 'CALSCALE:GREGORIAN', `X-WR-CALNAME:${esc(calName)}`];
   const now = stamp(new Date());
   for (const e of events) {
-    lines.push('BEGIN:VEVENT', `UID:${e.uid}@scbng`, `DTSTAMP:${now}`, `DTSTART:${stamp(e.start)}`, `DTEND:${stamp(e.end)}`, `SUMMARY:${esc(e.title)}`);
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:${e.uid}@businessgroupwebsite`,
+      `DTSTAMP:${now}`,
+      `DTSTART:${stamp(e.start)}`,
+      `DTEND:${stamp(e.end)}`,
+      `SUMMARY:${esc(e.title)}`,
+    );
     if (e.description) lines.push(`DESCRIPTION:${esc(e.description)}`);
     if (e.location) lines.push(`LOCATION:${esc(e.location)}`);
     if (e.url) lines.push(`URL:${e.url}`);

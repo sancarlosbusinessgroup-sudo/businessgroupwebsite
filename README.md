@@ -1,9 +1,9 @@
-# San Carlos Business Networking Group website
+# [New Name] website
 
-Members' hub for SCBNG: public pages (home, about, events, member directory, visit, gallery), sign-up with admin approval, and a members area (dashboard, meetings & attendance, referral tracker, one-on-ones, profile, admin).
+Members' hub for the business networking group (name to be decided, shown as `[New Name]`): public pages (home, about, events, member directory, visit, gallery), sign-up with admin approval, and a members area (dashboard, meetings & attendance, referral tracker, one-on-ones, profile, admin).
 
 - **Stack:** Next.js 16 (App Router, TypeScript strict) · Tailwind CSS 4 · Supabase (Postgres, Auth, Storage) · Vercel
-- **Design source:** the "SCBNG Membership Site Mockups" canvas. Element inventory in [`docs/mockup-inventory.md`](docs/mockup-inventory.md)
+- **Design source:** the membership site mockups canvas. Element inventory in [`docs/mockup-inventory.md`](docs/mockup-inventory.md)
 - **Tests:** Vitest + React Testing Library (unit), Vitest + Postgres (database security), Playwright + axe (end-to-end + accessibility). Checklist in [`docs/test-plan.md`](docs/test-plan.md)
 
 ## 1. Local setup
@@ -81,7 +81,7 @@ Supabase's built-in email only sends a few messages per hour and is meant for te
 3. Supabase → Authentication → URL Configuration: set **Site URL** to the live URL and add `https://<your-site>/auth/callback` to **Redirect URLs**.
 4. Supabase → Authentication → Emails → **Magic Link** template: replace the body with the following so "Email me a code" works:
    ```html
-   <h2>Your SCBNG sign-in code</h2>
+   <h2>Your sign-in code</h2>
    <p>Your code is: <strong>{{ .Token }}</strong></p>
    <p>Or <a href="{{ .ConfirmationURL }}">log in with this link</a>.</p>
    ```
@@ -105,6 +105,19 @@ npm run build && npm run test:e2e   # Playwright end-to-end + axe accessibility 
 2. Add the three environment variables above for Production and Preview.
 3. Deploy. Pushes to `main` deploy to production; pull requests get preview URLs.
 4. After the first deploy, update Supabase's Site URL / Redirect URLs (section 4).
+
+## Changing the group name
+
+The name appears as the placeholder `[New Name]`. To set the real one:
+
+1. Edit `name` (full name) and `shortName` (header, page titles, buttons) in `src/lib/content.ts`. Every page reads them from there.
+2. In Supabase → SQL Editor, update the meeting titles and descriptions:
+   ```sql
+   update public.meetings set
+     title = replace(title, '[New Name]', 'Real Name'),
+     description = replace(description, '[New Name]', 'Real Name');
+   ```
+3. Update the sender name in Supabase → Authentication → SMTP Settings, and the email templates if they mention the name.
 
 ## Project layout
 

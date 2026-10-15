@@ -6,7 +6,7 @@
 begin;
 
 delete from auth.users where email like '%@example.com' and id::text like '00000000-0000-4000-8000-%';
-delete from public.meetings where slug like 'scbng-meeting-%' or slug in ('fall-mixer-belmont');
+delete from public.meetings where slug like 'group-meeting-%' or slug in ('fall-mixer-belmont');
 delete from public.gallery_photos where image_path like '/seed/%';
 delete from public.guest_requests where email like '%@example.net';
 
@@ -103,9 +103,9 @@ values ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-8000-0000000
 -- Meetings: every other Monday 8:15–9:30 AM Pacific, plus one social event -------------
 insert into public.meetings (slug, title, description, category, starts_at, ends_at, is_online, location, tags, organizer_id)
 select
-  'scbng-meeting-' || to_char(d, 'YYYY-MM-DD'),
-  'SCBNG Meeting: ' || to_char(d, 'Mon FMDD'),
-  'Join the San Carlos Business Networking Group online. Connect with local business owners, build referral relationships, and start your week with focused conversations.',
+  'group-meeting-' || to_char(d, 'YYYY-MM-DD'),
+  '[New Name] Meeting: ' || to_char(d, 'Mon FMDD'),
+  'Join [New Name] online. Connect with local business owners, build referral relationships, and start your week with focused conversations.',
   'Networking',
   -- d is a plain date, so "date + time" is a Pacific wall-clock time converted to UTC (any session time zone)
   (d + time '08:15') at time zone 'America/Los_Angeles',
@@ -122,13 +122,13 @@ values ('fall-mixer-belmont', 'Fall Mixer in Belmont',
   false, 'Belmont, CA', array['MemberHosted', 'SmallBusiness'], '00000000-0000-4000-8000-000000000002');
 
 insert into public.meeting_links (meeting_id, join_url, passcode)
-select id, 'https://zoom.us/j/0000000000?pwd=sample', 'sample' from public.meetings where slug like 'scbng-meeting-%';
+select id, 'https://zoom.us/j/0000000000?pwd=sample', 'sample' from public.meetings where slug like 'group-meeting-%';
 
 -- Speakers for the next two meetings
 insert into public.meeting_speakers (meeting_id, slot, profile_id, display_name, business)
 select m.id, s.slot, s.pid, s.name, s.biz
 from (select id, row_number() over (order by starts_at) rn from public.meetings
-      where slug like 'scbng-meeting-%' and starts_at > now()) m
+      where slug like 'group-meeting-%' and starts_at > now()) m
 join (values
   (1, 'education'::public.speaker_slot, '00000000-0000-4000-8000-000000000012'::uuid, 'Nathan Pryor', 'Pryor Family Insurance'),
   (1, 'presentation'::public.speaker_slot, '00000000-0000-4000-8000-000000000013'::uuid, 'Celeste Amari', 'Second Spring Reverse Mortgages'),
@@ -142,7 +142,7 @@ select m.id, p.id,
        when (abs(hashtext(m.id::text || p.id::text)) % 10) = 8 then 'excused' else 'absent' end,
   m.starts_at - interval '3 minutes', 'self'
 from public.meetings m cross join public.profiles p
-where m.slug like 'scbng-meeting-%' and m.ends_at < now() and p.status = 'approved'
+where m.slug like 'group-meeting-%' and m.ends_at < now() and p.status = 'approved'
   and m.starts_at >= p.approved_at;
 
 -- Business referrals ---------------------------------------------------------------

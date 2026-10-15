@@ -1,8 +1,8 @@
 // Site copy that rarely changes. Everything that members create lives in Supabase.
 
 export const site = {
-  name: 'San Carlos Business Networking Group',
-  shortName: 'SCBNG',
+  name: '[New Name]',
+  shortName: '[New Name]',
   timezone: 'America/Los_Angeles',
   founded: 2016,
   meetingCadence: 'Every other Monday',

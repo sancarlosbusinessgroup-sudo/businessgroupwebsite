@@ -118,6 +118,8 @@ All changes fixed test mistakes, not app behaviour. None weakened an assertion.
 
 5. New test `seed data › schedules every regular meeting on a Monday, 8:15–9:30 AM Pacific`. The live site showed meetings on Sunday evenings: the seed built times from `generate_series(date…)`, which returns timestamps, so the Pacific conversion depended on the database session time zone. The test failed against the old seed, passes against the fixed one; the cloud rows were corrected in place.
 
+6. Group renamed to the placeholder `[New Name]` at the owner's request (2026-10-15). Four E2E heading expectations in `public.spec.ts` now expect the new headings, the seed-data test filters on the renamed meeting slugs (`group-meeting-…`), and the calendar unit test's input label changed. These follow the changed requirement; no assertion was loosened.
+
 ### Proposed (awaiting approval, not applied)
 
 - `rls › admins › can read guest requests and pending profiles` asserts exactly **1** pending profile, so it fails if E2E tests ran first without a DB reset. Proposal: assert the seeded pending applicant is in the result instead of an exact count. Until approved, run `npm run stack:reset` before `npm run test:db` (as `test:all` order implies).

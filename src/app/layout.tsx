@@ -10,7 +10,7 @@ import './globals.css';
 export const metadata: Metadata = {
   metadataBase: new URL(env.siteUrl),
   title: { default: site.name, template: `%s · ${site.shortName}` },
-  description: 'A San Carlos business networking group: meet every other Monday, refer each other, and grow together across the SF Peninsula.',
+  description: 'A local business networking group: meet every other Monday, refer each other, and grow together across the SF Peninsula.',
 };
 
 export const viewport: Viewport = {

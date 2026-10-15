@@ -1,3 +1,4 @@
+import { site } from '@/lib/content';
 import { NextResponse } from 'next/server';
 import { getMeetingBySlug } from '@/lib/data/public';
 import { env } from '@/lib/env';
@@ -21,7 +22,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
         url,
       },
     ],
-    'SCBNG',
+    site.shortName,
   );
   return new NextResponse(body, {
     headers: {

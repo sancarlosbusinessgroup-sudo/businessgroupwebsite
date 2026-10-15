@@ -5,6 +5,7 @@ import { Avatar, EmptyState, PageHero } from '@/components/ui';
 import { getCategories, getDirectory, getMemberCount } from '@/lib/data/public';
 import { filterDirectory, paginate } from '@/lib/directory';
 import { mediaUrl } from '@/lib/env';
+import { site } from '@/lib/content';
 
 export const metadata: Metadata = { title: 'Members' };
 
@@ -32,7 +33,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
     <>
       <PageHero
         crumb="Members"
-        title="Our SCBNG members"
+        title={`Our ${site.name} members`}
         lead="Each person here represents a local business that believes in connection, accountability and growing together. Interested in visiting? Reach out to any member below."
       />
       <section className="container-site flex flex-col gap-6 pt-8 pb-14">

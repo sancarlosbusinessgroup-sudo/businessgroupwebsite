@@ -5,8 +5,9 @@ import { getCategories } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
 import { referralCode as referralCodeSchema } from '@/lib/validation';
 import { JoinForm } from './JoinForm';
+import { site } from '@/lib/content';
 
-export const metadata: Metadata = { title: 'Join SCBNG' };
+export const metadata: Metadata = { title: `Join ${site.name}` };
 
 export default async function JoinPage({ searchParams }: { searchParams: Promise<{ ref?: string }> }) {
   const { ref } = await searchParams;
@@ -24,7 +25,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
       <section className="container-site flex flex-wrap items-start gap-10 pt-12 pb-[72px]">
         <aside className="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
           <p className="eyebrow m-0">Membership application</p>
-          <h1 className="font-display m-0 text-[clamp(32px,4vw,46px)] leading-[1.08] font-extrabold">Join the San Carlos Business Networking Group</h1>
+          <h1 className="font-display m-0 text-[clamp(32px,4vw,46px)] leading-[1.08] font-extrabold">Join {site.name}</h1>
           <p className="text-ink-soft m-0">No dues. One business per category. Members commit to showing up, one-on-ones and tracking activity.</p>
           {referrerName ? (
             <div className="card flex items-center gap-3.5 p-5">

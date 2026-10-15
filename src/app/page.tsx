@@ -139,7 +139,7 @@ export default async function HomePage() {
         <div className="mx-auto flex max-w-[880px] flex-col items-center gap-4 px-6 py-16 text-center">
           <h2 className="h2">Let&apos;s grow our businesses together!</h2>
           <p className="text-ink-soft m-0 text-[19px]">
-            SCBNG is dedicated to growing Bay Area Peninsula businesses. Our group of business owners and leaders is here to support you.
+            {site.name} is dedicated to growing Bay Area Peninsula businesses. Our group of business owners and leaders is here to support you.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link className="btn btn-primary" href="/join">

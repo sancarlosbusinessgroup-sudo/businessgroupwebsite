@@ -66,7 +66,7 @@ http
       // Same content we recommend for the hosted Supabase "Magic Link" template (see README).
       res.writeHead(200, { 'content-type': 'text/html' });
       res.end(
-        '<h2>Your SCBNG sign-in code</h2><p>Your code is: <strong>{{ .Token }}</strong></p><p>Or <a href="{{ .ConfirmationURL }}">log in with this link</a>.</p>',
+        '<h2>Your sign-in code</h2><p>Your code is: <strong>{{ .Token }}</strong></p><p>Or <a href="{{ .ConfirmationURL }}">log in with this link</a>.</p>',
       );
       return;
     }

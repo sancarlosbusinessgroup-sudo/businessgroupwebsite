@@ -15,7 +15,7 @@ describe('buildIcs', () => {
           url: 'https://example.org/events/x',
         },
       ],
-      'SCBNG',
+      'Test calendar',
     );
     expect(ics.startsWith('BEGIN:VCALENDAR\r\n')).toBe(true);
     expect(ics).toContain('DTSTART:20261026T151500Z');

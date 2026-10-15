@@ -3,13 +3,13 @@ import { db, expectAccessible, trackConsole } from './support';
 
 const pages = [
   { path: '/', heading: 'Local businesses, growing through real referrals.' },
-  { path: '/about', heading: 'About SCBNG' },
+  { path: '/about', heading: 'About [New Name]' },
   { path: '/events', heading: 'Business networking events' },
-  { path: '/members', heading: 'Our SCBNG members' },
+  { path: '/members', heading: 'Our [New Name] members' },
   { path: '/members/harbor-lane-realty', heading: 'Avery Lindqvist' },
-  { path: '/visit', heading: 'Come visit SCBNG' },
+  { path: '/visit', heading: 'Come visit [New Name]' },
   { path: '/gallery', heading: 'Gallery' },
-  { path: '/join', heading: 'Join the San Carlos Business Networking Group' },
+  { path: '/join', heading: 'Join [New Name]' },
   { path: '/login', heading: 'More than networking. A system for business growth.' },
   { path: '/forgot-password', heading: 'Reset your password' },
   { path: '/terms', heading: 'Terms of use' },

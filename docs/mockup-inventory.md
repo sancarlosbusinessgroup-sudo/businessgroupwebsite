@@ -1,6 +1,6 @@
 # Mockup inventory
 
-Source: Claude design canvas "SCBNG Membership Site Mockups" (17 artboards). Read directly from the artboard source files.
+Source: Claude design canvas "Membership Site Mockups" (17 artboards). Read directly from the artboard source files.
 
 Legend: **S** static · **I** interactive (client only) · **D** data-backed (Supabase) · **?** behavior unclear (see Open questions)
 
@@ -29,7 +29,7 @@ Legend: **S** static · **I** interactive (client only) · **D** data-backed (Su
 | Fonts      | Plus Jakarta Sans 500–800 (display), Source Sans 3 400–700 (body)                      |                                  |
 | Radii      | 999px pills/buttons · 20px hero cards · 16px cards · 12–14px inputs/tiles · 10px small |                                  |
 
-> **Changed after build (owner request, 2026-10-15):** brand colour is now `#008080`; the navy family became deep teal (`#0b3b3b`), text-on-light teal is `#006f6f` for AA contrast. The image logo was removed from the header and replaced with a text wordmark ("SCBNG" + group name); the tab icon is a teal "SC" square. Current values live in `src/app/globals.css`.
+> **Changed after build (owner request, 2026-10-15):** brand colour is now `#008080`; the navy family became deep teal (`#0b3b3b`), text-on-light teal is `#006f6f` for AA contrast. The image logo was removed from the header and replaced with a text wordmark (the group name); the tab icon is a plain teal mark. The group is being renamed: all copy shows the placeholder `[New Name]` (from `src/lib/content.ts`). Current values live in `src/app/globals.css`.
 > | Type | H1 clamp(34px, 4.4–5vw, 52–60px) 800 · H2 clamp(28px, 3.2vw, 40px) 800 · eyebrow 13px 700 uppercase .12em · body 17–18px/1.55 | |
 > | Layout | max-width 1200px, 24px gutters, sections 48–72px vertical padding | |
 > | Targets | buttons min-height 44–48px | |
@@ -39,7 +39,7 @@ Legend: **S** static · **I** interactive (client only) · **D** data-backed (Su
 
 | Element                                                                                                              | Class | Notes                                             |
 | -------------------------------------------------------------------------------------------------------------------- | ----- | ------------------------------------------------- |
-| Header: logo, 6 public links (Home, About, Events, Members, Visit, Gallery), Log in, Join SCBNG                      | S/I   | active link highlighted                           |
+| Header: logo, 6 public links (Home, About, Events, Members, Visit, Gallery), Log in, Join [New Name]                 | S/I   | active link highlighted                           |
 | Header (member): Dashboard, Meetings, Referrals, One-on-ones, Directory, Gallery, My profile, avatar + name, Log out | D     | name/initials from session                        |
 | Footer: blurb, quick links, members links, proud supporter, copyright, terms/privacy                                 | S     | terms/privacy pages not in mockup (?)             |
 | Countdown (days/hrs/min/sec, dark + light tones)                                                                     | D+I   | target = next meeting from DB, ticks every second |
