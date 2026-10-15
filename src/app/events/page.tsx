@@ -83,7 +83,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
           <div className="card min-w-0 flex-[1_1_380px]">
             <div className="flex flex-col gap-3 p-5">
               <div className="flex flex-wrap justify-between gap-2">
-                <span className="eyebrow text-teal">Next meeting in</span>
+                <span className="eyebrow text-teal-text">Next meeting in</span>
                 <span className="text-ink-muted text-sm">
                   {formatMeetingDate(new Date(next.starts_at))} · {formatMeetingTime(new Date(next.starts_at))} PT
                 </span>

@@ -6,20 +6,22 @@
  * (text-ink, bg-surface, border-line, ...). Dark mode swaps the raw values.
  */
 :root {
-  --ink: #1f2d36;
-  --ink-soft: #3d4d57;
-  --ink-muted: #52626d;
-  --heading: #1b3644;
-  --band: #1b3644;
-  --band-2: #24475a;
-  --band-line: #34505e;
+  /* Brand: #008080 (teal). Text on light backgrounds uses --teal-text, a slightly deeper teal, for AA contrast. */
+  --ink: #1c2e2e;
+  --ink-soft: #384c4c;
+  --ink-muted: #4f6464;
+  --heading: #0b3b3b;
+  --band: #0b3b3b;
+  --band-2: #114c4c;
+  --band-line: #1d5e5e;
   --on-band: #ffffff;
-  --on-band-muted: #c4d6dd;
-  --band-outline: #5f8796;
-  --sky: #9fd3df;
-  --teal: #17738a;
-  --teal-hover: #0f5566;
-  --teal-tint: #e6f2f5;
+  --on-band-muted: #bfdcdc;
+  --band-outline: #4e8f8f;
+  --sky: #8ed8d4;
+  --teal: #008080;
+  --teal-text: #006f6f;
+  --teal-hover: #006060;
+  --teal-tint: #e3f2f2;
   --on-teal: #ffffff;
   --green: #2c7a3a;
   --green-ink: #22612d;
@@ -33,34 +35,35 @@
   --star: #e0a458;
   --star-line: #b7791f;
   --surface: #ffffff;
-  --canvas: #f3f7f8;
-  --line: #dde4e8;
-  --line-soft: #edf1f3;
-  --line-strong: #c5d3d9;
-  --placeholder-a: #dbe8ec;
+  --canvas: #f2f8f8;
+  --line: #d9e6e6;
+  --line-soft: #ebf3f3;
+  --line-strong: #c0d4d4;
+  --placeholder-a: #d9ebea;
   --placeholder-b: #e3ecdf;
   --placeholder-c: #ece3e6;
-  --focus: #17738a;
+  --focus: #008080;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: #e3ebee;
-    --ink-soft: #c9d6db;
-    --ink-muted: #a3b4bc;
-    --heading: #f1f6f8;
-    --band: #0e1d25;
-    --band-2: #18303d;
-    --band-line: #2a4554;
-    --on-band: #f1f6f8;
-    --on-band-muted: #b5c9d1;
-    --band-outline: #4a7383;
-    --sky: #9fd3df;
-    --teal: #5cb8cf;
-    --teal-hover: #85cde0;
-    --teal-tint: #173844;
-    --on-teal: #0b1a21;
+    --ink: #e2eded;
+    --ink-soft: #c6d6d6;
+    --ink-muted: #9fb5b5;
+    --heading: #eff7f7;
+    --band: #0a1c1c;
+    --band-2: #122f2f;
+    --band-line: #224343;
+    --on-band: #eff7f7;
+    --on-band-muted: #b3cfcf;
+    --band-outline: #457676;
+    --sky: #8ed8d4;
+    --teal: #4cc2c2;
+    --teal-text: #4cc2c2;
+    --teal-hover: #7ad6d6;
+    --teal-tint: #123636;
+    --on-teal: #061a1a;
     --green: #7cc68a;
     --green-ink: #8fd39c;
     --green-tint: #1b3523;
@@ -72,15 +75,15 @@
     --red-tint: #431c19;
     --star: #e0a458;
     --star-line: #e0a458;
-    --surface: #15232b;
-    --canvas: #0f1a20;
-    --line: #2a3b45;
-    --line-soft: #22323b;
-    --line-strong: #3a4e5a;
-    --placeholder-a: #1e333c;
+    --surface: #122222;
+    --canvas: #0c1919;
+    --line: #253939;
+    --line-soft: #1c3030;
+    --line-strong: #355050;
+    --placeholder-a: #1a3535;
     --placeholder-b: #213326;
     --placeholder-c: #33242a;
-    --focus: #85cde0;
+    --focus: #7ad6d6;
     color-scheme: dark;
   }
 }
@@ -97,6 +100,7 @@
   --color-on-band-muted: var(--on-band-muted);
   --color-sky: var(--sky);
   --color-teal: var(--teal);
+  --color-teal-text: var(--teal-text);
   --color-teal-hover: var(--teal-hover);
   --color-teal-tint: var(--teal-tint);
   --color-on-teal: var(--on-teal);
@@ -150,7 +154,7 @@
     color: var(--heading);
   }
   a {
-    color: var(--teal);
+    color: var(--teal-text);
     text-decoration: underline;
     text-underline-offset: 2px;
   }
@@ -252,7 +256,7 @@
   }
   .btn-outline {
     border-color: var(--teal);
-    color: var(--teal);
+    color: var(--teal-text);
     background: var(--surface);
   }
   .btn-outline:hover {

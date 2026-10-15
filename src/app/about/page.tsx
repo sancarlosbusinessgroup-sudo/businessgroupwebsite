@@ -33,7 +33,7 @@ export default function AboutPage() {
         <ol className="border-teal-tint m-0 flex min-w-0 flex-[1_1_360px] list-none flex-col border-l-[3px] p-0">
           {timeline.map((t, i) => (
             <li key={t.year} className={`pl-6 ${i < timeline.length - 1 ? 'pb-[22px]' : ''}`}>
-              <div className="font-display text-teal font-extrabold">{t.year}</div>
+              <div className="font-display text-teal-text font-extrabold">{t.year}</div>
               <div>{t.text}</div>
             </li>
           ))}
@@ -82,7 +82,7 @@ export default function AboutPage() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-teal"
+                className="text-teal-text"
                 aria-hidden="true"
               >
                 <path d={icons[i]} />

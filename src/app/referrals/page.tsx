@@ -100,7 +100,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
                     key={l.profile_id}
                     className={`flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-[15px] ${l.profile_id === me.id ? 'bg-teal-tint' : ''}`}
                   >
-                    <span className="text-teal w-6 font-extrabold">{i + 1}</span>
+                    <span className="text-teal-text w-6 font-extrabold">{i + 1}</span>
                     <span className="flex-1">
                       {l.first_name} {l.last_name}
                       {l.profile_id === me.id ? ' (you)' : ''}

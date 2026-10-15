@@ -37,13 +37,13 @@ export function DateBadge({ day, month, sub, size = 'md' }: { day: string; month
   return (
     <div className={`bg-teal-tint flex flex-none flex-col items-center justify-center rounded-xl ${big ? 'h-auto w-[150px] py-5' : 'h-[72px] w-[68px]'}`}>
       <span className={`font-display text-heading leading-none font-extrabold ${big ? 'text-[40px]' : 'text-[26px]'}`}>{day}</span>
-      <span className="font-display text-teal text-sm font-bold tracking-[0.08em]">{month}</span>
+      <span className="font-display text-teal-text text-sm font-bold tracking-[0.08em]">{month}</span>
       {sub ? <span className="text-ink-muted mt-1.5 text-[13px]">{sub}</span> : null}
     </div>
   );
 }
 
-const tints = ['bg-teal-tint text-teal', 'bg-berry-tint text-berry', 'bg-green-tint text-green-ink', 'bg-amber-tint text-amber'] as const;
+const tints = ['bg-teal-tint text-teal-text', 'bg-berry-tint text-berry', 'bg-green-tint text-green-ink', 'bg-amber-tint text-amber'] as const;
 
 export function initials(name: string): string {
   return name

@@ -101,7 +101,7 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                 <ul className="m-0 flex list-none flex-col gap-2 p-0">
                   {mine.map((o) => (
                     <li key={o.id} className="border-line flex flex-col gap-0.5 rounded-xl border px-3.5 py-3 text-[15px]">
-                      <span className="text-teal text-xs font-bold">
+                      <span className="text-teal-text text-xs font-bold">
                         {day(o.met_on).toUpperCase()} · {o.confirmed_at ? 'CONFIRMED' : 'AWAITING CONFIRMATION'}
                       </span>
                       <strong>
@@ -123,7 +123,7 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                 <ul className="m-0 flex list-none flex-col gap-2 p-0">
                   {group.map((o) => (
                     <li key={o.id} className="border-line flex flex-col gap-0.5 rounded-xl border px-3.5 py-3 text-[15px]">
-                      <span className="text-teal text-xs font-bold">{day(o.met_on).toUpperCase()}</span>
+                      <span className="text-teal-text text-xs font-bold">{day(o.met_on).toUpperCase()}</span>
                       <strong>
                         {o.reporter?.first_name} {o.reporter?.last_name} had a one-on-one with {o.partner?.first_name} {o.partner?.last_name}.
                       </strong>

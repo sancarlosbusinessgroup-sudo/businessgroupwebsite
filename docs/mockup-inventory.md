@@ -6,32 +6,34 @@ Legend: **S** static · **I** interactive (client only) · **D** data-backed (Su
 
 ## Design tokens (extracted)
 
-| Token      | Value                                                                                                                         | Use                              |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| ink        | `#1f2d36`                                                                                                                     | body text                        |
-| ink-muted  | `#52626d`                                                                                                                     | secondary text                   |
-| ink-soft   | `#3d4d57`                                                                                                                     | lead paragraphs                  |
-| navy       | `#1b3644`                                                                                                                     | headings, dark bands, footer     |
-| navy-2     | `#24475a`                                                                                                                     | cards on navy                    |
-| teal       | `#17738a`                                                                                                                     | primary buttons, links, accents  |
-| teal-dark  | `#0f5566`                                                                                                                     | hover                            |
-| teal-tint  | `#e6f2f5`                                                                                                                     | active nav, chips, date badges   |
-| sky        | `#9fd3df`                                                                                                                     | eyebrow text on navy             |
-| green      | `#2c7a3a` / `#22612d`                                                                                                         | eyebrows, success                |
-| green-tint | `#e9f3ea`                                                                                                                     | success pills                    |
-| berry      | `#9c1c4c`                                                                                                                     | business names in directory      |
-| amber      | `#7a4a0c` on `#f6ecdc`                                                                                                        | warning / pending pills          |
-| red        | `#b42318` on `#fde8e7`                                                                                                        | absent, live, leave              |
-| star       | `#e0a458` fill, `#b7791f` stroke                                                                                              | ratings, chart series 2          |
-| surface    | `#ffffff`                                                                                                                     | cards                            |
-| canvas     | `#f3f7f8`                                                                                                                     | section bands, app background    |
-| line       | `#dde4e8` / `#edf1f3` / `#c5d3d9`                                                                                             | borders, dividers, input borders |
-| Fonts      | Plus Jakarta Sans 500–800 (display), Source Sans 3 400–700 (body)                                                             |                                  |
-| Radii      | 999px pills/buttons · 20px hero cards · 16px cards · 12–14px inputs/tiles · 10px small                                        |                                  |
-| Type       | H1 clamp(34px, 4.4–5vw, 52–60px) 800 · H2 clamp(28px, 3.2vw, 40px) 800 · eyebrow 13px 700 uppercase .12em · body 17–18px/1.55 |                                  |
-| Layout     | max-width 1200px, 24px gutters, sections 48–72px vertical padding                                                             |                                  |
-| Targets    | buttons min-height 44–48px                                                                                                    |                                  |
-| Dark mode  | not in mockup; must be derived (required by brief)                                                                            |                                  |
+| Token      | Value                                                                                  | Use                              |
+| ---------- | -------------------------------------------------------------------------------------- | -------------------------------- |
+| ink        | `#1f2d36`                                                                              | body text                        |
+| ink-muted  | `#52626d`                                                                              | secondary text                   |
+| ink-soft   | `#3d4d57`                                                                              | lead paragraphs                  |
+| navy       | `#1b3644`                                                                              | headings, dark bands, footer     |
+| navy-2     | `#24475a`                                                                              | cards on navy                    |
+| teal       | `#17738a`                                                                              | primary buttons, links, accents  |
+| teal-dark  | `#0f5566`                                                                              | hover                            |
+| teal-tint  | `#e6f2f5`                                                                              | active nav, chips, date badges   |
+| sky        | `#9fd3df`                                                                              | eyebrow text on navy             |
+| green      | `#2c7a3a` / `#22612d`                                                                  | eyebrows, success                |
+| green-tint | `#e9f3ea`                                                                              | success pills                    |
+| berry      | `#9c1c4c`                                                                              | business names in directory      |
+| amber      | `#7a4a0c` on `#f6ecdc`                                                                 | warning / pending pills          |
+| red        | `#b42318` on `#fde8e7`                                                                 | absent, live, leave              |
+| star       | `#e0a458` fill, `#b7791f` stroke                                                       | ratings, chart series 2          |
+| surface    | `#ffffff`                                                                              | cards                            |
+| canvas     | `#f3f7f8`                                                                              | section bands, app background    |
+| line       | `#dde4e8` / `#edf1f3` / `#c5d3d9`                                                      | borders, dividers, input borders |
+| Fonts      | Plus Jakarta Sans 500–800 (display), Source Sans 3 400–700 (body)                      |                                  |
+| Radii      | 999px pills/buttons · 20px hero cards · 16px cards · 12–14px inputs/tiles · 10px small |                                  |
+
+> **Changed after build (owner request, 2026-10-15):** brand colour is now `#008080`; the navy family became deep teal (`#0b3b3b`), text-on-light teal is `#006f6f` for AA contrast. The image logo was removed from the header and replaced with a text wordmark ("SCBNG" + group name); the tab icon is a teal "SC" square. Current values live in `src/app/globals.css`.
+> | Type | H1 clamp(34px, 4.4–5vw, 52–60px) 800 · H2 clamp(28px, 3.2vw, 40px) 800 · eyebrow 13px 700 uppercase .12em · body 17–18px/1.55 | |
+> | Layout | max-width 1200px, 24px gutters, sections 48–72px vertical padding | |
+> | Targets | buttons min-height 44–48px | |
+> | Dark mode | not in mockup; must be derived (required by brief) | |
 
 ## Shared components
 

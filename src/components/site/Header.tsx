@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { getViewer } from '@/lib/auth';
 import { memberNav, publicNav, site } from '@/lib/content';
@@ -64,8 +63,9 @@ export async function Header() {
         Skip to content
       </a>
       <div className="container-site flex flex-wrap items-center gap-x-7 gap-y-3 py-3.5">
-        <Link href="/" className="flex flex-none items-center" aria-label={`${site.name} home`}>
-          <Image src="/images/logo.png" alt={site.name} width={121} height={56} priority className="h-14 w-auto" />
+        <Link href="/" className="flex min-h-14 flex-none flex-col justify-center leading-none no-underline">
+          <span className="text-teal-text text-[26px] font-extrabold tracking-tight">SCBNG</span>
+          <span className="text-ink-muted mt-1 text-[11px] font-bold sm:text-xs">{site.name}</span>
         </Link>
         <NavLinks items={approved ? memberNav : publicNav} actions={actions} />
       </div>

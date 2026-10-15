@@ -23,7 +23,7 @@ export function Countdown({ target, tone = 'light' }: Props) {
   const dark = tone === 'dark';
   const box = dark ? 'bg-band-2' : 'bg-surface border border-line';
   const num = dark ? 'text-on-band' : 'text-heading';
-  const lab = dark ? 'text-sky' : 'text-teal';
+  const lab = dark ? 'text-sky' : 'text-teal-text';
 
   if (p?.done) {
     return (

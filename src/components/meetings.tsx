@@ -98,7 +98,7 @@ export function EventCard({ meeting, member }: { meeting: MeetingWithSpeakers; m
           <a className="btn btn-outline btn-sm" href={`/events/${meeting.slug}/calendar.ics`}>
             Add to calendar
           </a>
-          <Link className="btn btn-sm text-teal" href={`/events/${meeting.slug}`}>
+          <Link className="btn btn-sm text-teal-text" href={`/events/${meeting.slug}`}>
             View details<span className="sr-only"> for {meeting.title}</span>
           </Link>
         </div>

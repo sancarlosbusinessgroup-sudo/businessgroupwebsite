@@ -20,7 +20,7 @@ export function CorrectionForm({ meetings }: { meetings: { id: string; label: st
         Something wrong?{' '}
         <button
           type="button"
-          className="text-teal cursor-pointer border-0 bg-transparent p-0 font-bold underline"
+          className="text-teal-text cursor-pointer border-0 bg-transparent p-0 font-bold underline"
           onClick={() => setOpen(true)}
           aria-expanded={false}
         >

@@ -60,7 +60,7 @@ export default async function HomePage() {
           ].map((s) => (
             <div key={s.l} className="flex flex-col-reverse px-1 py-2">
               <dt className="text-ink-muted">{s.l}</dt>
-              <dd className="font-display text-teal m-0 text-[34px] font-extrabold">{s.v}</dd>
+              <dd className="font-display text-teal-text m-0 text-[34px] font-extrabold">{s.v}</dd>
             </div>
           ))}
         </dl>

@@ -41,7 +41,7 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
       >
         <div className="card min-w-0 flex-[1_1_400px]">
           <div className="flex flex-col gap-3.5 p-[22px]">
-            <span className="eyebrow text-teal">Next meeting coming in</span>
+            <span className="eyebrow text-teal-text">Next meeting coming in</span>
             {next ? (
               <>
                 <Countdown target={next.starts_at} />
@@ -121,7 +121,7 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
         <ol className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4 p-0">
           {joinSteps.map((s, i) => (
             <li key={s.title} className="card flex flex-col gap-1.5 p-[22px]">
-              <span className="font-display text-teal text-sm font-extrabold tracking-[0.08em]">STEP {i + 1}</span>
+              <span className="font-display text-teal-text text-sm font-extrabold tracking-[0.08em]">STEP {i + 1}</span>
               <strong className="text-heading text-lg">{s.title}</strong>
               <span className="text-ink-muted text-[15px]">{s.text}</span>
             </li>

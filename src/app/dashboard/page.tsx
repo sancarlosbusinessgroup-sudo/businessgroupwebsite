@@ -182,7 +182,7 @@ export default async function DashboardPage() {
             <Link href="/referrals" className="card text-ink flex flex-col gap-3 p-5 no-underline">
               <span className="flex justify-between gap-2">
                 <span className="h3">Referral tracker</span>
-                <span className="text-teal text-sm font-bold">Open →</span>
+                <span className="text-teal-text text-sm font-bold">Open →</span>
               </span>
               <span className="grid grid-cols-3 gap-2 text-center">
                 {[
