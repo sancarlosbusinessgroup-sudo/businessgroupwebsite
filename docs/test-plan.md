@@ -2,7 +2,7 @@
 
 Requirement numbers refer to the build brief: **R1** pages reproduced · **R2** interactions work · **R3** Supabase schema, RLS, seed · **R4** auth + approval · **R5** forms (validation, errors, states) · **R6** empty/loading/error states · **R7** repo + README · **R8** deploy. **A11y** = WCAG 2.1 AA (axe).
 
-Status as of the last full run (all from a freshly reset local stack, in `npm run test:all` order): **Unit 30/30 · Database 27/27 · E2E 71/71 (43 desktop + 14 tablet 768px + 14 phone 375px)**. Lint, type-check and Prettier: clean.
+Status as of the last full run (all from a freshly reset local stack, in `npm run test:all` order): **Unit 30/30 · Database 28/28 · E2E 71/71 (43 desktop + 14 tablet 768px + 14 phone 375px)**. Lint, type-check and Prettier: clean.
 
 ## Unit (Vitest + React Testing Library): `npm test`
 
@@ -58,6 +58,7 @@ Status as of the last full run (all from a freshly reset local stack, in `npm ru
 | storage: upload only into own folder; pending cannot upload                                          | R3     | passing                                             |
 | sign-up trigger: pending profile + contact from metadata                                             | R4     | passing                                             |
 | sign-up trigger: ignores self-assigned status/role                                                   | R4     | passing                                             |
+| seed: regular meetings are Mondays 8:15–9:30 AM Pacific in any session time zone                     | R3     | passing (added after a deploy bug, see below)       |
 
 ## End-to-end (Playwright + axe): `npm run test:e2e`
 
@@ -112,6 +113,10 @@ All changes fixed test mistakes, not app behaviour. None weakened an assertion.
 2. E2E password field locators: the label includes a visual "*" and the tab panel is also named "Password", so lookups now use a prefix match inside the Password tab panel.
 3. Home count locator: scoped to the "At a glance" list (the number also appeared in the countdown).
 4. Events test: waits for the List view URL before clicking a filter (race).
+
+### Added after deploy
+
+5. New test `seed data › schedules every regular meeting on a Monday, 8:15–9:30 AM Pacific`. The live site showed meetings on Sunday evenings: the seed built times from `generate_series(date…)`, which returns timestamps, so the Pacific conversion depended on the database session time zone. The test failed against the old seed, passes against the fixed one; the cloud rows were corrected in place.
 
 ### Proposed (awaiting approval, not applied)
 

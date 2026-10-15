@@ -107,12 +107,13 @@ select
   'SCBNG Meeting: ' || to_char(d, 'Mon FMDD'),
   'Join the San Carlos Business Networking Group online. Connect with local business owners, build referral relationships, and start your week with focused conversations.',
   'Networking',
+  -- d is a plain date, so "date + time" is a Pacific wall-clock time converted to UTC (any session time zone)
   (d + time '08:15') at time zone 'America/Los_Angeles',
   (d + time '09:30') at time zone 'America/Los_Angeles',
   true, 'Online · Zoom',
   array['BusinessNetworking', 'LocalBusiness', 'SanCarlos'],
   '00000000-0000-4000-8000-000000000001'
-from generate_series(date '2026-03-02', date '2027-06-28', interval '14 days') d;
+from (select g::date as d from generate_series(date '2026-03-02', date '2027-06-28', interval '14 days') g) s;
 
 insert into public.meetings (slug, title, description, category, starts_at, ends_at, is_online, location, tags, organizer_id)
 values ('fall-mixer-belmont', 'Fall Mixer in Belmont',

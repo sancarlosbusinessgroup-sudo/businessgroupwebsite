@@ -300,3 +300,18 @@ describe('sign-up trigger', () => {
     });
   });
 });
+
+describe('seed data', () => {
+  it('schedules every regular meeting on a Monday, 8:15–9:30 AM Pacific, whatever the session time zone', async () => {
+    await withClient(async (c) => {
+      const rows = (
+        await c.query(
+          `select distinct to_char(starts_at at time zone 'America/Los_Angeles', 'Dy HH24:MI') as start,
+                  to_char(ends_at at time zone 'America/Los_Angeles', 'HH24:MI') as finish
+           from meetings where slug like 'scbng-meeting-%'`,
+        )
+      ).rows;
+      expect(rows).toEqual([{ start: 'Mon 08:15', finish: '09:30' }]);
+    });
+  });
+});
