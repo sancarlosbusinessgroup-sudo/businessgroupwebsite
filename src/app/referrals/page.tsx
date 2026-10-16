@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { EmptyState, Pill } from '@/components/ui';
 import { requireMember } from '@/lib/auth';
-import { referralStatusLabels, site, warmthLabels } from '@/lib/content';
+import { referralStatusLabels, site } from '@/lib/content';
 import { getMemberOptions } from '@/lib/data/member';
 import { formatShortDate } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
@@ -10,7 +10,6 @@ import { SendReferralForm, UpdateReferralForm } from './ReferralForms';
 export const metadata: Metadata = { title: 'Referral tracker' };
 
 const refTone = { new: 'gray', contacted: 'teal', meeting_set: 'teal', closed_deal: 'green', not_a_fit: 'amber' } as const;
-const warmTone = { hot: 'red', warm: 'amber', cold: 'gray' } as const;
 
 export default async function ReferralsPage({ searchParams }: { searchParams: Promise<{ to?: string }> }) {
   const sp = await searchParams;
@@ -22,7 +21,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
     supabase
       .from('referrals')
       .select(
-        'id, from_id, to_id, contact_name, prospect_phone, prospect_email, prospect_consent, warmth, notes, status, created_at, from:profiles!referrals_from_id_fkey(first_name, last_name), to:profiles!referrals_to_id_fkey(first_name, last_name)',
+        'id, from_id, to_id, contact_name, prospect_phone, prospect_email, prospect_consent, notes, status, created_at, from:profiles!referrals_from_id_fkey(first_name, last_name), to:profiles!referrals_to_id_fkey(first_name, last_name)',
       )
       .or(`from_id.eq.${me.id},to_id.eq.${me.id}`)
       .order('created_at', { ascending: false })
@@ -47,7 +46,6 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
           </span>
           <span className="text-ink-muted flex flex-wrap items-center gap-2 text-sm">
             {formatShortDate(new Date(r.created_at))}
-            <Pill tone={warmTone[r.warmth]}>{warmthLabels[r.warmth]}</Pill>
             <Pill tone={refTone[r.status]}>{referralStatusLabels[r.status]}</Pill>
           </span>
         </div>

@@ -113,7 +113,6 @@ export async function sendReferral(_prev: ActionState, formData: FormData): Prom
     prospect_phone: d.prospectPhone ?? null,
     prospect_email: d.prospectEmail ?? null,
     prospect_consent: d.consent,
-    warmth: d.warmth,
     notes: d.notes ?? null,
   });
   if (error) return { status: 'error', message: GENERIC, values };

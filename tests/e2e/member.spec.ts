@@ -98,7 +98,7 @@ test.describe('member area', () => {
     await page.getByLabel('Refer to member').selectOption({ label: 'Riley Second · Second Test Bakery' });
     await page.getByLabel('Prospect name').fill('Wedding cake client');
     await page.getByLabel('Prospect phone').fill('(650) 555-0199');
-    await page.getByLabel('Temperature').selectOption('hot');
+    await expect(page.getByLabel('Temperature')).toHaveCount(0);
     await page.getByLabel('The prospect has agreed to be contacted').check();
     await page.getByRole('button', { name: 'Send referral slip' }).click();
     await expect(page.getByText('Referral slip sent.')).toBeVisible();

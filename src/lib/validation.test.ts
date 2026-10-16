@@ -85,12 +85,11 @@ describe('member forms', () => {
     expect(errs.toId).toBeDefined();
     expect(errs.contactName).toBeDefined();
   });
-  it('referral slip: optional prospect phone/email are checked, temperature is hot/warm/cold, consent is a checkbox', () => {
+  it('referral slip: optional prospect phone/email are checked, consent is a checkbox, no temperature field', () => {
     const toId = '00000000-0000-4000-8000-000000000001';
     const ok = referralSchema.safeParse({
       toId,
       contactName: 'Jo Prospect',
-      warmth: 'cold',
       prospectPhone: '(650) 555-0100',
       prospectEmail: 'JO@Example.org',
       consent: 'on',
@@ -98,12 +97,12 @@ describe('member forms', () => {
     expect(ok.success).toBe(true);
     expect(ok.success && ok.data.prospectEmail).toBe('jo@example.org');
     expect(ok.success && ok.data.consent).toBe(true);
-    const bare = referralSchema.safeParse({ toId, contactName: 'Jo Prospect', warmth: 'hot' });
+    const bare = referralSchema.safeParse({ toId, contactName: 'Jo Prospect' });
     expect(bare.success && bare.data.consent).toBe(false);
-    const bad = referralSchema.safeParse({ toId, contactName: 'Jo', warmth: 'tip', prospectPhone: 'abc', prospectEmail: 'nope' });
+    const bad = referralSchema.safeParse({ toId, contactName: 'Jo', prospectPhone: 'abc', prospectEmail: 'nope' });
     expect(bad.success).toBe(false);
     const errs = fieldErrors(bad.error!);
-    expect(errs.warmth).toBeDefined();
+    expect(ok.success && 'warmth' in ok.data).toBe(false);
     expect(errs.prospectPhone).toBeDefined();
     expect(errs.prospectEmail).toBeDefined();
   });

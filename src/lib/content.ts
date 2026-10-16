@@ -101,14 +101,6 @@ export const albums = [
   { value: 'community', label: 'Community' },
 ] as const;
 
-export const warmthOptions = [
-  { value: 'hot', label: "Hot: they're expecting your call" },
-  { value: 'warm', label: 'Warm: introduced, open to hearing from you' },
-  { value: 'cold', label: 'Cold: a lead worth following up' },
-] as const;
-
-export const warmthLabels = { hot: 'Hot', warm: 'Warm', cold: 'Cold' } as const;
-
 export const referralStatusLabels = {
   new: 'New',
   contacted: 'Contacted',

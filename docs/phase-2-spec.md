@@ -130,6 +130,7 @@ Each phase: tests first (unit, DB/RLS, E2E + axe at 375/768/1280, light/dark), d
 Migration `supabase/migrations/20261016000001_phase_a.sql` (drops approved by the owner the same day). Choices made during the build:
 
 - **Referral slips** keep the database column `contact_name` (shown as "Prospect name"). Status `sent` was renamed `new`, `closed` → `closed_deal`, `meeting_set` added; temperature `tip` → `cold`. `closed_at` is stamped by a trigger when the receiver marks a closed deal and is what closed-deal counts use.
+- **No temperature** (owner, 2026-10-17): the hot/warm/cold choice was removed from referral slips. The database column `warmth` stays, unused (new slips get the default), so dropping it can wait for owner approval.
 - **Periods** are Pacific calendar dates. "This meeting cycle" = from the date of the most recent group meeting to today. Week starts Monday.
 - **Visitors brought** = guest requests credited to the member whose guest actually visited (status visited, applied or joined). Shown on the leaderboard and admin stats now, since it replaces the old "top inviters" list.
 - **Leaderboard** on the dashboard (this month by default; quarter, year, all time), top 5 per metric, names + counts only. Members' personal stat tiles, monthly chart and $ figures are gone; the public "activity" box on profiles is gone.

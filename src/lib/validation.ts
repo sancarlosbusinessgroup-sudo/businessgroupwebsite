@@ -121,7 +121,6 @@ export const referralSchema = z.object({
     .optional()
     .transform((v) => (v ? v : undefined))
     .refine((v) => v === undefined || (v.length <= 254 && z.email().safeParse(v).success), 'Enter a valid email address'),
-  warmth: z.enum(['hot', 'warm', 'cold'], { error: 'Choose a temperature' }),
   notes: optionalText(1000, 'Notes'),
   consent: checkbox,
 });

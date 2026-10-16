@@ -16,7 +16,7 @@ Status as of the last full run (2026-10-16, freshly reset local stack, `npm run 
 | validation › join accepts complete application / requires commitments / rejects short password + unsafe website | R4 R5         | passing |
 | validation › 6-digit code; new password must match                                                              | R4 R5         | passing |
 | validation › referral needs member + prospect name                                                              | R5            | passing |
-| validation › referral slip: prospect phone/email checked, hot/warm/cold, consent checkbox                       | PA R5         | passing |
+| validation › referral slip: prospect phone/email checked, consent checkbox, no temperature field                | PA R5         | passing |
 | validation › referral status update: new / contacted / meeting set / closed deal / not a fit, no amount         | PA R5         | passing |
 | validation › weekly ask optional, ≤160 chars                                                                    | PA R5         | passing |
 | validation › leadership needs name + role; seat limit 1–99                                                      | PA R5         | passing |
@@ -178,4 +178,5 @@ All changes fixed test mistakes, not app behaviour. None weakened an assertion.
    - E2E referral test: files a referral slip and the receiver marks it a closed deal (no amount step). E2E one-on-one test no longer clicks a star.
    - E2E "invite link is shown and copyable" opens `/dashboard` instead of `/referrals`, because the spec moves the invite card to the dashboard. Same assertions.
 9. New Phase A tests corrected while being written, before they ever passed: the enum test cast labels to `text` (Postgres returned a `name[]` as one string); two stats tests used prospect names shorter than the 2-character minimum; three E2E locators were ambiguous ("President" also matched "Vice President"; "Period" also matched the form's label; "Name" needed a non-exact match because of the required-field asterisk).
-10. Real issue found by axe at 375px: the directory-download table's scroll area wasn't keyboard-focusable. Fixed in the page (focusable labelled region); the test was not changed.
+10. Owner removed the temperature choice (2026-10-17): the referral-slip validation test now checks there is no temperature field, and the E2E referral test checks the Temperature field is absent instead of choosing "hot".
+11. Real issue found by axe at 375px: the directory-download table's scroll area wasn't keyboard-focusable. Fixed in the page (focusable labelled region); the test was not changed.

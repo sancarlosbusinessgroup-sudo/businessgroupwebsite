@@ -4,7 +4,7 @@ import { useActionState } from 'react';
 import { Checkbox, SelectField, SubmitButton, TextArea, TextField } from '@/components/forms';
 import { useClientValidation } from '@/components/useClientValidation';
 import { Notice } from '@/components/ui';
-import { referralStatusLabels, warmthOptions } from '@/lib/content';
+import { referralStatusLabels } from '@/lib/content';
 import { idle, referralSchema, referralStatuses, referralUpdateSchema } from '@/lib/validation';
 import { sendReferral, updateReferral } from '../actions/member';
 
@@ -40,13 +40,6 @@ export function SendReferralForm({ members, defaultTo }: { members: Option[]; de
       <TextField name="contactName" label="Prospect name" required defaultValue={v.contactName} error={errors.contactName} />
       <TextField name="prospectPhone" type="tel" label="Prospect phone" defaultValue={v.prospectPhone} error={errors.prospectPhone} />
       <TextField name="prospectEmail" type="email" label="Prospect email" defaultValue={v.prospectEmail} error={errors.prospectEmail} />
-      <SelectField name="warmth" label="Temperature" required defaultValue={v.warmth ?? 'warm'} error={errors.warmth}>
-        {warmthOptions.map((w) => (
-          <option key={w.value} value={w.value}>
-            {w.label}
-          </option>
-        ))}
-      </SelectField>
       <TextArea name="notes" label="Notes" defaultValue={v.notes} error={errors.notes} />
       <Checkbox name="consent" label="The prospect has agreed to be contacted" defaultChecked={v.consent === 'on'} />
       <SubmitButton pendingText="Sending…">Send referral slip</SubmitButton>
