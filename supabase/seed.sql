@@ -96,7 +96,15 @@ values ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-8000-0000000
   '{"provider":"email","providers":["email"]}'::jsonb,
   jsonb_build_object('first_name', 'Riley', 'last_name', 'Summers', 'business_name', 'Summit Web Studio',
     'category_id', (select id from public.categories where name = 'Web Design')::text,
-    'referral_code', 'AVER-001', 'guest_meetings_attended', '2', 'agreed_commitments', 'true'),
+    'referral_code', 'AVER-001', 'guest_meetings_attended', '2', 'agreed_commitments', 'true', 'phone', '(650) 555-0177',
+    'application', jsonb_build_object(
+      'business_phone', '(650) 555-0177', 'business_address', '400 Industrial Rd, San Carlos, CA',
+      'years_in_business', '5 years', 'product_service', 'Websites and SEO for small businesses on the Peninsula.',
+      'credentials', 'Google Analytics certified', 'networking_groups', 'None',
+      'references', jsonb_build_array(
+        jsonb_build_object('name', 'Pat Rivera', 'business', 'Rivera Bakery', 'email', 'pat.rivera@example.net'),
+        jsonb_build_object('name', 'Kim Osei', 'business', 'Osei Dental', 'phone', '(650) 555-0188')),
+      'signature_name', 'Riley Summers')),
   now() - interval '3 days', now(),
   '', '', '', '', '', '', '', '');
 

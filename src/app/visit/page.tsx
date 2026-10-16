@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Countdown } from '@/components/Countdown';
 import { CheckIcon, PageHero, SectionHead } from '@/components/ui';
-import { joinSteps, meetingFormat, visitTips, site } from '@/lib/content';
+import { joinSteps, meetingAgenda, visitTips, site } from '@/lib/content';
 import { getCategorySeats, getNextMeeting, getUpcomingMeetings } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
@@ -99,15 +99,18 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
 
       <section className="border-line bg-canvas border-y">
         <div className="container-site flex flex-col gap-7 py-16">
-          <SectionHead eyebrow="Our meeting format" title="What a typical Monday looks like" />
+          <SectionHead eyebrow="Our meeting agenda" title="What a typical Monday looks like" />
           <ol className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-x-10 p-0">
-            {meetingFormat.map((s) => (
-              <li key={s.title} className="border-line flex flex-col gap-1 border-t py-4">
-                <h3 className="font-display m-0 text-[15px] tracking-[0.06em] uppercase">{s.title}</h3>
-                <p className="text-ink-soft m-0 text-base">{s.text}</p>
+            {meetingAgenda.map((s) => (
+              <li key={s.time} className="border-line flex items-baseline gap-4 border-t py-3">
+                <span className="font-display text-teal-text w-12 flex-none font-extrabold tabular-nums">{s.time}</span>
+                <span className="text-ink-soft text-base">{s.item}</span>
               </li>
             ))}
           </ol>
+          <p className="text-ink-muted m-0 text-sm">
+            Times are Pacific. Full details are in our <Link href="/bylaws">Bylaws &amp; Procedures</Link>.
+          </p>
         </div>
       </section>
 

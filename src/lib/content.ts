@@ -64,15 +64,22 @@ export const leadership = {
   caption: 'Leading with heart and consistency since day one.',
 };
 
-export const meetingFormat = [
-  { title: '8:15–8:30 · Open networking', text: 'Chat, check your tech and warm up for the day.' },
-  { title: '5-minute member education', text: 'One member shares a helpful insight, tool or business tip.' },
-  { title: 'Introductions', text: 'We welcome everyone, introduce the leadership team and get started.' },
-  { title: '10-minute presentation', text: 'One member dives deeper into their business so we can refer them better.' },
-  { title: 'Roundtable check-in', text: 'Everyone shares their 30-second spiel and their "Win of the Week."' },
-  { title: 'Events & announcements', text: 'We wrap up with upcoming events, shout-outs and reminders.' },
-  { title: 'Activity numbers', text: 'Referral stats, one-on-ones and closed business from the last meeting.' },
-];
+/** Official meeting agenda (Procedures, effective Jan 1, 2026). Times are Pacific. */
+export const meetingAgenda = [
+  { time: '8:15', item: 'Open networking' },
+  { time: '8:30', item: 'Meeting called to order' },
+  { time: '8:31', item: 'Introduction of the leadership team' },
+  { time: '8:32', item: '30-second infomercial' },
+  { time: '8:42', item: 'Introduction of guests' },
+  { time: '8:45', item: 'Statistics' },
+  { time: '8:50', item: '30-second referrals, leads, testimonials and thank-yous' },
+  { time: '9:05', item: '5-minute educational presentation' },
+  { time: '9:10', item: '10-minute presentation' },
+  { time: '9:20', item: '5 minutes of questions for the 10-minute presentation' },
+  { time: '9:25', item: 'Announcements' },
+  { time: '9:28', item: 'Thank you, visitors: we will contact you' },
+  { time: '9:30', item: 'Adjourn' },
+] as const;
 
 export const visitTips = [
   'Come ready with a quick 30-second introduction: your name, your business, and who you help.',
@@ -84,15 +91,22 @@ export const visitTips = [
 export const joinSteps = [
   { title: 'Get invited', text: 'Through a member, or request an invite below.' },
   { title: 'Attend as a guest', text: 'Up to two meetings, free.' },
-  { title: '3 one-on-ones', text: 'With membership committee members.' },
+  { title: '3 one-on-ones', text: 'With three leadership team members, then the team reviews your application.' },
   { title: 'Join & grow', text: 'Mutual fit? Welcome aboard.' },
 ];
 
-export const commitments = [
-  { name: 'attend', label: "Attend meetings regularly and let the group know when I can't" },
-  { name: 'oneOnOnes', label: 'Schedule three one-on-ones with the membership committee' },
-  { name: 'report', label: 'Report referrals, one-on-ones and closed business in my dashboard' },
+/** Agreement terms from the Member Application Form. */
+export const agreementTerms = [
+  { title: 'Dues', text: 'Our networking group is free. We just ask you to adhere to our group rules.' },
+  { title: 'Attendance', text: 'Attendance is expected at every meeting. Members are only allowed to miss 2 meetings in a 6-month period.' },
+  {
+    title: 'Understanding',
+    text: "Failure to meet the above terms or the member expectations contained in the group's Procedures may be cause for removal from the group.",
+  },
 ] as const;
+
+/** Attendance policy (Bylaws / Procedures): absences allowed in a rolling period. */
+export const attendancePolicy = { maxAbsences: 2, months: 6, substitutesCount: true } as const;
 
 export const albums = [
   { value: 'meetings', label: 'Meetings' },

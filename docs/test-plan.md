@@ -2,7 +2,7 @@
 
 Requirement numbers refer to the build brief: **R1** pages reproduced · **R2** interactions work · **R3** Supabase schema, RLS, seed · **R4** auth + approval · **R5** forms (validation, errors, states) · **R6** empty/loading/error states · **R7** repo + README · **R8** deploy. **A11y** = WCAG 2.1 AA (axe). **PA** / **PB** = Phase A / B of `docs/phase-2-spec.md`.
 
-Status as of the last full run (2026-10-17, freshly reset local stack, `npm run test:all` order): **Unit 60/60 · Database 58/58 · E2E 98/98 (66 desktop + 16 tablet 768px + 16 phone 375px)**. Lint, type-check, Prettier and `next build`: clean.
+Status as of the last full run (2026-10-17, freshly reset local stack, `npm run test:all` order): **Unit 62/62 · Database 61/61 · E2E 103/103 (69 desktop + 17 tablet 768px + 17 phone 375px)**. Lint, type-check, Prettier and `next build`: clean.
 
 ## Unit (Vitest + React Testing Library): `npm test`
 
@@ -191,6 +191,19 @@ Tests tagged **@responsive** also run at 768px and 375px.
 | slides: admin hides and reorders slides for a meeting, then resets (axe on setup page)                                                             | passing              |
 | members cannot customize slides                                                                                                                    | passing              |
 
+## Application form and Bylaws & Procedures (2026-10-17)
+
+| Test                                                                                                                                                    | Kind | Status     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ---------- |
+| validation › join requires the agreement + typed signature; business questions; two references each with email or phone; packs answers for the database | unit | passing    |
+| sign-up trigger stores the application answers (references, signature, agreed time) and copies the product/service into the profile                     | DB   | passing    |
+| no application row without application metadata                                                                                                         | DB   | passing    |
+| applications readable only by the applicant and admins; no direct inserts/updates                                                                       | DB   | passing    |
+| one-page application: all errors at once + focus, full submit, answers stored, admin "View application", approve                                        | E2E  | passing    |
+| same email cannot apply twice (one-page form)                                                                                                           | E2E  | passing    |
+| Bylaws & Procedures page: sections, agenda, absence rule, leadership from the Management list, axe @responsive                                          | E2E  | passing ×3 |
+| Bylaws linked from the footer and the application form; Visit page shows the official agenda                                                            | E2E  | passing    |
+
 ## Change log (tests corrected while being written, before they ever passed)
 
 All changes fixed test mistakes, not app behaviour. None weakened an assertion.
@@ -225,3 +238,8 @@ All changes fixed test mistakes, not app behaviour. None weakened an assertion.
 
 12. Requirement change from the spec (speaker topics): `member › claim and release a speaker slot` became "claim a speaker slot with a topic, then release it". It now fills in the required topic (and checks the "Add a topic" error first). Same release assertions.
 13. New Phase B tests corrected while being written, before they ever passed: two link locators needed `exact: true` (the event title also appears in "Add to calendar for …" link names); "Online" radio needed `exact: true` (also matched "Online link"); the event test now waits for "Log out" to finish before navigating (it was racing the sign-out and still signed in).
+
+### Application form (2026-10-17, owner request to rebuild Join as their paper application)
+
+14. Requirement change: the multi-step Join form became one page matching the paper Member Application Form. `auth › join form validates each step…` became "one-page application validates, creates a pending account with the application…" (same assertions for the pending account, email confirmation, gate and approval, plus the new answers); `auth › the same email cannot sign up twice` fills the one-page form; validation tests use the new fields ("requires all three commitments" became "requires agreeing to the terms and a typed signature"). The Phase A test "join form warns about a full category" no longer clicks Continue (there are no steps).
+15. Real issues found by the tests and fixed in the app (tests unchanged): the directory search form kept the old keyword after "Clear" (form now resets on navigation); the Bylaws agenda table's scroll area wasn't keyboard-focusable at 375px.

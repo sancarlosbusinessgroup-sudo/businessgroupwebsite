@@ -24,7 +24,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     supabase
       .from('profiles')
       .select(
-        'id, first_name, last_name, business_name, guest_meetings_attended, created_at, categories(name), referrer:referred_by(first_name, last_name), member_contacts(email, phone)',
+        'id, first_name, last_name, business_name, website, guest_meetings_attended, created_at, categories(name), referrer:referred_by(first_name, last_name), member_contacts(email, phone), member_applications(*)',
       )
       .eq('status', 'pending')
       .order('created_at'),
@@ -65,6 +65,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               {pendingRes.data.map((p) => {
                 const contact = Array.isArray(p.member_contacts) ? p.member_contacts[0] : p.member_contacts;
                 const referrer = Array.isArray(p.referrer) ? p.referrer[0] : p.referrer;
+                const app = Array.isArray(p.member_applications) ? p.member_applications[0] : p.member_applications;
+                const refs = (app?.references ?? []) as {
+                  name?: string;
+                  business?: string | null;
+                  email?: string | null;
+                  phone?: string | null;
+                  website?: string | null;
+                }[];
                 return (
                   <li key={p.id} className="border-line flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
                     <div className="min-w-0">
@@ -76,6 +84,50 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                         {contact?.email} · applied {formatShortDate(new Date(p.created_at))} · guest visits: {p.guest_meetings_attended}
                         {referrer ? ` · referred by ${referrer.first_name} ${referrer.last_name}` : ''}
                       </div>
+                      {app ? (
+                        <details className="mt-2">
+                          <summary className="text-teal-text cursor-pointer text-sm font-bold">View application</summary>
+                          <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-2 text-[15px] sm:grid-cols-2">
+                            {[
+                              { k: 'Application date', v: formatShortDate(new Date(`${app.applied_on}T12:00:00Z`)) },
+                              { k: 'Business phone', v: app.business_phone },
+                              { k: 'Business address', v: app.business_address },
+                              { k: 'Website', v: p.website },
+                              { k: 'In business for', v: app.years_in_business },
+                              { k: 'Product or service', v: app.product_service },
+                              { k: 'Education & credentials', v: app.credentials },
+                              { k: 'Networking groups', v: app.networking_groups },
+                              { k: 'Signed', v: `${app.signature_name} · ${formatShortDate(new Date(app.agreed_at))}` },
+                            ].map((r) => (
+                              <div key={r.k}>
+                                <dt className="text-ink-muted text-[13px] font-bold">{r.k}</dt>
+                                <dd className="m-0 whitespace-pre-line">{r.v || '—'}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                          {refs.length ? (
+                            <div className="mt-3">
+                              <p className="text-ink-muted m-0 text-[13px] font-bold">References</p>
+                              <ul className="m-0 mt-1 flex list-none flex-col gap-1 p-0 text-[15px]">
+                                {refs.map((r, i) => (
+                                  <li key={i}>
+                                    <strong>{r.name}</strong>
+                                    {r.business ? ` · ${r.business}` : ''}
+                                    {r.email ? (
+                                      <>
+                                        {' · '}
+                                        <a href={`mailto:${r.email}`}>{r.email}</a>
+                                      </>
+                                    ) : null}
+                                    {r.phone ? ` · ${r.phone}` : ''}
+                                    {r.website ? ` · ${r.website}` : ''}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null}
+                        </details>
+                      ) : null}
                     </div>
                     <div className="flex gap-2">
                       <form action={setMemberStatus}>

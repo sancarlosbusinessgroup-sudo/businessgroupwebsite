@@ -26,13 +26,25 @@ const okJoin = {
   businessName: 'Park Studio',
   categoryId: '3',
   website: 'https://park.example.org',
-  serviceArea: 'Peninsula',
-  idealClient: 'Small teams',
+  businessAddress: '1 Main St, San Carlos, CA',
+  yearsInBusiness: '6 years',
+  productService: 'Brand and web design for local businesses.',
+  credentials: 'BFA, Graphic Design',
+  networkingGroups: 'Chamber of Commerce',
+  ref1Name: 'Lee Client',
+  ref1Business: 'Client Co',
+  ref1Email: 'lee@example.org',
+  ref1Phone: '',
+  ref1Website: '',
+  ref2Name: 'Sam Partner',
+  ref2Business: 'Partner LLC',
+  ref2Email: '',
+  ref2Phone: '(650) 555-0199',
+  ref2Website: 'https://partner.example.org',
   referralCode: 'AVER-001',
   guestMeetings: '2',
-  attend: 'on',
-  oneOnOnes: 'on',
-  report: 'on',
+  agree: 'on',
+  signature: 'Ada Park',
 };
 
 describe('guestRequestSchema', () => {
@@ -54,10 +66,34 @@ describe('joinSchema', () => {
   it('accepts a complete application', () => {
     expect(joinSchema.safeParse(okJoin).success).toBe(true);
   });
-  it('requires all three commitments', () => {
-    const r = joinSchema.safeParse({ ...okJoin, report: undefined });
+  it('requires agreeing to the terms and a typed signature', () => {
+    const r = joinSchema.safeParse({ ...okJoin, agree: undefined, signature: '' });
     expect(r.success).toBe(false);
-    expect(fieldErrors(r.error!).report).toBeDefined();
+    const errs = fieldErrors(r.error!);
+    expect(errs.agree).toBeDefined();
+    expect(errs.signature).toBeDefined();
+  });
+  it('requires the business questions and two references, each with an email or phone', () => {
+    const r = joinSchema.safeParse({ ...okJoin, phone: '', yearsInBusiness: '', productService: '', ref2Name: '', ref1Email: '', ref1Phone: '' });
+    expect(r.success).toBe(false);
+    const errs = fieldErrors(r.error!);
+    for (const k of ['phone', 'yearsInBusiness', 'productService', 'ref2Name', 'ref1Email']) expect(errs[k], k).toBeDefined();
+  });
+  it('packs the application answers for the database', () => {
+    const r = joinSchema.safeParse(okJoin);
+    expect(r.success && r.data.application).toEqual({
+      business_phone: '(650) 555-0100',
+      business_address: '1 Main St, San Carlos, CA',
+      years_in_business: '6 years',
+      product_service: 'Brand and web design for local businesses.',
+      credentials: 'BFA, Graphic Design',
+      networking_groups: 'Chamber of Commerce',
+      references: [
+        { name: 'Lee Client', business: 'Client Co', email: 'lee@example.org', phone: null, website: null },
+        { name: 'Sam Partner', business: 'Partner LLC', email: null, phone: '(650) 555-0199', website: 'https://partner.example.org' },
+      ],
+      signature_name: 'Ada Park',
+    });
   });
   it('rejects short passwords and non-http websites', () => {
     const r = joinSchema.safeParse({ ...okJoin, password: 'short', website: 'javascript:alert(1)' });

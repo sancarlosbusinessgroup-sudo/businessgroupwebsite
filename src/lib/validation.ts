@@ -70,31 +70,82 @@ export const guestRequestSchema = z.object({
   company: z.string().max(0, 'Leave this field empty').optional(),
 });
 
-export const joinAccountSchema = z.object({
-  firstName: text(60, 'First name'),
-  lastName: text(60, 'Last name'),
-  email,
-  phone,
-  password,
-});
+const refEmail = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .optional()
+  .transform((v) => (v ? v : undefined))
+  .refine((v) => v === undefined || (v.length <= 254 && z.email().safeParse(v).success), 'Enter a valid email address');
 
-export const joinBusinessSchema = z.object({
-  businessName: text(120, 'Business name'),
-  categoryId: z.coerce.number({ error: 'Choose a category' }).int('Choose a category').positive('Choose a category'),
-  website,
-  serviceArea: optionalText(120, 'Service area'),
-  idealClient: optionalText(1000, 'Ideal client'),
-});
-
-export const joinReferralSchema = z.object({
-  referralCode,
-  guestMeetings: z.enum(['0', '1', '2'], { error: 'Choose how many meetings you attended' }),
-  attend: mustCheck('Please agree to attend meetings regularly'),
-  oneOnOnes: mustCheck('Please agree to the committee one-on-ones'),
-  report: mustCheck('Please agree to report your activity'),
-});
-
-export const joinSchema = joinAccountSchema.and(joinBusinessSchema).and(joinReferralSchema);
+/** One-page membership application (mirrors the group's paper Member Application Form). */
+export const joinSchema = z
+  .object({
+    firstName: text(60, 'First name'),
+    lastName: text(60, 'Last name'),
+    email,
+    phone: z
+      .string({ error: 'Business phone is required' })
+      .trim()
+      .min(1, 'Business phone is required')
+      .refine((v) => /^[0-9()+\-.\s]{7,25}$|^[0-9()+\-.\s]{7,20}\s*(ext\.?|x)\s*\d{1,6}$/i.test(v), 'Enter a valid phone number'),
+    password,
+    businessName: text(120, 'Business name'),
+    categoryId: z.coerce.number({ error: 'Choose a category' }).int('Choose a category').positive('Choose a category'),
+    website,
+    businessAddress: optionalText(200, 'Business address'),
+    yearsInBusiness: text(60, 'How long you have been in business').refine(Boolean, 'Tell us how long you have been in business'),
+    productService: z
+      .string({ error: 'Please describe your product or service' })
+      .trim()
+      .min(1, 'Please describe your product or service')
+      .max(1000, 'Keep this under 1000 characters'),
+    credentials: optionalText(1000, 'Education and credentials'),
+    networkingGroups: optionalText(500, 'Networking groups'),
+    ref1Name: text(120, 'Reference name'),
+    ref1Business: optionalText(120, 'Reference business'),
+    ref1Email: refEmail,
+    ref1Phone: phone,
+    ref1Website: website,
+    ref2Name: text(120, 'Reference name'),
+    ref2Business: optionalText(120, 'Reference business'),
+    ref2Email: refEmail,
+    ref2Phone: phone,
+    ref2Website: website,
+    referralCode,
+    guestMeetings: z.enum(['0', '1', '2'], { error: 'Choose how many meetings you attended' }),
+    agree: mustCheck('Please agree to the terms'),
+    signature: z
+      .string({ error: 'Type your full name as your signature' })
+      .trim()
+      .min(2, 'Type your full name as your signature')
+      .max(120, 'Keep your signature under 120 characters'),
+  })
+  .superRefine((v, ctx) => {
+    for (const n of [1, 2] as const) {
+      if (!v[`ref${n}Email`] && !v[`ref${n}Phone`])
+        ctx.addIssue({ code: 'custom', path: [`ref${n}Email`], message: 'Add an email or phone for this reference' });
+    }
+  })
+  .transform((v) => ({
+    ...v,
+    application: {
+      business_phone: v.phone,
+      business_address: v.businessAddress ?? null,
+      years_in_business: v.yearsInBusiness,
+      product_service: v.productService,
+      credentials: v.credentials ?? null,
+      networking_groups: v.networkingGroups ?? null,
+      references: ([1, 2] as const).map((n) => ({
+        name: v[`ref${n}Name`],
+        business: v[`ref${n}Business`] ?? null,
+        email: v[`ref${n}Email`] ?? null,
+        phone: v[`ref${n}Phone`] ?? null,
+        website: v[`ref${n}Website`] ?? null,
+      })),
+      signature_name: v.signature,
+    },
+  }));
 
 export const loginSchema = z.object({ email, password: z.string().min(1, 'Password is required') });
 export const emailOnlySchema = z.object({ email });

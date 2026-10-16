@@ -47,7 +47,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         lead="Each person here represents a local business that believes in connection, accountability and growing together. Interested in visiting? Reach out to any member below."
       />
       <section className="container-site flex flex-col gap-6 pt-8 pb-14">
-        <form role="search" action="/members" className="card flex flex-wrap items-end gap-4 p-5">
+        <form key={`${sp.q ?? ''}|${sp.category ?? ''}|${sp.sort ?? ''}`} role="search" action="/members" className="card flex flex-wrap items-end gap-4 p-5">
           <div className="min-w-0 flex-[2_1_280px]">
             <label className="label" htmlFor="kw">
               Keyword

@@ -48,11 +48,6 @@ test.describe('public site', () => {
     await expect(open.getByText('Real Estate', { exact: true })).toHaveCount(0);
 
     await page.goto('/join');
-    await page.getByLabel('First name').fill('Jo');
-    await page.getByLabel('Last name').fill('Test');
-    await page.getByLabel('Email').fill('jo.full@example.test');
-    await page.getByLabel(/^Password/).fill('local-test-password-1');
-    await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByLabel('Category').selectOption({ label: 'Real Estate (full)' });
     await expect(page.getByText(/Real Estate already has a member/)).toBeVisible();
   });

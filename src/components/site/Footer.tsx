@@ -50,6 +50,9 @@ export function Footer() {
             © {year} {site.shortName} · {site.credit}
           </p>
           <div className="flex gap-[18px]">
+            <Link href="/bylaws" className="text-on-band-muted">
+              Bylaws &amp; procedures
+            </Link>
             <Link href="/terms" className="text-on-band-muted">
               Terms of use
             </Link>

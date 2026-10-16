@@ -31,15 +31,14 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
       data: {
         first_name: d.firstName,
         last_name: d.lastName,
-        phone: d.phone ?? '',
+        phone: d.phone,
         business_name: d.businessName,
         category_id: String(d.categoryId),
         website: d.website ?? '',
-        service_area: d.serviceArea ?? '',
-        ideal_client: d.idealClient ?? '',
         referral_code: d.referralCode ?? '',
         guest_meetings_attended: d.guestMeetings,
         agreed_commitments: 'true',
+        application: d.application,
       },
     },
   });

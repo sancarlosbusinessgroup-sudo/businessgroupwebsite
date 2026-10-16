@@ -416,6 +416,59 @@ export type Database = {
           },
         ];
       };
+      member_applications: {
+        Row: {
+          agreed_at: string;
+          applied_on: string;
+          business_address: string | null;
+          business_phone: string | null;
+          created_at: string;
+          credentials: string | null;
+          networking_groups: string | null;
+          product_service: string;
+          profile_id: string;
+          references: Json;
+          signature_name: string;
+          years_in_business: string;
+        };
+        Insert: {
+          agreed_at?: string;
+          applied_on?: string;
+          business_address?: string | null;
+          business_phone?: string | null;
+          created_at?: string;
+          credentials?: string | null;
+          networking_groups?: string | null;
+          product_service: string;
+          profile_id: string;
+          references?: Json;
+          signature_name: string;
+          years_in_business: string;
+        };
+        Update: {
+          agreed_at?: string;
+          applied_on?: string;
+          business_address?: string | null;
+          business_phone?: string | null;
+          created_at?: string;
+          credentials?: string | null;
+          networking_groups?: string | null;
+          product_service?: string;
+          profile_id?: string;
+          references?: Json;
+          signature_name?: string;
+          years_in_business?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'member_applications_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: true;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       member_contacts: {
         Row: { email: string; phone: string | null; profile_id: string };
         Insert: { email: string; phone?: string | null; profile_id: string };

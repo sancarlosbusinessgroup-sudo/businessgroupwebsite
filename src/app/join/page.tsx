@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Avatar, CheckIcon } from '@/components/ui';
 import { getCategorySeats } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
+import { formatShortDate, nowMs } from '@/lib/dates';
 import { referralCode as referralCodeSchema } from '@/lib/validation';
 import { JoinForm } from './JoinForm';
 import { site } from '@/lib/content';
@@ -26,7 +27,10 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
         <aside className="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
           <p className="eyebrow m-0">Membership application</p>
           <h1 className="font-display m-0 text-[clamp(32px,4vw,46px)] leading-[1.08] font-extrabold">Join {site.name}</h1>
-          <p className="text-ink-soft m-0">No dues. One business per category. Members commit to showing up, one-on-ones and tracking activity.</p>
+          <p className="text-ink-soft m-0">
+            No dues. One business per category. Members commit to showing up, one-to-ones and bringing referrals or visitors. See our{' '}
+            <Link href="/bylaws">Bylaws and Procedures</Link>.
+          </p>
           {referrerName ? (
             <div className="card flex items-center gap-3.5 p-5">
               <Avatar name={referrerName} size={48} />
@@ -56,7 +60,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
             </Link>
           </p>
         </aside>
-        <JoinForm categories={categories} referralCode={referralCode} referrerName={referrerName} />
+        <JoinForm categories={categories} referralCode={referralCode} referrerName={referrerName} today={formatShortDate(new Date(nowMs()))} />
       </section>
     </div>
   );
