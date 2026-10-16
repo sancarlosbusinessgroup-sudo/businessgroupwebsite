@@ -125,15 +125,18 @@ insert into public.meeting_links (meeting_id, join_url, passcode)
 select id, 'https://zoom.us/j/0000000000?pwd=sample', 'sample' from public.meetings where slug like 'group-meeting-%';
 
 -- Speakers for the next two meetings
-insert into public.meeting_speakers (meeting_id, slot, profile_id, display_name, business)
-select m.id, s.slot, s.pid, s.name, s.biz
+insert into public.meeting_speakers (meeting_id, slot, profile_id, display_name, business, topic, topic_description)
+select m.id, s.slot, s.pid, s.name, s.biz, s.topic, s.descr
 from (select id, row_number() over (order by starts_at) rn from public.meetings
       where slug like 'group-meeting-%' and starts_at > now()) m
 join (values
-  (1, 'education'::public.speaker_slot, '00000000-0000-4000-8000-000000000012'::uuid, 'Nathan Pryor', 'Pryor Family Insurance'),
-  (1, 'presentation'::public.speaker_slot, '00000000-0000-4000-8000-000000000013'::uuid, 'Celeste Amari', 'Second Spring Reverse Mortgages'),
-  (2, 'presentation'::public.speaker_slot, '00000000-0000-4000-8000-000000000006'::uuid, 'Hannah Brooks', 'Lumen & Frame Studio')
-) s(rn, slot, pid, name, biz) on s.rn = m.rn;
+  (1, 'education'::public.speaker_slot, '00000000-0000-4000-8000-000000000012'::uuid, 'Nathan Pryor', 'Pryor Family Insurance',
+     'Understanding umbrella insurance', 'When it makes sense and what it costs'),
+  (1, 'presentation'::public.speaker_slot, '00000000-0000-4000-8000-000000000013'::uuid, 'Celeste Amari', 'Second Spring Reverse Mortgages',
+     'Reverse mortgages, myth vs fact', null),
+  (2, 'presentation'::public.speaker_slot, '00000000-0000-4000-8000-000000000006'::uuid, 'Hannah Brooks', 'Lumen & Frame Studio',
+     'What makes a great headshot', 'Plus a live before-and-after')
+) s(rn, slot, pid, name, biz, topic, descr) on s.rn = m.rn;
 
 -- Attendance for past meetings (most members present most of the time)
 insert into public.attendance (meeting_id, profile_id, status, checked_in_at, method)
@@ -206,6 +209,18 @@ update public.guest_requests set status = 'visited' where email = 'alex.moreno@e
 insert into public.guest_requests (first_name, last_name, email, business_name, invited_by_text, referral_code)
 values ('Riley', 'Summers', 'riley.summers@example.com', 'Summit Web Studio', 'Avery Lindqvist', 'AVER-001');
 update public.guest_requests set status = 'applied' where email = 'riley.summers@example.com';
+
+-- Member events (hosted by fictional members) ---------------------------------------------
+insert into public.member_events (host_id, title, description, category, starts_at, ends_at, is_online, online_url, location)
+values
+  ('00000000-0000-4000-8000-000000000006', 'Headshot day at Lumen & Frame',
+   'Members get a fresh headshot in 15 minutes. Book a time at the door.', 'Workshop',
+   ((current_date + 10) + time '10:00') at time zone 'America/Los_Angeles',
+   ((current_date + 10) + time '14:00') at time zone 'America/Los_Angeles', false, null, '1200 Laurel St, San Carlos'),
+  ('00000000-0000-4000-8000-000000000011', 'Food travel Q&A',
+   'An open Q&A on planning small-group food trips.', 'Social',
+   ((current_date + 14) + time '18:00') at time zone 'America/Los_Angeles',
+   ((current_date + 14) + time '19:00') at time zone 'America/Los_Angeles', true, 'https://meet.example.org/food-travel', null);
 
 -- Management (About page) ---------------------------------------------------------------
 delete from public.leadership where name in ('Avery Lindqvist', 'Marcus Okafor', 'Priya Raman');

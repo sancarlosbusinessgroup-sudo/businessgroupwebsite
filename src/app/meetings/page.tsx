@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { DateBadge, EmptyState, Notice, Pill, StatTile } from '@/components/ui';
 import { speakerFor } from '@/components/meetings';
@@ -7,7 +8,9 @@ import { getUpcomingMeetings } from '@/lib/data/public';
 import { formatDayMonth, formatMeetingDate, formatMeetingTime, formatShortDate, inCheckInWindow, nowMs } from '@/lib/dates';
 import { attendancePct } from '@/lib/stats';
 import { createClient } from '@/lib/supabase/server';
-import { claimSpeakerSlot, joinMeeting, releaseSpeakerSlot, toggleRsvp } from '../actions/member';
+import { joinMeeting, releaseSpeakerSlot, toggleRsvp } from '../actions/member';
+import { ClaimSlotForm } from './ClaimSlotForm';
+import { slotShort } from '@/lib/content';
 import { CorrectionForm } from './CorrectionForm';
 
 export const metadata: Metadata = { title: 'Meetings & attendance' };
@@ -75,7 +78,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           <StatTile
             label="Last spoke"
             value={lastSpoke ? formatShortDate(new Date((lastSpoke.meetings as { starts_at: string }).starts_at)).replace(/, \d{4}$/, '') : '—'}
-            sub={lastSpoke ? (lastSpoke.slot === 'education' ? '5-min education' : '10-min presentation') : 'Claim a slot below'}
+            sub={lastSpoke ? `${slotShort[lastSpoke.slot]} presentation` : 'Claim a slot below'}
           />
         </div>
 
@@ -103,9 +106,17 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                         {formatMeetingDate(start)} · {formatMeetingTime(start)} PT · {m.location}
                       </p>
                       {m.category === 'Networking' ? (
-                        <p className="text-ink-soft m-0 mt-1 text-sm">
-                          5-min: {edu ? edu.display_name : 'open'} · Main: {main ? main.display_name : 'open'}
-                        </p>
+                        <ul className="text-ink-soft m-0 mt-1 list-none p-0 text-sm">
+                          {[
+                            { k: '5-minute', s: edu },
+                            { k: '10-minute', s: main },
+                          ].map(({ k, s }) => (
+                            <li key={k}>
+                              {k}: {s ? s.display_name : 'open'}
+                              {s?.topic ? <em> · “{s.topic}”</em> : null}
+                            </li>
+                          ))}
+                        </ul>
                       ) : null}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -123,24 +134,13 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                       {m.category === 'Networking'
                         ? (['education', 'presentation'] as const).map((slot) => {
                             const s = speakerFor(m, slot);
-                            const label = slot === 'education' ? '5-min slot' : '10-min slot';
-                            if (!s)
-                              return (
-                                <form key={slot} action={claimSpeakerSlot}>
-                                  <input type="hidden" name="meetingId" value={m.id} />
-                                  <input type="hidden" name="slot" value={slot} />
-                                  <button type="submit" className="btn btn-outline btn-sm">
-                                    Claim {label}
-                                  </button>
-                                </form>
-                              );
-                            if (s.profile_id === me.id)
+                            if (s?.profile_id === me.id)
                               return (
                                 <form key={slot} action={releaseSpeakerSlot}>
                                   <input type="hidden" name="meetingId" value={m.id} />
                                   <input type="hidden" name="slot" value={slot} />
                                   <button type="submit" className="btn btn-outline btn-sm">
-                                    Release my {label}
+                                    Release my {slotShort[slot]} slot
                                   </button>
                                 </form>
                               );
@@ -156,11 +156,19 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                         </form>
                       ) : null}
                     </div>
+                    {m.category === 'Networking' && start.getTime() > now.getTime()
+                      ? (['education', 'presentation'] as const)
+                          .filter((slot) => !speakerFor(m, slot))
+                          .map((slot) => <ClaimSlotForm key={slot} meetingId={m.id} slot={slot} when={formatMeetingDate(start)} />)
+                      : null}
                   </li>
                 );
               })}
             </ul>
           )}
+          <p className="text-ink-muted m-0 text-sm">
+            Meeting slides: <Link href="/present/next">open the slides for the next meeting</Link>.
+          </p>
         </section>
 
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="hist-h">

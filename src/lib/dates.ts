@@ -64,3 +64,35 @@ export function isoDateDaysAgo(days: number, now: Date = new Date()): string {
 
 /** Current time in ms (kept out of render bodies so server components stay lint-clean). */
 export const nowMs = () => Date.now();
+
+const LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+
+/** Offset (minutes) of Pacific time from UTC at a given instant, e.g. -420 in summer. */
+function pacificOffsetMinutes(at: Date): number {
+  const parts = fmt({ year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(at);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
+  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'));
+  return Math.round((asUtc - at.getTime()) / 60000);
+}
+
+/** "2026-10-20T18:00" (Pacific wall clock, as typed in a datetime-local field) → ISO UTC string. */
+export function pacificLocalToIso(local: string): string | null {
+  const m = LOCAL.exec(local);
+  if (!m) return null;
+  const [y, mo, d, h, mi] = m.slice(1).map(Number) as [number, number, number, number, number];
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59) return null;
+  const naive = Date.UTC(y, mo - 1, d, h, mi);
+  let guess = naive - pacificOffsetMinutes(new Date(naive)) * 60000;
+  guess = naive - pacificOffsetMinutes(new Date(guess)) * 60000;
+  const check = new Date(guess);
+  if (isoToPacificLocal(check.toISOString()) !== local) return null;
+  return check.toISOString();
+}
+
+/** ISO UTC string → "YYYY-MM-DDTHH:mm" in Pacific time (for datetime-local inputs). */
+export function isoToPacificLocal(iso: string): string {
+  const d = new Date(iso);
+  const parts = fmt({ year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+}

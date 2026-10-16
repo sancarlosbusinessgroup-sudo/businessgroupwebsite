@@ -41,12 +41,14 @@ test.describe('member area', () => {
     await expect(page.getByRole('button', { name: '✓ Going' })).toHaveCount(0);
   });
 
-  test('claim and release a speaker slot', async ({ page }) => {
+  test('claim a speaker slot with a topic, then release it', async ({ page }) => {
     await page.goto('/meetings');
-    await page
-      .getByRole('button', { name: /^Claim / })
-      .first()
-      .click();
+    const claim = page.getByRole('form', { name: /^Claim the 5-minute slot/ }).first();
+    await claim.getByRole('button', { name: 'Claim' }).click();
+    await expect(claim.getByText('Add a topic')).toBeVisible();
+    await claim.getByLabel('Topic').fill('Three pricing mistakes');
+    await claim.getByRole('button', { name: 'Claim' }).click();
+    await expect(page.getByText('Three pricing mistakes').first()).toBeVisible();
     const release = page.getByRole('button', { name: /^Release my / }).first();
     await expect(release).toBeVisible();
     await release.click();

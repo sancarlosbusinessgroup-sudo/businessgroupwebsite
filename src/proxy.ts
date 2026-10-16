@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from './lib/database.types';
 
-const MEMBER_PATHS = ['/dashboard', '/meetings', '/referrals', '/one-on-ones', '/profile', '/admin', '/pending'];
+const MEMBER_PATHS = ['/dashboard', '/meetings', '/referrals', '/one-on-ones', '/profile', '/admin', '/pending', '/present', '/events/new'];
 
 /**
  * Refreshes the Supabase session cookie on every request and sends signed-out

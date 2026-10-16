@@ -4,7 +4,8 @@ import { EventCard, NextMeetingCard } from '@/components/meetings';
 import { CheckIcon, EmptyState, SectionHead } from '@/components/ui';
 import { getViewer, isApproved } from '@/lib/auth';
 import { howItWorks, site } from '@/lib/content';
-import { getGallery, getMemberCount, getNextMeeting, getUpcomingMeetings } from '@/lib/data/public';
+import { getUpcomingCalendar } from '@/lib/data/events';
+import { getGallery, getMemberCount, getNextMeeting } from '@/lib/data/public';
 import { formatShortDate } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
 
@@ -12,7 +13,7 @@ export default async function HomePage() {
   const [viewer, next, upcoming, photos, count] = await Promise.all([
     getViewer(),
     getNextMeeting(),
-    getUpcomingMeetings(3),
+    getUpcomingCalendar(3),
     getGallery(undefined, 3),
     getMemberCount(),
   ]);
@@ -97,7 +98,7 @@ export default async function HomePage() {
           ) : (
             <div className="flex flex-col gap-4">
               {upcoming.map((m) => (
-                <EventCard key={m.id} meeting={m} member={member} />
+                <EventCard key={m.id} item={m} member={member} />
               ))}
             </div>
           )}

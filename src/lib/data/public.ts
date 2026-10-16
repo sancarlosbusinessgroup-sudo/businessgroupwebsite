@@ -2,10 +2,10 @@ import 'server-only';
 import { createClient } from '../supabase/server';
 import type { Tables } from '../database.types';
 
-export type Speaker = Pick<Tables<'meeting_speakers'>, 'slot' | 'display_name' | 'business' | 'profile_id'>;
+export type Speaker = Pick<Tables<'meeting_speakers'>, 'slot' | 'display_name' | 'business' | 'profile_id' | 'topic' | 'topic_description'>;
 export type MeetingWithSpeakers = Tables<'meetings'> & { meeting_speakers: Speaker[] };
 
-const MEETING_FIELDS = '*, meeting_speakers(slot, display_name, business, profile_id)';
+const MEETING_FIELDS = '*, meeting_speakers(slot, display_name, business, profile_id, topic, topic_description)';
 
 function fail(what: string, error: { message: string } | null): never {
   throw new Error(`Could not load ${what}${error ? `: ${error.message}` : ''}`);

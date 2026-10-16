@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { countdownParts, formatMeetingDate, formatMeetingTime, inCheckInWindow, monthGrid } from './dates';
+import { countdownParts, formatMeetingDate, formatMeetingTime, inCheckInWindow, monthGrid, isoToPacificLocal, pacificLocalToIso } from './dates';
 
 describe('countdownParts', () => {
   it('splits the remaining time into days/hours/minutes/seconds', () => {
@@ -44,5 +44,20 @@ describe('monthGrid', () => {
     expect(cells.slice(0, 4).every((c) => c === null)).toBe(true);
     expect(cells.filter((c) => c !== null)).toHaveLength(31);
     expect(cells[4]).toEqual({ year: 2026, month: 9, day: 1 });
+  });
+});
+
+describe('Pacific wall-clock times for event forms', () => {
+  it('converts a Pacific date + time to UTC across daylight saving', () => {
+    expect(pacificLocalToIso('2026-10-20T18:00')).toBe('2026-10-21T01:00:00.000Z'); // PDT, UTC-7
+    expect(pacificLocalToIso('2026-12-01T09:30')).toBe('2026-12-01T17:30:00.000Z'); // PST, UTC-8
+  });
+  it('returns null for malformed input', () => {
+    expect(pacificLocalToIso('2026-13-01T09:30')).toBeNull();
+    expect(pacificLocalToIso('tomorrow')).toBeNull();
+  });
+  it('round-trips back to the form value', () => {
+    expect(isoToPacificLocal('2026-10-21T01:00:00.000Z')).toBe('2026-10-20T18:00');
+    expect(isoToPacificLocal('2026-12-01T17:30:00Z')).toBe('2026-12-01T09:30');
   });
 });

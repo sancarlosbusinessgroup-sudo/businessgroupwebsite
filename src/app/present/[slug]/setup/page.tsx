@@ -1,0 +1,40 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { requireAdmin } from '@/lib/auth';
+import { getMeetingBySlug } from '@/lib/data/public';
+import { formatMeetingDate } from '@/lib/dates';
+import { DEFAULT_SLIDES, resolveSlides, slideLabel } from '@/lib/slides';
+import { createClient } from '@/lib/supabase/server';
+import { SlideSettingsForm } from './SlideSettingsForm';
+
+export const metadata: Metadata = { title: 'Customize slides', robots: { index: false } };
+
+export default async function SlideSetupPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  await requireAdmin();
+  const meeting = await getMeetingBySlug(slug);
+  if (!meeting) notFound();
+  const supabase = await createClient();
+  const { data } = await supabase.from('meeting_slide_settings').select('slides').eq('meeting_id', meeting.id).maybeSingle();
+  const shown = resolveSlides(data?.slides);
+  const hidden = DEFAULT_SLIDES.filter((k) => !shown.includes(k));
+  const rows = [...shown, ...hidden].map((k, n) => ({ key: k, label: slideLabel(k), shown: shown.includes(k), position: n + 1 }));
+
+  return (
+    <div className="bg-canvas">
+      <div className="container-site flex max-w-[820px] flex-col gap-5 pt-8 pb-16">
+        <div>
+          <Link href={`/present/${slug}`} className="text-sm font-bold">
+            ← Back to the slides
+          </Link>
+          <h1 className="font-display m-0 mt-3 text-[clamp(28px,3.4vw,40px)] font-extrabold">Slides for {formatMeetingDate(new Date(meeting.starts_at))}</h1>
+          <p className="text-ink-muted m-0 mt-1">
+            {data ? 'This meeting uses a custom order.' : 'This meeting uses the standard agenda.'} Changes apply to this meeting only.
+          </p>
+        </div>
+        <SlideSettingsForm meetingId={meeting.id} rows={rows} deckHref={`/present/${slug}`} />
+      </div>
+    </div>
+  );
+}

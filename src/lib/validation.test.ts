@@ -8,6 +8,9 @@ import {
   otpSchema,
   profileSchema,
   leadershipSchema,
+  memberEventSchema,
+  slideSettingsSchema,
+  speakerTopicSchema,
   referralSchema,
   referralUpdateSchema,
   seatLimitSchema,
@@ -156,5 +159,53 @@ describe('admin forms', () => {
     expect(seatLimitSchema.safeParse({ id: '3', seatLimit: '0' }).success).toBe(false);
     expect(seatLimitSchema.safeParse({ id: '3', seatLimit: '1.5' }).success).toBe(false);
     expect(seatLimitSchema.safeParse({ id: '3', seatLimit: '100' }).success).toBe(false);
+  });
+});
+
+describe('phase B forms', () => {
+  const now = new Date('2026-10-17T12:00:00Z');
+  const ok = {
+    title: 'Coffee and connections',
+    description: 'Informal networking.',
+    category: 'Networking',
+    startsAt: '2026-10-20T18:00',
+    endsAt: '2026-10-20T19:30',
+    format: 'in_person',
+    location: '123 Laurel St, San Carlos',
+    onlineUrl: '',
+  };
+  it('member event: valid in-person event converts Pacific times to UTC', () => {
+    const r = memberEventSchema(now).safeParse(ok);
+    expect(r.success).toBe(true);
+    expect(r.success && r.data).toMatchObject({ startsAt: '2026-10-21T01:00:00.000Z', endsAt: '2026-10-21T02:30:00.000Z', isOnline: false, onlineUrl: null });
+  });
+  it('member event: online needs an https link; in person needs an address', () => {
+    const online = memberEventSchema(now).safeParse({ ...ok, format: 'online', location: '', onlineUrl: 'http://zoom.us/j/1' });
+    expect(online.success).toBe(false);
+    expect(fieldErrors(online.error!).onlineUrl).toBeDefined();
+    const okOnline = memberEventSchema(now).safeParse({ ...ok, format: 'online', location: '', onlineUrl: 'https://zoom.us/j/1' });
+    expect(okOnline.success && okOnline.data).toMatchObject({ isOnline: true, location: null, onlineUrl: 'https://zoom.us/j/1' });
+    const noAddress = memberEventSchema(now).safeParse({ ...ok, location: '' });
+    expect(fieldErrors(noAddress.error!).location).toBeDefined();
+  });
+  it('member event: end after start, not in the past, known category, title required', () => {
+    const errs = (v: object) => fieldErrors(memberEventSchema(now).safeParse({ ...ok, ...v }).error!);
+    expect(errs({ endsAt: '2026-10-20T17:00' }).endsAt).toBeDefined();
+    expect(errs({ startsAt: '2026-10-01T18:00', endsAt: '2026-10-01T19:00' }).startsAt).toBeDefined();
+    expect(errs({ category: 'Party' }).category).toBeDefined();
+    expect(errs({ title: '' }).title).toBeDefined();
+  });
+  it('speaker topic is required (3–120 chars); description optional', () => {
+    expect(speakerTopicSchema.safeParse({ topic: '' }).success).toBe(false);
+    expect(speakerTopicSchema.safeParse({ topic: 'x'.repeat(121) }).success).toBe(false);
+    expect(speakerTopicSchema.safeParse({ topic: 'Pricing your services', topicDescription: '' }).data).toEqual({
+      topic: 'Pricing your services',
+      topicDescription: null,
+    });
+  });
+  it('slide settings: shown slides in the chosen order, at least one', () => {
+    const r = slideSettingsSchema.safeParse({ show_welcome: 'on', order_welcome: '2', show_closing: 'on', order_closing: '1', order_phones: '3' });
+    expect(r.success && r.data).toEqual(['closing', 'welcome']);
+    expect(slideSettingsSchema.safeParse({ order_welcome: '1' }).success).toBe(false);
   });
 });

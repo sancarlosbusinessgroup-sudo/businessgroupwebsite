@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { isoDateDaysAgo, localDateKey } from './dates';
+import { isoDateDaysAgo, localDateKey, pacificLocalToIso } from './dates';
+import { SLIDE_KEYS, type SlideKey } from './slides';
 
 // Shared by client components (instant inline errors) and server actions (authoritative checks).
 
@@ -218,6 +219,92 @@ export const leadershipSchema = z.object({
 export const seatLimitSchema = z.object({
   id: z.coerce.number().int().positive(),
   seatLimit: z.coerce.number({ error: 'Enter a number' }).int('Use a whole number').min(1, 'At least 1 seat').max(99, 'At most 99 seats'),
+});
+
+export const eventCategories = ['Networking', 'Social', 'Workshop', 'Community'] as const;
+
+/** Member event form. Times are typed as Pacific wall-clock and converted to UTC here. */
+export const memberEventSchema = (now: Date = new Date()) =>
+  z
+    .object({
+      title: z
+        .string({ error: 'Event title is required' })
+        .trim()
+        .min(1, 'Event title is required')
+        .min(3, 'Use at least 3 characters')
+        .max(160, 'Keep the title under 160 characters'),
+      description: optionalText(4000, 'Description'),
+      category: z.enum(eventCategories, { error: 'Choose a category' }),
+      startsAt: z.string({ error: 'Choose when it starts' }).transform((v, ctx) => {
+        const iso = pacificLocalToIso(v);
+        if (!iso) {
+          ctx.addIssue({ code: 'custom', message: 'Choose when it starts' });
+          return z.NEVER;
+        }
+        return iso;
+      }),
+      endsAt: z.string({ error: 'Choose when it ends' }).transform((v, ctx) => {
+        const iso = pacificLocalToIso(v);
+        if (!iso) {
+          ctx.addIssue({ code: 'custom', message: 'Choose when it ends' });
+          return z.NEVER;
+        }
+        return iso;
+      }),
+      format: z.enum(['online', 'in_person'], { error: 'Choose online or in person' }),
+      onlineUrl: z
+        .string()
+        .trim()
+        .optional()
+        .transform((v) => (v ? v : null)),
+      location: z
+        .string()
+        .trim()
+        .max(200, 'Keep the address under 200 characters')
+        .optional()
+        .transform((v) => (v ? v : null)),
+    })
+    .superRefine((v, ctx) => {
+      if (v.startsAt < new Date(now.getTime() - 60 * 60000).toISOString())
+        ctx.addIssue({ code: 'custom', path: ['startsAt'], message: 'Choose a date and time in the future' });
+      if (v.endsAt <= v.startsAt) ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'The end must be after the start' });
+      if (v.format === 'online' && !(v.onlineUrl && /^https:\/\/[^\s]+\.[^\s]+$/i.test(v.onlineUrl) && v.onlineUrl.length <= 500))
+        ctx.addIssue({ code: 'custom', path: ['onlineUrl'], message: 'Use a secure link that starts with https://' });
+      if (v.format === 'in_person' && !v.location) ctx.addIssue({ code: 'custom', path: ['location'], message: 'Add the address' });
+    })
+    .transform((v) => ({
+      title: v.title,
+      description: v.description ?? null,
+      category: v.category,
+      startsAt: v.startsAt,
+      endsAt: v.endsAt,
+      isOnline: v.format === 'online',
+      onlineUrl: v.format === 'online' ? v.onlineUrl : null,
+      location: v.format === 'in_person' ? v.location : null,
+    }));
+
+export const speakerTopicSchema = z.object({
+  topic: z.string({ error: 'Add a topic' }).trim().min(1, 'Add a topic').min(3, 'Use at least 3 characters').max(120, 'Keep the topic under 120 characters'),
+  topicDescription: z
+    .string()
+    .trim()
+    .max(500, 'Keep the description under 500 characters')
+    .optional()
+    .transform((v) => (v ? v : null)),
+});
+
+/** Slide settings form: show_<key>=on and order_<key>=<number> → shown keys in order. */
+export const slideSettingsSchema = z.record(z.string(), z.string()).transform((form, ctx) => {
+  const shown = SLIDE_KEYS.filter((k) => form[`show_${k}`] === 'on' || form[`show_${k}`] === 'true');
+  if (shown.length === 0) {
+    ctx.addIssue({ code: 'custom', message: 'Show at least one slide' });
+    return z.NEVER;
+  }
+  const pos = (k: SlideKey) => {
+    const n = Number(form[`order_${k}`]);
+    return Number.isFinite(n) ? n : SLIDE_KEYS.indexOf(k) + 1;
+  };
+  return [...shown].sort((a, b) => pos(a) - pos(b) || SLIDE_KEYS.indexOf(a) - SLIDE_KEYS.indexOf(b));
 });
 
 export type FieldErrors = Record<string, string[] | undefined>;

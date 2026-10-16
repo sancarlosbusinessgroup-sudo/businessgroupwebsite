@@ -1,6 +1,6 @@
 # Phase 2 spec
 
-Status: **decisions agreed 2026-10-16; Phase A built and deployed 2026-10-16**, waiting on a few inputs from the owner (marked **INPUT NEEDED**).
+Status: **decisions agreed 2026-10-16; Phase A built and deployed 2026-10-17; Phase B built 2026-10-17**, waiting on a few inputs from the owner (marked **INPUT NEEDED**).
 Everything here builds on the live site (Next.js + Supabase + Vercel). The rules in the original build brief still apply: tests first, RLS on every table, no secrets in the repo, fictional seed data only, free tiers only, ask before anything that creates, deletes or overwrites resources (including dropping columns).
 
 The group is being renamed; all copy uses `site.name` / `site.shortName` from `src/lib/content.ts` (currently the placeholder `[New Name]`).
@@ -141,6 +141,14 @@ Migration `supabase/migrations/20261016000001_phase_a.sql` (drops approved by th
 - **Open categories**: `categories.seat_limit` (default 1) replaces the one-per-category index; a trigger blocks approving into a full category; admins change seats on `/admin`. Visit lists open professions (except "Other"); Join marks full categories and warns, but still lets people apply.
 
 Still open for the owner: one-on-ones remain visible to all members as a group feed (dashboard / one-on-ones page) as before; say if that should become private to the two members.
+
+## Phase B: built 2026-10-17
+
+Migration `supabase/migrations/20261017000001_phase_b.sql` (additive only). Choices made during the build:
+
+- **Member events** use their own table `member_events` (not `meetings`), so attendance, Zoom check-in and "next meeting" logic are untouched. Categories: Networking, Social, Workshop, Community. Online events show their link publicly ("Join online"); in-person events show the address. Optional image, resized in the browser. Limit: 10 per member per 30 days. Host or admin edits/deletes from the event page. They appear in the Events list, month view, Home "upcoming events", both `.ics` feeds, and a "Member events" filter.
+- **Speaker slots** keep their database values (`education` = 5-minute, `presentation` = 10-minute) and are labelled "5-minute presentation" / "10-minute presentation" everywhere. Claiming requires a topic (3–120 characters) plus an optional short description; topics show on Meetings, the event page, the Next-meeting card and the slides.
+- **Slides** at `/present/next` (redirects to the next meeting) and `/present/[meeting]`, members and admins only. Keyboard ← → / ↑ ↓ / PageUp PageDown (clickers) / Space / Home / End, F for full screen; 16:9 stage that scales to the window. Summary uses "since the last meeting", "this month" and "this year"; leaderboards use this month. Visitors show as first name + last initial. Admins customize per meeting at `/present/[meeting]/setup` (show/hide + position, reset to standard agenda).
 
 ## Inputs needed from the owner
 

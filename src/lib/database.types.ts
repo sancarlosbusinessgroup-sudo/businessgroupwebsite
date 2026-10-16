@@ -248,8 +248,84 @@ export type Database = {
           },
         ];
       };
+      member_events: {
+        Row: {
+          category: string;
+          created_at: string;
+          description: string | null;
+          ends_at: string;
+          host_id: string;
+          id: string;
+          image_path: string | null;
+          is_online: boolean;
+          location: string | null;
+          online_url: string | null;
+          slug: string;
+          starts_at: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          category?: string;
+          created_at?: string;
+          description?: string | null;
+          ends_at: string;
+          host_id?: string;
+          id?: string;
+          image_path?: string | null;
+          is_online?: boolean;
+          location?: string | null;
+          online_url?: string | null;
+          slug?: string;
+          starts_at: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          category?: string;
+          created_at?: string;
+          description?: string | null;
+          ends_at?: string;
+          host_id?: string;
+          id?: string;
+          image_path?: string | null;
+          is_online?: boolean;
+          location?: string | null;
+          online_url?: string | null;
+          slug?: string;
+          starts_at?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: 'member_events_host_id_fkey'; columns: ['host_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+        ];
+      };
+      meeting_slide_settings: {
+        Row: { meeting_id: string; slides: string[]; updated_at: string };
+        Insert: { meeting_id: string; slides: string[]; updated_at?: string };
+        Update: { meeting_id?: string; slides?: string[]; updated_at?: string };
+        Relationships: [
+          {
+            foreignKeyName: 'meeting_slide_settings_meeting_id_fkey';
+            columns: ['meeting_id'];
+            isOneToOne: true;
+            referencedRelation: 'meetings';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       meeting_speakers: {
-        Row: { business: string | null; created_at: string; display_name: string; meeting_id: string; profile_id: string | null; slot: E['speaker_slot'] };
+        Row: {
+          business: string | null;
+          created_at: string;
+          display_name: string;
+          meeting_id: string;
+          profile_id: string | null;
+          slot: E['speaker_slot'];
+          topic: string | null;
+          topic_description: string | null;
+        };
         Insert: {
           business?: string | null;
           created_at?: string;
@@ -257,6 +333,8 @@ export type Database = {
           meeting_id: string;
           profile_id?: string | null;
           slot: E['speaker_slot'];
+          topic?: string | null;
+          topic_description?: string | null;
         };
         Update: {
           business?: string | null;
@@ -265,6 +343,8 @@ export type Database = {
           meeting_id?: string;
           profile_id?: string | null;
           slot?: E['speaker_slot'];
+          topic?: string | null;
+          topic_description?: string | null;
         };
         Relationships: [
           {
@@ -576,6 +656,7 @@ export type Database = {
         Args: { p_from?: string | null; p_to?: string | null; p_limit?: number };
         Returns: { first_name: string; last_name: string; metric: string; profile_id: string; rank: number; value: number }[];
       };
+      meeting_visitors: { Args: { p_meeting: string }; Returns: { business_name: string | null; display_name: string; invited_by: string | null }[] };
       member_count: { Args: never; Returns: number };
       open_categories: { Args: never; Returns: { id: number; name: string; seat_limit: number; taken: number }[] };
       public_phone: { Args: { p_slug: string }; Returns: string };

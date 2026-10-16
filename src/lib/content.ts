@@ -122,3 +122,7 @@ export const guestStatusLabels = {
   applied: 'Applied',
   joined: 'Joined',
 } as const;
+
+/** Speaker slots: database values stay 'education' / 'presentation'. */
+export const slotLabels = { education: '5-minute presentation', presentation: '10-minute presentation' } as const;
+export const slotShort = { education: '5-minute', presentation: '10-minute' } as const;

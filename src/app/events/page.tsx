@@ -5,7 +5,8 @@ import { EventCard } from '@/components/meetings';
 import { Avatar, EmptyState, PageHero } from '@/components/ui';
 import { getViewer, isApproved } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { getMeetingsBetween, getNextMeeting, getUpcomingMeetings } from '@/lib/data/public';
+import { getCalendarBetween, getUpcomingCalendar } from '@/lib/data/events';
+import { getNextMeeting } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime, localDateKey, monthGrid } from '@/lib/dates';
 import { site } from '@/lib/content';
 
@@ -15,6 +16,8 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 const DOWS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 type Search = { view?: string; month?: string; category?: string };
+
+const CATEGORY_FILTERS = ['Networking', 'Social', 'Workshop', 'Community', 'member'] as const;
 
 function parseMonth(raw: string | undefined): { y: number; m: number } {
   const now = localDateKey(new Date());
@@ -28,32 +31,38 @@ const monthKey = (y: number, m: number) => `${y}-${String(m + 1).padStart(2, '0'
 export default async function EventsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const view = sp.view === 'month' ? 'month' : 'list';
-  const category = sp.category === 'Networking' || sp.category === 'Social' ? sp.category : undefined;
+  const category = CATEGORY_FILTERS.includes(sp.category as (typeof CATEGORY_FILTERS)[number]) ? sp.category : undefined;
   const { y, m } = parseMonth(sp.month);
 
-  const [viewer, next, upcomingAll] = await Promise.all([getViewer(), getNextMeeting(), getUpcomingMeetings(12)]);
+  const [viewer, next, upcomingAll] = await Promise.all([getViewer(), getNextMeeting(), getUpcomingCalendar(16)]);
   const member = isApproved(viewer);
-  const upcoming = category ? upcomingAll.filter((e) => e.category === category) : upcomingAll;
+  const matches = (e: { category: string; kind: string }) => !category || (category === 'member' ? e.kind === 'member' : e.category === category);
+  const upcoming = upcomingAll.filter(matches);
 
-  const counts = { all: upcomingAll.length, Networking: 0, Social: 0 } as Record<string, number>;
-  for (const e of upcomingAll) counts[e.category] = (counts[e.category] ?? 0) + 1;
+  const counts = { all: upcomingAll.length, Networking: 0, Social: 0, Workshop: 0, Community: 0, member: 0 } as Record<string, number>;
+  for (const e of upcomingAll) {
+    counts[e.category] = (counts[e.category] ?? 0) + 1;
+    if (e.kind === 'member') counts.member = (counts.member ?? 0) + 1;
+  }
   const tags = [...new Set(upcomingAll.flatMap((e) => e.tags))].slice(0, 8);
 
-  // Organizers (public names of approved members)
-  const orgIds = [...new Set(upcomingAll.map((e) => e.organizer_id).filter((x): x is string => !!x))];
+  // Organizers and hosts (public names of approved members)
+  const orgIds = [...new Set(upcomingAll.map((e) => e.organizerId ?? e.hostId).filter((x): x is string => !!x))];
   const supabase = await createClient();
   const { data: orgs } = orgIds.length
     ? await supabase.from('profiles').select('id, first_name, last_name').in('id', orgIds)
     : { data: [] as { id: string; first_name: string; last_name: string }[] };
   const organizers = (orgs ?? []).map((o) => ({
     name: `${o.first_name} ${o.last_name}`,
-    count: upcomingAll.filter((e) => e.organizer_id === o.id).length,
+    count: upcomingAll.filter((e) => (e.organizerId ?? e.hostId) === o.id).length,
   }));
 
   // Month view data (calendar covers the month in Pacific time; ±1 day margin then bucket by local date)
   const monthEvents =
     view === 'month'
-      ? await getMeetingsBetween(new Date(Date.UTC(y, m, 1) - 86400000).toISOString(), new Date(Date.UTC(y, m + 1, 1) + 86400000).toISOString())
+      ? (await getCalendarBetween(new Date(Date.UTC(y, m, 1) - 86400000).toISOString(), new Date(Date.UTC(y, m + 1, 1) + 86400000).toISOString())).filter(
+          matches,
+        )
       : [];
   const byDay = new Map<string, typeof monthEvents>();
   for (const e of monthEvents) {
@@ -78,7 +87,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
       <PageHero
         crumb="Events"
         title="Business networking events"
-        lead="Meetings every other Monday at 8:15 AM on Zoom, plus member-hosted gatherings across the Peninsula."
+        lead="Meetings every other Monday at 8:15 AM on Zoom, plus member-hosted events across the Peninsula."
       >
         {next ? (
           <div className="card min-w-0 flex-[1_1_380px]">
@@ -122,7 +131,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
             ) : (
               <div className="flex flex-col gap-4">
                 {upcoming.map((e) => (
-                  <EventCard key={e.id} meeting={e} member={member} />
+                  <EventCard key={e.id} item={e} member={member} />
                 ))}
               </div>
             )
@@ -177,7 +186,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                                     e.is_online ? 'bg-teal text-on-teal' : 'bg-amber-tint text-amber'
                                   }`}
                                 >
-                                  {formatMeetingTime(new Date(e.starts_at))} {e.category === 'Networking' ? site.shortName : e.title}
+                                  {formatMeetingTime(new Date(e.starts_at))} {e.regular ? site.shortName : e.title}
                                 </Link>
                               ))}
                             </td>
@@ -210,19 +219,24 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                 { label: 'All', value: undefined, n: counts.all },
                 { label: 'Networking', value: 'Networking', n: counts.Networking },
                 { label: 'Social', value: 'Social', n: counts.Social },
-              ].map((c) => {
-                const active = category === c.value;
-                return (
-                  <Link
-                    key={c.label}
-                    href={q({ view: view === 'month' ? 'month' : undefined, category: c.value })}
-                    aria-current={active ? 'true' : undefined}
-                    className={`chip no-underline ${active ? 'border-teal bg-teal text-on-teal' : ''}`}
-                  >
-                    {c.label} · {c.n ?? 0}
-                  </Link>
-                );
-              })}
+                { label: 'Workshop', value: 'Workshop', n: counts.Workshop },
+                { label: 'Community', value: 'Community', n: counts.Community },
+                { label: 'Member events', value: 'member', n: counts.member },
+              ]
+                .filter((c) => c.value === undefined || c.value === 'Networking' || c.value === 'Social' || (c.n ?? 0) > 0 || c.value === category)
+                .map((c) => {
+                  const active = category === c.value;
+                  return (
+                    <Link
+                      key={c.label}
+                      href={q({ view: view === 'month' ? 'month' : undefined, category: c.value })}
+                      aria-current={active ? 'true' : undefined}
+                      className={`chip no-underline ${active ? 'border-teal bg-teal text-on-teal' : ''}`}
+                    >
+                      {c.label} · {c.n ?? 0}
+                    </Link>
+                  );
+                })}
             </div>
           </div>
           {tags.length ? (
@@ -255,9 +269,16 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
               </ul>
             </div>
           ) : null}
+          <div className="card flex flex-col gap-2.5 p-5">
+            <h2 className="font-display m-0 text-lg">Hosting something?</h2>
+            <p className="text-ink-muted m-0 text-[15px]">Members can post workshops, socials and open houses. They appear here right away.</p>
+            <Link className="btn btn-primary btn-sm self-start" href={member ? '/events/new' : '/login?next=/events/new'}>
+              {member ? 'Post an event' : 'Log in to post an event'}
+            </Link>
+          </div>
           <div className="bg-band text-on-band flex flex-col gap-2.5 rounded-2xl p-5">
             <h2 className="font-display text-on-band m-0 text-lg">Want to speak at a meeting?</h2>
-            <p className="text-on-band-muted m-0 text-[15px]">Members claim 5-minute education or 10-minute presentation slots on the Meetings page.</p>
+            <p className="text-on-band-muted m-0 text-[15px]">Members claim 5-minute and 10-minute presentation slots on the Meetings page.</p>
             <Link className="btn btn-light btn-sm self-start" href={member ? '/meetings' : '/login?next=/meetings'}>
               {member ? 'Claim a slot' : 'Log in to sign up'}
             </Link>

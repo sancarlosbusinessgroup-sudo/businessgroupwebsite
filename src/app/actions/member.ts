@@ -14,6 +14,7 @@ import {
   profileSchema,
   referralSchema,
   referralUpdateSchema,
+  speakerTopicSchema,
   weeklyAskSchema,
 } from '@/lib/validation';
 
@@ -55,22 +56,31 @@ export async function toggleRsvp(formData: FormData): Promise<void> {
   revalidatePath('/dashboard');
 }
 
-export async function claimSpeakerSlot(formData: FormData): Promise<void> {
-  const id = uuid.safeParse(formData.get('meetingId'));
-  const slot = z.enum(['education', 'presentation']).safeParse(formData.get('slot'));
-  if (!id.success || !slot.success) return;
+export async function claimSpeakerSlot(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formToObject(formData);
+  const id = uuid.safeParse(values.meetingId);
+  const slot = z.enum(['education', 'presentation']).safeParse(values.slot);
+  const topic = speakerTopicSchema.safeParse(values);
+  if (!id.success || !slot.success) return { status: 'error', message: GENERIC };
+  if (!topic.success) return { status: 'error', errors: fieldErrors(topic.error), values };
   const { supabase, user } = await session();
-  if (!user) return;
+  if (!user) return { status: 'error', message: 'Please log in again.' };
   const { data: me } = await supabase.from('profiles').select('first_name, last_name, business_name').eq('id', user.id).single();
-  if (!me) return;
-  await supabase.from('meeting_speakers').insert({
+  if (!me) return { status: 'error', message: GENERIC };
+  const { error } = await supabase.from('meeting_speakers').insert({
     meeting_id: id.data,
     slot: slot.data,
     profile_id: user.id,
     display_name: `${me.first_name} ${me.last_name}`,
     business: me.business_name,
+    topic: topic.data.topic,
+    topic_description: topic.data.topicDescription,
   });
+  if (error) return { status: 'error', message: 'Someone may have just claimed this slot. Please refresh the page.', values };
   revalidatePath('/meetings');
+  revalidatePath('/events');
+  revalidatePath('/dashboard');
+  return { status: 'success' };
 }
 
 export async function releaseSpeakerSlot(formData: FormData): Promise<void> {

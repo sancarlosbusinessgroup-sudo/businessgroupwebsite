@@ -1,8 +1,8 @@
 # Test plan
 
-Requirement numbers refer to the build brief: **R1** pages reproduced · **R2** interactions work · **R3** Supabase schema, RLS, seed · **R4** auth + approval · **R5** forms (validation, errors, states) · **R6** empty/loading/error states · **R7** repo + README · **R8** deploy. **A11y** = WCAG 2.1 AA (axe). **PA** = Phase A of `docs/phase-2-spec.md`.
+Requirement numbers refer to the build brief: **R1** pages reproduced · **R2** interactions work · **R3** Supabase schema, RLS, seed · **R4** auth + approval · **R5** forms (validation, errors, states) · **R6** empty/loading/error states · **R7** repo + README · **R8** deploy. **A11y** = WCAG 2.1 AA (axe). **PA** / **PB** = Phase A / B of `docs/phase-2-spec.md`.
 
-Status as of the last full run (2026-10-16, freshly reset local stack, `npm run test:all` order): **Unit 48/48 · Database 46/46 · E2E 88/88 (58 desktop + 15 tablet 768px + 15 phone 375px)**. Lint, type-check, Prettier and `next build`: clean.
+Status as of the last full run (2026-10-17, freshly reset local stack, `npm run test:all` order): **Unit 60/60 · Database 58/58 · E2E 98/98 (66 desktop + 16 tablet 768px + 16 phone 375px)**. Lint, type-check, Prettier and `next build`: clean.
 
 ## Unit (Vitest + React Testing Library): `npm test`
 
@@ -115,7 +115,7 @@ Tests tagged **@responsive** also run at 768px and 375px.
 | 8 member pages render, no console errors, axe clean @responsive                                                                             | R1 R6 A11y | passing ×3           |
 | members see contact details + member nav                                                                                                    | R4         | passing              |
 | RSVP toggle saved                                                                                                                           | R2 R3      | passing              |
-| claim/release speaker slot                                                                                                                  | R2 R3      | passing              |
+| claim (with topic)/release speaker slot                                                                                                     | R2 R3      | passing              |
 | Zoom link opens stored URL                                                                                                                  | R2 R3      | passing              |
 | attendance correction: validation + saved                                                                                                   | R5         | passing              |
 | one-on-one: errors → report → partner confirms (no stars)                                                                                   | R3 R5      | passing              |
@@ -151,6 +151,46 @@ Tests tagged **@responsive** also run at 768px and 375px.
 - **Loading skeleton** (`app/loading.tsx`): appears only on slow networks; verified manually.
 - **Production smoke test**: to run against the live URL after deploy (`E2E_BASE_URL=…`).
 
+## Phase B tests
+
+### Unit
+
+| Test                                                                                                                                          | Status  |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| dates › Pacific date+time → UTC across daylight saving, malformed input, round trip                                                           | passing |
+| slides › default agenda order, saved order cleaned (unknown/duplicate keys), fallback to defaults; chunk                                      | passing |
+| validation › member event: Pacific → UTC, online needs https link, in person needs address, end after start, not in the past, category, title | passing |
+| validation › speaker topic required 3–120 chars, description optional                                                                         | passing |
+| validation › slide settings form → shown slides in chosen order, at least one                                                                 | passing |
+
+### Database (`tests/db/phase-b.test.ts`)
+
+| Test                                                                                                                 | Status  |
+| -------------------------------------------------------------------------------------------------------------------- | ------- |
+| member events: public read, visitors cannot post                                                                     | passing |
+| approved member posts as self; slug generated and unique                                                             | passing |
+| nobody posts as someone else; pending cannot post                                                                    | passing |
+| online needs https link; in person needs address                                                                     | passing |
+| event image must be in the host's own upload folder                                                                  | passing |
+| host edits/deletes own; other members cannot; host cannot hand the event to someone else; admins can edit/remove any | passing |
+| at most 10 events per member in 30 days                                                                              | passing |
+| speaker claims a slot with topic + description; topic length limit                                                   | passing |
+| slide settings: members read, only admins write, slide names checked; visitors cannot read                           | passing |
+| meeting_visitors: members get first name + last initial; visitors and pending refused                                | passing |
+
+### End-to-end (`tests/e2e/phase-b.spec.ts`)
+
+| Test                                                                                                                                               | Status               |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| visitors see member events, must log in to post                                                                                                    | passing              |
+| member posts (validation, axe) → public page "hosted by" → edit → shown on /events and in both .ics feeds → other member can't edit → host deletes | passing              |
+| online event: insecure link rejected, "Join online" link, "Member events" filter                                                                   | passing              |
+| admins can edit/remove any member event                                                                                                            | passing              |
+| slides: signed-out visitors redirected                                                                                                             | passing              |
+| slides: keyboard (← → PageDown Home End), Prev button, 5-minute speaker + topic, axe @responsive                                                   | passing ×3 viewports |
+| slides: admin hides and reorders slides for a meeting, then resets (axe on setup page)                                                             | passing              |
+| members cannot customize slides                                                                                                                    | passing              |
+
 ## Change log (tests corrected while being written, before they ever passed)
 
 All changes fixed test mistakes, not app behaviour. None weakened an assertion.
@@ -180,3 +220,8 @@ All changes fixed test mistakes, not app behaviour. None weakened an assertion.
 9. New Phase A tests corrected while being written, before they ever passed: the enum test cast labels to `text` (Postgres returned a `name[]` as one string); two stats tests used prospect names shorter than the 2-character minimum; three E2E locators were ambiguous ("President" also matched "Vice President"; "Period" also matched the form's label; "Name" needed a non-exact match because of the required-field asterisk).
 10. Owner removed the temperature choice (2026-10-17): the referral-slip validation test now checks there is no temperature field, and the E2E referral test checks the Temperature field is absent instead of choosing "hot".
 11. Real issue found by axe at 375px: the directory-download table's scroll area wasn't keyboard-focusable. Fixed in the page (focusable labelled region); the test was not changed.
+
+### Phase B (2026-10-17)
+
+12. Requirement change from the spec (speaker topics): `member › claim and release a speaker slot` became "claim a speaker slot with a topic, then release it". It now fills in the required topic (and checks the "Add a topic" error first). Same release assertions.
+13. New Phase B tests corrected while being written, before they ever passed: two link locators needed `exact: true` (the event title also appears in "Add to calendar for …" link names); "Online" radio needed `exact: true` (also matched "Online link"); the event test now waits for "Log out" to finish before navigating (it was racing the sign-out and still signed in).

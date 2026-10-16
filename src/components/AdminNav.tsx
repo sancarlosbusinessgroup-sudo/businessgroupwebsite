@@ -4,6 +4,7 @@ const links = [
   { href: '/admin', label: 'Overview' },
   { href: '/admin/stats', label: 'Member stats' },
   { href: '/admin/leadership', label: 'Management' },
+  { href: '/present/next', label: 'Meeting slides' },
 ] as const;
 
 export function AdminNav({ current }: { current: (typeof links)[number]['href'] }) {
