@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ProfileView } from '@/components/ProfileView';
 import { getViewer, isApproved } from '@/lib/auth';
-import { getMemberBySlug, getPublicPhone, getPublicStats } from '@/lib/data/public';
+import { getMemberBySlug, getPublicPhone } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -30,20 +30,13 @@ export default async function MemberProfilePage({ params }: Props) {
   } else {
     phone = await getPublicPhone(slug);
   }
-  const stats = await getPublicStats(slug);
 
   return (
     <div className="container-site flex flex-col gap-4 py-8">
       <nav aria-label="Breadcrumb" className="text-ink-muted text-sm">
         <Link href="/">Home</Link> / <Link href="/members">Members</Link> / <span aria-current="page">{profile.business_name}</span>
       </nav>
-      <ProfileView
-        profile={profile}
-        stats={stats}
-        contact={{ email, phone, membersOnly: !member }}
-        viewerIsMember={member}
-        isSelf={viewer?.userId === profile.id}
-      />
+      <ProfileView profile={profile} contact={{ email, phone, membersOnly: !member }} viewerIsMember={member} isSelf={viewer?.userId === profile.id} />
     </div>
   );
 }

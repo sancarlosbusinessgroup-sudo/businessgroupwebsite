@@ -145,26 +145,42 @@ from public.meetings m cross join public.profiles p
 where m.slug like 'group-meeting-%' and m.ends_at < now() and p.status = 'approved'
   and m.starts_at >= p.approved_at;
 
--- Business referrals ---------------------------------------------------------------
-insert into public.referrals (from_id, to_id, contact_name, warmth, notes, status, closed_amount, created_at, updated_at)
+-- Business referrals (referral slips; closed deals are counts only) -----------------------
+-- Inserted as 'new', then moved to their status so the trigger stamps closed_at; dates are then backdated.
+insert into public.referrals (from_id, to_id, contact_name, warmth, notes, prospect_phone, prospect_consent, created_at, updated_at)
 select ('00000000-0000-4000-8000-' || lpad(f::text, 12, '0'))::uuid,
        ('00000000-0000-4000-8000-' || lpad(t::text, 12, '0'))::uuid,
-       contact, warmth::public.referral_warmth, notes, status::public.referral_status, amount,
-       now() - make_interval(days => ago), now() - make_interval(days => greatest(ago - 5, 0))
+       contact, warmth::public.referral_warmth, notes, phone, phone is not null,
+       now() - make_interval(days => ago), now() - make_interval(days => ago)
 from (values
-  (1, 4, 'Kitchen redesign client', 'hot', 'Expecting your call this week', 'contacted', null::numeric, 5),
-  (4, 1, 'Seller needing staging', 'warm', null, 'closed', 6200, 12),
-  (1, 12, 'Home + auto bundle quote', 'warm', null, 'sent', null, 15),
-  (6, 1, 'Headshots for law firm', 'hot', null, 'closed', 9800, 26),
-  (1, 7, 'Café owner wants coaching', 'warm', null, 'closed', 2400, 40),
-  (5, 1, 'Refinance client intro', 'tip', null, 'not_a_fit', null, 54),
-  (3, 13, 'Family exploring options', 'warm', null, 'contacted', null, 8),
-  (2, 16, 'Client needs a trust', 'hot', null, 'closed', 3500, 20),
-  (14, 5, 'Buyer needs pre-approval', 'hot', null, 'closed', 4100, 9),
-  (8, 15, 'Patient with tinnitus', 'warm', null, 'sent', null, 3),
-  (10, 4, 'Backyard + interior refresh', 'warm', null, 'contacted', null, 18),
-  (12, 2, 'Retirement rollover', 'warm', null, 'sent', null, 30)
-) v(f, t, contact, warmth, notes, status, amount, ago);
+  (1, 4, 'Kitchen redesign client', 'hot', 'Expecting your call this week', '(650) 555-0190', 5),
+  (4, 1, 'Seller needing staging', 'warm', null, null, 12),
+  (1, 12, 'Home + auto bundle quote', 'warm', null, null, 15),
+  (6, 1, 'Headshots for law firm', 'hot', null, '(650) 555-0191', 26),
+  (1, 7, 'Café owner wants coaching', 'warm', null, null, 40),
+  (5, 1, 'Refinance client intro', 'cold', null, null, 54),
+  (3, 13, 'Family exploring options', 'warm', null, null, 8),
+  (2, 16, 'Client needs a trust', 'hot', null, '(650) 555-0192', 20),
+  (14, 5, 'Buyer needs pre-approval', 'hot', null, null, 9),
+  (8, 15, 'Patient with tinnitus', 'warm', null, null, 3),
+  (10, 4, 'Backyard + interior refresh', 'warm', null, null, 18),
+  (12, 2, 'Retirement rollover', 'warm', null, null, 30)
+) v(f, t, contact, warmth, notes, phone, ago);
+
+with s(contact, status, ago) as (values
+  ('Kitchen redesign client', 'contacted', 0), ('Seller needing staging', 'closed_deal', 7),
+  ('Headshots for law firm', 'closed_deal', 21), ('Café owner wants coaching', 'closed_deal', 35),
+  ('Refinance client intro', 'not_a_fit', 49), ('Family exploring options', 'meeting_set', 3),
+  ('Client needs a trust', 'closed_deal', 15), ('Buyer needs pre-approval', 'closed_deal', 4),
+  ('Backyard + interior refresh', 'contacted', 13)
+)
+update public.referrals r set status = s.status::public.referral_status from s where r.contact_name = s.contact;
+alter table public.referrals disable trigger referrals_guard;
+alter table public.referrals disable trigger referrals_touch;
+update public.referrals set closed_at = created_at + interval '5 days', updated_at = created_at + interval '5 days'
+ where status = 'closed_deal';
+alter table public.referrals enable trigger referrals_guard;
+alter table public.referrals enable trigger referrals_touch;
 
 -- One-on-ones --------------------------------------------------------------------
 insert into public.one_on_ones (reporter_id, partner_id, met_on, confirmed_at, created_at)
@@ -190,6 +206,17 @@ update public.guest_requests set status = 'visited' where email = 'alex.moreno@e
 insert into public.guest_requests (first_name, last_name, email, business_name, invited_by_text, referral_code)
 values ('Riley', 'Summers', 'riley.summers@example.com', 'Summit Web Studio', 'Avery Lindqvist', 'AVER-001');
 update public.guest_requests set status = 'applied' where email = 'riley.summers@example.com';
+
+-- Management (About page) ---------------------------------------------------------------
+delete from public.leadership where name in ('Avery Lindqvist', 'Marcus Okafor', 'Priya Raman');
+insert into public.leadership (name, role, sort_order, profile_id, bio) values
+  ('Avery Lindqvist', 'President', 1, '00000000-0000-4000-8000-000000000001', 'Keeps meetings on time and the welcome warm.'),
+  ('Marcus Okafor', 'Vice President', 2, '00000000-0000-4000-8000-000000000002', null),
+  ('Priya Raman', 'Membership Committee', 3, '00000000-0000-4000-8000-000000000003', null);
+
+-- Weekly asks ----------------------------------------------------------------------
+update public.profiles set weekly_ask = 'An intro to a property manager in Redwood City' where id = '00000000-0000-4000-8000-000000000001';
+update public.profiles set weekly_ask = 'Business owners thinking about selling in the next two years' where id = '00000000-0000-4000-8000-000000000002';
 
 -- Gallery (images live in /public/seed/gallery) ---------------------------------------
 insert into public.gallery_photos (album, caption, taken_on, image_path, thumb_path, uploaded_by)

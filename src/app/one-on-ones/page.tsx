@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { EmptyState } from '@/components/ui';
 import { requireMember } from '@/lib/auth';
-import { getGroupMonth, getMemberOptions, getOneOnOnes, getPendingConfirmations } from '@/lib/data/member';
-import { formatShortDate, isoDateDaysAgo, localDateKey, money } from '@/lib/dates';
+import { getGroupTotals, getMemberOptions, getOneOnOnes, getPendingConfirmations } from '@/lib/data/member';
+import { formatShortDate, isoDateDaysAgo, localDateKey } from '@/lib/dates';
+import { periodRange } from '@/lib/periods';
 import { flagDuplicates } from '@/lib/stats';
 import { confirmOneOnOne } from '../actions/member';
 import { ReportForm } from './ReportForm';
@@ -22,7 +23,7 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
     getPendingConfirmations(me.id),
     getOneOnOnes({ meId: me.id, days: 30, limit: 20 }),
     getOneOnOnes({ days: showAll ? 365 : 30, limit: showAll ? 200 : 10 }),
-    getGroupMonth(),
+    getGroupTotals(periodRange({ period: 'month' })),
   ]);
   const dupes = flagDuplicates([...group].reverse());
   const defaultPartner = members.some((m) => m.id === sp.partner) ? sp.partner : undefined;
@@ -80,8 +81,8 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
           <aside className="flex min-w-0 flex-[2_1_320px] flex-col gap-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="card p-4">
-                <div className="text-ink-muted text-xs font-bold tracking-[0.08em]">CLOSED BUSINESS</div>
-                <div className="font-display text-[26px] font-extrabold">{money(Number(groupMonth.closed_amount))}</div>
+                <div className="text-ink-muted text-xs font-bold tracking-[0.08em]">CLOSED DEALS</div>
+                <div className="font-display text-[26px] font-extrabold">{groupMonth.closed_deals}</div>
                 <div className="text-ink-muted text-[13px]">Group, this month</div>
               </div>
               <div className="card p-4">

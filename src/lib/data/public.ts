@@ -56,14 +56,14 @@ export async function getCategories(): Promise<Tables<'categories'>[]> {
 
 export type DirectoryMember = Pick<
   Tables<'profiles'>,
-  'id' | 'slug' | 'first_name' | 'last_name' | 'business_name' | 'about' | 'logo_path' | 'avatar_path' | 'approved_at' | 'city'
+  'id' | 'slug' | 'first_name' | 'last_name' | 'business_name' | 'about' | 'logo_path' | 'avatar_path' | 'approved_at' | 'city' | 'website' | 'weekly_ask'
 > & { categories: { name: string } | null };
 
 export async function getDirectory(): Promise<DirectoryMember[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, slug, first_name, last_name, business_name, about, logo_path, avatar_path, approved_at, city, categories(name)')
+    .select('id, slug, first_name, last_name, business_name, about, logo_path, avatar_path, approved_at, city, website, weekly_ask, categories(name)')
     .eq('status', 'approved')
     .eq('show_in_directory', true)
     .order('business_name');
@@ -78,20 +78,6 @@ export async function getMemberBySlug(slug: string): Promise<PublicProfile | nul
   const { data, error } = await supabase.from('profiles').select('*, categories(name)').eq('slug', slug).eq('status', 'approved').maybeSingle();
   if (error) fail('this member', error);
   return data;
-}
-
-export type PublicStats = {
-  attendance_pct: number | null;
-  referrals_given: number;
-  one_on_ones: number;
-  members_invited: number;
-} | null;
-
-export async function getPublicStats(slug: string): Promise<PublicStats> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc('public_member_stats', { p_slug: slug });
-  if (error) fail('member stats', error);
-  return data as PublicStats;
 }
 
 export async function getPublicPhone(slug: string): Promise<string | null> {
@@ -115,4 +101,24 @@ export async function getMemberCount(): Promise<number> {
   const { data, error } = await supabase.rpc('member_count');
   if (error) fail('member count', error);
   return data;
+}
+
+export type LeadershipEntry = Tables<'leadership'> & { profile: { slug: string; avatar_path: string | null; business_name: string } | null };
+
+/** Management list for the About page (admin-editable). */
+export async function getLeadership(): Promise<LeadershipEntry[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('leadership').select('*, profile:profiles(slug, avatar_path, business_name)').order('sort_order').order('name');
+  if (error) fail('the management list', error);
+  return data as LeadershipEntry[];
+}
+
+export type CategorySeats = { id: number; name: string; seat_limit: number; taken: number; open: boolean };
+
+/** Every category with its seat limit and how many approved members hold it. */
+export async function getCategorySeats(): Promise<CategorySeats[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('open_categories');
+  if (error) fail('categories', error);
+  return data.map((c) => ({ ...c, taken: Number(c.taken), open: Number(c.taken) < c.seat_limit }));
 }

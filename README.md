@@ -54,9 +54,11 @@ SQL lives in `supabase/migrations/` (applied in filename order) and sample data 
 Every table has Row Level Security enabled with explicit policies (`20261015000002_rls.sql`). Highlights:
 
 - Visitors see approved, listed members, meetings, speakers and the gallery, and can submit a guest request (rate-limited in the database).
-- Contact details, Zoom links, one-on-ones and group stats require an **approved** member.
-- Members only see referrals they're part of; only the receiver can mark one closed.
-- One-on-one ratings and notes are visible only to their author (and admins).
+- Contact details (and the CSV / vCard directory downloads, which are logged), Zoom links, one-on-ones, the leaderboard and group totals require an **approved** member.
+- Members only see referral slips they're part of; only the receiver can change the status (e.g. to a closed deal). There are no dollar amounts.
+- Per-member stats (`admin_member_stats`) are **admins only**; members see only the leaderboard (names + counts) and group totals.
+- Private one-on-one notes are visible only to their author (and admins).
+- Each category has a seat limit (default 1); the database refuses to approve a member into a full category.
 - Members can't change their own status, role or referral code (database trigger).
 - Uploads go to the public `gallery` and `profile-media` buckets, only inside the uploader's own folder.
 
@@ -68,7 +70,7 @@ Every table has Row Level Security enabled with explicit policies (`202610150000
    update public.profiles set status = 'approved', role = 'admin'
    where id = (select id from auth.users where email = 'you@example.org');
    ```
-3. Log in and open `/admin` to approve applicants and manage guest requests.
+3. Log in and open `/admin` to approve applicants, manage guest requests and set category seats. `/admin/stats` has per-member counts for any period (with CSV export) and `/admin/leadership` edits the Management list on the About page.
 
 Attendance corrections and Zoom links are edited in Supabase → Table Editor (`attendance`, `meeting_links`). Meetings and events go in the `meetings` table.
 
@@ -123,10 +125,10 @@ The name appears as the placeholder `[New Name]`. To set the real one:
 
 ```
 src/app/            routes (public pages, members area, auth callback, server actions in actions/)
-src/components/     shared UI (header, footer, countdown, forms, profile view, star rating)
+src/components/     shared UI (header, footer, countdown, forms, profile view, leaderboard, invite card)
 src/lib/            data access, validation (Zod), dates, content, Supabase clients
 supabase/           migrations + seed
 scripts/local-stack local Supabase-compatible stack for tests
 tests/db, tests/e2e database and end-to-end tests
-docs/               mockup inventory + test plan
+docs/               mockup inventory, test plan, phase 2 spec
 ```

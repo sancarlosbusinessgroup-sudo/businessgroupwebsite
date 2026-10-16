@@ -62,10 +62,5 @@ export function isoDateDaysAgo(days: number, now: Date = new Date()): string {
   return localDateKey(d);
 }
 
-export const money = (n: number) =>
-  n >= 10000
-    ? `$${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`
-    : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
-
 /** Current time in ms (kept out of render bodies so server components stay lint-clean). */
 export const nowMs = () => Date.now();

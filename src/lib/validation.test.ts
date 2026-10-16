@@ -7,8 +7,11 @@ import {
   oneOnOneSchema,
   otpSchema,
   profileSchema,
+  leadershipSchema,
   referralSchema,
   referralUpdateSchema,
+  seatLimitSchema,
+  weeklyAskSchema,
 } from './validation';
 
 const okJoin = {
@@ -82,11 +85,35 @@ describe('member forms', () => {
     expect(errs.toId).toBeDefined();
     expect(errs.contactName).toBeDefined();
   });
-  it('closing a referral requires an amount', () => {
+  it('referral slip: optional prospect phone/email are checked, temperature is hot/warm/cold, consent is a checkbox', () => {
+    const toId = '00000000-0000-4000-8000-000000000001';
+    const ok = referralSchema.safeParse({
+      toId,
+      contactName: 'Jo Prospect',
+      warmth: 'cold',
+      prospectPhone: '(650) 555-0100',
+      prospectEmail: 'JO@Example.org',
+      consent: 'on',
+    });
+    expect(ok.success).toBe(true);
+    expect(ok.success && ok.data.prospectEmail).toBe('jo@example.org');
+    expect(ok.success && ok.data.consent).toBe(true);
+    const bare = referralSchema.safeParse({ toId, contactName: 'Jo Prospect', warmth: 'hot' });
+    expect(bare.success && bare.data.consent).toBe(false);
+    const bad = referralSchema.safeParse({ toId, contactName: 'Jo', warmth: 'tip', prospectPhone: 'abc', prospectEmail: 'nope' });
+    expect(bad.success).toBe(false);
+    const errs = fieldErrors(bad.error!);
+    expect(errs.warmth).toBeDefined();
+    expect(errs.prospectPhone).toBeDefined();
+    expect(errs.prospectEmail).toBeDefined();
+  });
+  it('referral status update takes the new statuses and no amount', () => {
     const id = '00000000-0000-4000-8000-000000000001';
+    for (const status of ['new', 'contacted', 'meeting_set', 'closed_deal', 'not_a_fit']) {
+      expect(referralUpdateSchema.safeParse({ id, status }).success, status).toBe(true);
+    }
     expect(referralUpdateSchema.safeParse({ id, status: 'closed' }).success).toBe(false);
-    expect(referralUpdateSchema.safeParse({ id, status: 'closed', closedAmount: '1200' }).success).toBe(true);
-    expect(referralUpdateSchema.safeParse({ id, status: 'contacted' }).success).toBe(true);
+    expect(referralUpdateSchema.safeParse({ id, status: 'sent' }).success).toBe(false);
   });
   it('one-on-one date must be within the last 14 days', () => {
     const now = new Date('2026-10-15T12:00:00Z');
@@ -107,6 +134,28 @@ describe('member forms', () => {
     expect(r.success).toBe(true);
     expect(r.success && r.data.services).toEqual(['One', 'Two', 'Three']);
     expect(r.success && r.data.showInDirectory).toBe(true);
-    expect(r.success && r.data.showStats).toBe(false);
+  });
+  it('weekly ask is optional and at most 160 characters', () => {
+    expect(weeklyAskSchema.safeParse({ weeklyAsk: '' }).success).toBe(true);
+    expect(weeklyAskSchema.safeParse({ weeklyAsk: '' }).data?.weeklyAsk).toBeNull();
+    expect(weeklyAskSchema.safeParse({ weeklyAsk: '  An intro to a property manager  ' }).data?.weeklyAsk).toBe('An intro to a property manager');
+    expect(weeklyAskSchema.safeParse({ weeklyAsk: 'x'.repeat(161) }).success).toBe(false);
+  });
+});
+
+describe('admin forms', () => {
+  it('leadership needs a name and role; member link and sort order are optional', () => {
+    const r = leadershipSchema.safeParse({ name: '', role: '' });
+    expect(r.success).toBe(false);
+    expect(Object.keys(fieldErrors(r.error!))).toEqual(expect.arrayContaining(['name', 'role']));
+    const ok = leadershipSchema.safeParse({ name: 'Ada Park', role: 'President', profileId: '', sortOrder: '' });
+    expect(ok.success && ok.data).toMatchObject({ name: 'Ada Park', role: 'President', profileId: null, sortOrder: 0 });
+    expect(leadershipSchema.safeParse({ name: 'A', role: 'B', profileId: 'not-a-uuid' }).success).toBe(false);
+  });
+  it('category seat limit is a whole number from 1 to 99', () => {
+    expect(seatLimitSchema.safeParse({ id: '3', seatLimit: '2' }).data).toEqual({ id: 3, seatLimit: 2 });
+    expect(seatLimitSchema.safeParse({ id: '3', seatLimit: '0' }).success).toBe(false);
+    expect(seatLimitSchema.safeParse({ id: '3', seatLimit: '1.5' }).success).toBe(false);
+    expect(seatLimitSchema.safeParse({ id: '3', seatLimit: '100' }).success).toBe(false);
   });
 });

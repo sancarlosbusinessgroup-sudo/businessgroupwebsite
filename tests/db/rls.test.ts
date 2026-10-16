@@ -78,7 +78,9 @@ describe('visitors (anon)', () => {
   });
 
   it('cannot call member-only functions', async () => {
-    await expect(as(anon, (q) => q(`select member_stats()`))).rejects.toThrow(/permission denied/);
+    await expect(as(anon, (q) => q(`select * from admin_member_stats()`))).rejects.toThrow(/permission denied/);
+    await expect(as(anon, (q) => q(`select * from leaderboard()`))).rejects.toThrow(/permission denied/);
+    await expect(as(anon, (q) => q(`select group_totals()`))).rejects.toThrow(/permission denied/);
     await expect(as(anon, (q) => q(`select join_meeting(gen_random_uuid())`))).rejects.toThrow(/permission denied/);
   });
 
@@ -158,7 +160,7 @@ describe('approved members', () => {
       const id = rows[0]?.id as string;
       await c.query(`set local role authenticated`);
       await c.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: ids.member, role: 'authenticated' })]);
-      await expect(c.query(`update referrals set status='closed', closed_amount=100 where id=$1`, [id])).rejects.toThrow(/receiving member/);
+      await expect(c.query(`update referrals set status='closed_deal' where id=$1`, [id])).rejects.toThrow(/receiving member/);
       await c.query('rollback');
     });
   });
@@ -209,13 +211,12 @@ describe('approved members', () => {
     ).rejects.toThrow(/row-level security/);
   });
 
-  it('member_stats works for self and is refused for others', async () => {
-    await as(user(ids.member), async (q) => {
-      const s = (await q(`select member_stats() as s`))[0]?.s as Record<string, number>;
-      expect(s).toHaveProperty('referrals_given');
-      expect(s).toHaveProperty('meetings_present');
+  it('per-member stats are for admins only, refused even for your own row', async () => {
+    await expect(as(user(ids.member), (q) => q(`select * from admin_member_stats()`))).rejects.toThrow(/admins only/);
+    await as(user(ids.admin), async (q) => {
+      const rows = await q(`select * from admin_member_stats()`);
+      expect(rows.find((r) => r.profile_id === ids.member)).toHaveProperty('referrals_given');
     });
-    await expect(as(user(ids.member), (q) => q(`select member_stats($1)`, [ids.admin]))).rejects.toThrow(/not allowed/);
   });
 });
 
@@ -231,7 +232,7 @@ describe('admins', () => {
   it('can read guest requests and pending profiles', async () => {
     await as(user(ids.admin), async (q) => {
       expect((await q(`select id from guest_requests`)).length).toBeGreaterThan(0);
-      expect((await q(`select id from profiles where status='pending'`)).length).toBe(1);
+      expect((await q(`select id from profiles where status='pending'`)).map((r) => r.id)).toContain(ids.pending);
     });
   });
 });

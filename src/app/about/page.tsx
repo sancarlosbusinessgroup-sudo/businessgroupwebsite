@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { PageHero, SectionHead } from '@/components/ui';
+import { Avatar, PageHero, SectionHead } from '@/components/ui';
 import { leadership, metrics, timeline, values, site } from '@/lib/content';
+import { getLeadership } from '@/lib/data/public';
+import { mediaUrl } from '@/lib/env';
 
 export const metadata: Metadata = { title: 'About' };
 
@@ -12,7 +14,8 @@ const icons = [
   'M3 4h18v18H3zM16 2v4M8 2v4M3 10h18M9 16l2 2 4-4',
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const team = await getLeadership();
   return (
     <>
       <PageHero
@@ -44,33 +47,62 @@ export default function AboutPage() {
         </ol>
       </section>
 
-      <section className="border-line bg-canvas border-y">
-        <div className="container-site flex flex-wrap items-center gap-12 py-16">
-          <figure className="m-0 flex flex-[0_1_320px] flex-col items-center gap-3 text-center">
-            <Image
-              src={leadership.photo}
-              alt={leadership.name}
-              width={260}
-              height={260}
-              className="border-surface h-[260px] w-[260px] rounded-full border-[6px] object-cover"
-            />
-            <figcaption className="text-ink-muted text-[15px] italic">{leadership.caption}</figcaption>
-          </figure>
-          <div className="flex min-w-0 flex-[1_1_440px] flex-col gap-4 text-lg">
-            <p className="eyebrow m-0">Leadership</p>
-            <h2 className="h2">Consistent leadership</h2>
-            <p className="m-0">
-              {site.name} has been led since day one by <strong>{leadership.name}</strong> of <em>{leadership.business}</em>. Her steady, committed leadership
-              has helped shape a community that values authenticity, generosity and professionalism.
-            </p>
-            <div>
-              <Link className="btn btn-outline" href="/members">
-                Meet our members
-              </Link>
+      {team.length > 0 ? (
+        <section className="border-line bg-canvas border-y" aria-labelledby="mgmt-h">
+          <div className="container-site flex flex-col gap-7 py-16">
+            <div className="flex flex-col gap-2.5">
+              <p className="eyebrow m-0">Leadership</p>
+              <h2 id="mgmt-h" className="h2">
+                Management
+              </h2>
+            </div>
+            <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-5 p-0">
+              {team.map((t, i) => {
+                const photo = mediaUrl('profile-media', t.photo_path ?? t.profile?.avatar_path ?? null);
+                return (
+                  <li key={t.id} className="card flex flex-col items-center gap-2 p-6 text-center">
+                    <span className="bg-teal-tint relative flex h-[120px] w-[120px] items-center justify-center overflow-hidden rounded-full">
+                      {photo ? <Image src={photo} alt="" fill sizes="120px" className="object-cover" /> : <Avatar name={t.name} size={120} index={i} />}
+                    </span>
+                    <h3 className="font-display m-0 text-xl">{t.profile ? <Link href={`/members/${t.profile.slug}`}>{t.name}</Link> : t.name}</h3>
+                    <p className="text-teal-text m-0 font-bold">{t.role}</p>
+                    {t.profile ? <p className="text-ink-muted m-0 text-[15px]">{t.profile.business_name}</p> : null}
+                    {t.bio ? <p className="text-ink-soft m-0 text-base">{t.bio}</p> : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      ) : (
+        <section className="border-line bg-canvas border-y">
+          <div className="container-site flex flex-wrap items-center gap-12 py-16">
+            <figure className="m-0 flex flex-[0_1_320px] flex-col items-center gap-3 text-center">
+              <Image
+                src={leadership.photo}
+                alt={leadership.name}
+                width={260}
+                height={260}
+                className="border-surface h-[260px] w-[260px] rounded-full border-[6px] object-cover"
+              />
+              <figcaption className="text-ink-muted text-[15px] italic">{leadership.caption}</figcaption>
+            </figure>
+            <div className="flex min-w-0 flex-[1_1_440px] flex-col gap-4 text-lg">
+              <p className="eyebrow m-0">Leadership</p>
+              <h2 className="h2">Consistent leadership</h2>
+              <p className="m-0">
+                {site.name} has been led since day one by <strong>{leadership.name}</strong> of <em>{leadership.business}</em>. Her steady, committed leadership
+                has helped shape a community that values authenticity, generosity and professionalism.
+              </p>
+              <div>
+                <Link className="btn btn-outline" href="/members">
+                  Meet our members
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section className="container-site flex flex-col gap-7 py-16">
         <SectionHead eyebrow="Our values" title={`What makes ${site.name} special`} />

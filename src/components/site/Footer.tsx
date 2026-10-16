@@ -44,10 +44,6 @@ export function Footer() {
               </Link>
             ))}
           </nav>
-          <div className="flex flex-[1_1_200px] flex-col gap-2.5">
-            <h2 className="font-display text-sky m-0 text-[13px] font-bold tracking-[0.12em] uppercase">Proud supporter</h2>
-            <p className="font-display text-on-band m-0 text-xl font-bold">{site.supporter}</p>
-          </div>
         </div>
         <div className="border-band-line flex flex-wrap justify-between gap-3 border-t pt-5 text-sm">
           <p className="m-0">

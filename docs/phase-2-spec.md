@@ -1,6 +1,6 @@
 # Phase 2 spec
 
-Status: **decisions agreed 2026-10-16**, waiting on a few inputs from the owner (marked **INPUT NEEDED**).
+Status: **decisions agreed 2026-10-16; Phase A built and deployed 2026-10-16**, waiting on a few inputs from the owner (marked **INPUT NEEDED**).
 Everything here builds on the live site (Next.js + Supabase + Vercel). The rules in the original build brief still apply: tests first, RLS on every table, no secrets in the repo, fictional seed data only, free tiers only, ask before anything that creates, deletes or overwrites resources (including dropping columns).
 
 The group is being renamed; all copy uses `site.name` / `site.shortName` from `src/lib/content.ts` (currently the placeholder `[New Name]`).
@@ -124,6 +124,22 @@ The group is being renamed; all copy uses `site.name` / `site.shortName` from `s
 5. **Phase E — Extras:** PWA (A6), officer roles (A7), spotlight/testimonials (A8), import tool (A9), weekly backups to GitHub.
 
 Each phase: tests first (unit, DB/RLS, E2E + axe at 375/768/1280, light/dark), deploy, owner test.
+
+## Phase A: built 2026-10-16
+
+Migration `supabase/migrations/20261016000001_phase_a.sql` (drops approved by the owner the same day). Choices made during the build:
+
+- **Referral slips** keep the database column `contact_name` (shown as "Prospect name"). Status `sent` was renamed `new`, `closed` → `closed_deal`, `meeting_set` added; temperature `tip` → `cold`. `closed_at` is stamped by a trigger when the receiver marks a closed deal and is what closed-deal counts use.
+- **Periods** are Pacific calendar dates. "This meeting cycle" = from the date of the most recent group meeting to today. Week starts Monday.
+- **Visitors brought** = guest requests credited to the member whose guest actually visited (status visited, applied or joined). Shown on the leaderboard and admin stats now, since it replaces the old "top inviters" list.
+- **Leaderboard** on the dashboard (this month by default; quarter, year, all time), top 5 per metric, names + counts only. Members' personal stat tiles, monthly chart and $ figures are gone; the public "activity" box on profiles is gone.
+- **Invite a visitor** card (link, share buttons, own recent guests) moved to the dashboard; the referrals page is now only referral slips (received / given).
+- **Management**: `leadership` table, edited at `/admin/leadership`. Photo = the linked member's profile photo (no separate upload yet). While the list is empty, About keeps the original leadership text, so the live site is unchanged until admins add people.
+- **Directory**: members see email/phone/website on cards; CSV (opens in Excel) and vCard downloads are logged in `directory_downloads` and listed on `/admin`.
+- **Weekly ask**: edited on the dashboard or profile, shown on directory cards and profiles (public, like "Listen for").
+- **Open categories**: `categories.seat_limit` (default 1) replaces the one-per-category index; a trigger blocks approving into a full category; admins change seats on `/admin`. Visit lists open professions (except "Other"); Join marks full categories and warns, but still lets people apply.
+
+Still open for the owner: one-on-ones remain visible to all members as a group feed (dashboard / one-on-ones page) as before; say if that should become private to the two members.
 
 ## Inputs needed from the owner
 

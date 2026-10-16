@@ -10,8 +10,9 @@ export default function PrivacyPage() {
       <section className="container-site flex max-w-[760px] flex-col gap-4 py-12">
         <p className="m-0">[Privacy statement to be provided by group leadership.]</p>
         <p className="text-ink-muted m-0">
-          Technical facts for that statement: member contact details are visible only to signed-in, approved members; one-on-one ratings and notes are private
-          to their author; uploaded photos have location data removed before upload.
+          Technical facts for that statement: member contact details are visible only to signed-in, approved members, who can also download them (downloads are
+          logged); one-on-one notes are private to their author; per-member activity counts are visible only to admins; uploaded photos have location data
+          removed before upload.
         </p>
       </section>
     </>

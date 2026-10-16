@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attendancePct, barHeights, flagDuplicates } from './stats';
+import { attendancePct, barHeights, flagDuplicates, sortStatRows } from './stats';
 
 describe('attendancePct', () => {
   it('rounds and handles no meetings', () => {
@@ -32,5 +32,21 @@ describe('flagDuplicates', () => {
       { id: '4', reporter_id: 'a', partner_id: 'b', met_on: '2026-09-10' },
     ];
     expect([...flagDuplicates(rows)].sort()).toEqual(['2']);
+  });
+});
+
+describe('sortStatRows', () => {
+  const rows = [
+    { first_name: 'Bea', last_name: 'Ng', one_on_ones: 2, referrals_given: 5 },
+    { first_name: 'Al', last_name: 'Zed', one_on_ones: 7, referrals_given: 5 },
+    { first_name: 'Cy', last_name: 'Ash', one_on_ones: 0, referrals_given: 1 },
+  ];
+  it('sorts numbers high-to-low by default, ties broken by name', () => {
+    expect(sortStatRows(rows, 'referrals_given', 'desc').map((r) => r.first_name)).toEqual(['Al', 'Bea', 'Cy']);
+    expect(sortStatRows(rows, 'one_on_ones', 'asc').map((r) => r.first_name)).toEqual(['Cy', 'Bea', 'Al']);
+  });
+  it('sorts by member name A–Z and does not mutate the input', () => {
+    expect(sortStatRows(rows, 'name', 'asc').map((r) => r.first_name)).toEqual(['Al', 'Bea', 'Cy']);
+    expect(rows[0]?.first_name).toBe('Bea');
   });
 });

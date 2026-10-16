@@ -1,19 +1,17 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import type { PublicProfile, PublicStats } from '@/lib/data/public';
+import type { PublicProfile } from '@/lib/data/public';
 import { mediaUrl } from '@/lib/env';
 import { Avatar } from './ui';
-import { site } from '@/lib/content';
 
 type Props = {
   profile: PublicProfile;
-  stats: PublicStats;
   contact: { email: string | null; phone: string | null; membersOnly: boolean };
   viewerIsMember: boolean;
   isSelf?: boolean;
 };
 
-export function ProfileView({ profile: p, stats, contact, viewerIsMember, isSelf }: Props) {
+export function ProfileView({ profile: p, contact, viewerIsMember, isSelf }: Props) {
   const name = `${p.first_name} ${p.last_name}`;
   const avatar = mediaUrl('profile-media', p.avatar_path);
   const logo = mediaUrl('profile-media', p.logo_path);
@@ -47,6 +45,14 @@ export function ProfileView({ profile: p, stats, contact, viewerIsMember, isSelf
 
       <div className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[3_1_520px] flex-col gap-5">
+          {p.weekly_ask ? (
+            <section className="bg-teal-tint flex flex-col gap-1 rounded-2xl p-5" aria-labelledby="ask-h">
+              <h2 id="ask-h" className="text-teal-hover m-0 text-[13px] font-bold tracking-[0.08em] uppercase">
+                This week I&apos;m looking for
+              </h2>
+              <p className="text-heading m-0 text-lg font-semibold">{p.weekly_ask}</p>
+            </section>
+          ) : null}
           <section className="card flex flex-col gap-2.5 p-6">
             <h2 className="h3">About</h2>
             <p className="text-ink-soft m-0">{p.about ?? 'This member hasn’t added an introduction yet.'}</p>
@@ -113,24 +119,6 @@ export function ProfileView({ profile: p, stats, contact, viewerIsMember, isSelf
               </p>
             ) : null}
           </section>
-          {stats ? (
-            <section className="card flex flex-col gap-2.5 p-[22px]">
-              <h2 className="h3">{site.name} activity</h2>
-              <dl className="m-0 grid grid-cols-2 gap-2.5">
-                {[
-                  { k: 'Attendance', v: stats.attendance_pct === null ? '—' : `${stats.attendance_pct}%` },
-                  { k: 'Referrals given (90 days)', v: String(stats.referrals_given) },
-                  { k: 'One-on-ones (90 days)', v: String(stats.one_on_ones) },
-                  { k: 'Members invited', v: String(stats.members_invited) },
-                ].map((s) => (
-                  <div key={s.k} className="bg-teal-tint flex flex-col-reverse rounded-xl p-3">
-                    <dt className="text-ink-muted text-[13px]">{s.k}</dt>
-                    <dd className="font-display text-heading m-0 text-[22px] font-extrabold">{s.v}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
-          ) : null}
         </aside>
       </div>
     </div>

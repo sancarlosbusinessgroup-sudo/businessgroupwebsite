@@ -3,8 +3,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ProfileView } from '@/components/ProfileView';
 import { Notice } from '@/components/ui';
+import { WeeklyAskForm } from '@/components/WeeklyAskForm';
+import { formatShortDate } from '@/lib/dates';
 import { getViewer } from '@/lib/auth';
-import { getCategories, getPublicStats } from '@/lib/data/public';
+import { getCategories } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
 import { MediaUpload } from './MediaUpload';
 import { ProfileForm } from './ProfileForm';
@@ -26,7 +28,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     supabase.from('member_contacts').select('email, phone').eq('profile_id', p.id).maybeSingle(),
     p.category_id ? supabase.from('categories').select('name').eq('id', p.category_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
-  const stats = approved && !editing ? await getPublicStats(p.slug) : null;
   const tabCls = (on: boolean) =>
     `flex min-h-11 items-center rounded-full px-5 font-display text-sm font-bold no-underline ${on ? 'bg-surface text-heading' : 'text-ink-muted'}`;
 
@@ -60,6 +61,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
                 <span className="text-ink-muted text-sm">Images are resized in your browser before upload.</span>
               </div>
             ) : null}
+            {approved ? (
+              <WeeklyAskForm current={p.weekly_ask} updated={p.weekly_ask_updated_at ? formatShortDate(new Date(p.weekly_ask_updated_at)) : null} />
+            ) : null}
             <ProfileForm
               categories={categories}
               defaults={{
@@ -76,7 +80,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
                 listenFor: p.listen_for ?? '',
                 services: p.services.join(', '),
                 showInDirectory: p.show_in_directory,
-                showStats: p.show_stats,
                 showPhonePublic: p.show_phone_public,
               }}
             />
@@ -84,7 +87,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         ) : (
           <ProfileView
             profile={{ ...p, categories: catRes.data ? { name: catRes.data.name } : null }}
-            stats={stats}
             contact={{ email: contactRes.data?.email ?? null, phone: contactRes.data?.phone ?? null, membersOnly: false }}
             viewerIsMember
             isSelf

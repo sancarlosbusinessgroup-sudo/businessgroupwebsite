@@ -108,28 +108,28 @@ export const newPasswordSchema = z
   .object({ password, confirm: z.string() })
   .refine((v) => v.password === v.confirm, { path: ['confirm'], message: 'Passwords do not match' });
 
+export const referralStatuses = ['new', 'contacted', 'meeting_set', 'closed_deal', 'not_a_fit'] as const;
+
 export const referralSchema = z.object({
   toId: uuid('Choose a member to refer to'),
-  contactName: z.string().trim().min(2, 'Enter the contact’s name').max(120, 'Contact name must be 120 characters or fewer'),
-  warmth: z.enum(['hot', 'warm', 'tip'], { error: 'Choose how warm the lead is' }),
+  contactName: z.string().trim().min(2, 'Enter the prospect’s name').max(120, 'Prospect name must be 120 characters or fewer'),
+  prospectPhone: phone,
+  prospectEmail: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .optional()
+    .transform((v) => (v ? v : undefined))
+    .refine((v) => v === undefined || (v.length <= 254 && z.email().safeParse(v).success), 'Enter a valid email address'),
+  warmth: z.enum(['hot', 'warm', 'cold'], { error: 'Choose a temperature' }),
   notes: optionalText(1000, 'Notes'),
+  consent: checkbox,
 });
 
-export const referralUpdateSchema = z
-  .object({
-    id: uuid('Missing referral'),
-    status: z.enum(['sent', 'contacted', 'closed', 'not_a_fit']),
-    closedAmount: z
-      .string()
-      .trim()
-      .optional()
-      .transform((v) => (v ? Number(v.replace(/[$,]/g, '')) : undefined))
-      .refine((v) => v === undefined || (Number.isFinite(v) && v >= 0 && v < 1e9), 'Enter a dollar amount'),
-  })
-  .refine((v) => v.status !== 'closed' || v.closedAmount !== undefined, {
-    path: ['closedAmount'],
-    message: 'Enter the amount of closed business',
-  });
+export const referralUpdateSchema = z.object({
+  id: uuid('Missing referral'),
+  status: z.enum(referralStatuses, { error: 'Choose a status' }),
+});
 
 export const oneOnOneSchema = (now: Date = new Date()) =>
   z.object({
@@ -138,11 +138,6 @@ export const oneOnOneSchema = (now: Date = new Date()) =>
       .string({ error: 'Choose the date' })
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose the date')
       .refine((d) => d <= localDateKey(now) && d >= isoDateDaysAgo(14, now), 'Report activity from today or the previous 14 days'),
-    rating: z
-      .string()
-      .optional()
-      .transform((v) => (v ? Number(v) : undefined))
-      .refine((v) => v === undefined || (Number.isInteger(v) && v >= 1 && v <= 5), 'Choose 1 to 5 stars'),
     note: optionalText(1000, 'Note'),
   });
 
@@ -174,7 +169,6 @@ export const profileSchema = z.object({
     .refine((a) => a.length <= 12, 'List up to 12 services')
     .refine((a) => a.every((s) => s.length <= 40), 'Keep each service under 40 characters'),
   showInDirectory: checkbox,
-  showStats: checkbox,
   showPhonePublic: checkbox,
 });
 
@@ -195,6 +189,36 @@ export const galleryMetaSchema = z.object({
     .optional()
     .transform((v) => (v ? v : undefined))
     .refine((v) => v === undefined || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Enter a valid date'),
+});
+
+export const weeklyAskSchema = z.object({
+  weeklyAsk: z
+    .string()
+    .trim()
+    .max(160, 'Keep your ask to 160 characters or fewer')
+    .optional()
+    .transform((v) => (v ? v : null)),
+});
+
+export const leadershipSchema = z.object({
+  name: text(120, 'Name').refine((v) => v.length >= 2, 'Name is required'),
+  role: text(80, 'Role').refine((v) => v.length >= 2, 'Role is required'),
+  bio: optionalText(1000, 'Bio'),
+  profileId: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : null))
+    .refine((v) => v === null || z.uuid().safeParse(v).success, 'Choose a member'),
+  sortOrder: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Number(v) : 0))
+    .refine((v) => Number.isInteger(v) && v >= 0 && v <= 999, 'Use a whole number from 0 to 999'),
+});
+
+export const seatLimitSchema = z.object({
+  id: z.coerce.number().int().positive(),
+  seatLimit: z.coerce.number({ error: 'Enter a number' }).int('Use a whole number').min(1, 'At least 1 seat').max(99, 'At most 99 seats'),
 });
 
 export type FieldErrors = Record<string, string[] | undefined>;

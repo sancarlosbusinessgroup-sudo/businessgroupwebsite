@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Avatar, CheckIcon } from '@/components/ui';
-import { getCategories } from '@/lib/data/public';
+import { getCategorySeats } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
 import { referralCode as referralCodeSchema } from '@/lib/validation';
 import { JoinForm } from './JoinForm';
@@ -15,7 +15,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
   const referralCode = code.success ? code.data : undefined;
   const supabase = await createClient();
   const [categories, referrer] = await Promise.all([
-    getCategories(),
+    getCategorySeats(),
     referralCode ? supabase.from('profiles').select('first_name, last_name').eq('referral_code', referralCode).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const referrerName = referrer.data ? `${referrer.data.first_name} ${referrer.data.last_name}` : undefined;

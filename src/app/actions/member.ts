@@ -14,6 +14,7 @@ import {
   profileSchema,
   referralSchema,
   referralUpdateSchema,
+  weeklyAskSchema,
 } from '@/lib/validation';
 
 const uuid = z.uuid();
@@ -104,17 +105,21 @@ export async function sendReferral(_prev: ActionState, formData: FormData): Prom
   const { supabase, user } = await session();
   if (!user) return { status: 'error', message: 'Please log in again.' };
   if (parsed.data.toId === user.id) return { status: 'error', errors: { toId: 'Choose another member' }, values };
+  const d = parsed.data;
   const { error } = await supabase.from('referrals').insert({
     from_id: user.id,
-    to_id: parsed.data.toId,
-    contact_name: parsed.data.contactName,
-    warmth: parsed.data.warmth,
-    notes: parsed.data.notes ?? null,
+    to_id: d.toId,
+    contact_name: d.contactName,
+    prospect_phone: d.prospectPhone ?? null,
+    prospect_email: d.prospectEmail ?? null,
+    prospect_consent: d.consent,
+    warmth: d.warmth,
+    notes: d.notes ?? null,
   });
   if (error) return { status: 'error', message: GENERIC, values };
   revalidatePath('/referrals');
   revalidatePath('/dashboard');
-  return { status: 'success', message: 'Referral sent.' };
+  return { status: 'success', message: 'Referral slip sent.' };
 }
 
 export async function updateReferral(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -123,12 +128,7 @@ export async function updateReferral(_prev: ActionState, formData: FormData): Pr
   if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values };
   const { supabase, user } = await session();
   if (!user) return { status: 'error', message: 'Please log in again.' };
-  const { data, error } = await supabase
-    .from('referrals')
-    .update({ status: parsed.data.status, closed_amount: parsed.data.status === 'closed' ? (parsed.data.closedAmount ?? null) : null })
-    .eq('id', parsed.data.id)
-    .eq('to_id', user.id)
-    .select('id');
+  const { data, error } = await supabase.from('referrals').update({ status: parsed.data.status }).eq('id', parsed.data.id).eq('to_id', user.id).select('id');
   if (error || !data?.length) return { status: 'error', message: 'Only the member who received a referral can update it.' };
   revalidatePath('/referrals');
   revalidatePath('/dashboard');
@@ -150,10 +150,8 @@ export async function reportOneOnOne(_prev: ActionState, formData: FormData): Pr
     .select('id')
     .single();
   if (error || !data) return { status: 'error', message: GENERIC, values };
-  if (parsed.data.rating || parsed.data.note) {
-    await supabase
-      .from('one_on_one_feedback')
-      .insert({ one_on_one_id: data.id, author_id: user.id, rating: parsed.data.rating ?? null, note: parsed.data.note ?? null });
+  if (parsed.data.note) {
+    await supabase.from('one_on_one_feedback').insert({ one_on_one_id: data.id, author_id: user.id, note: parsed.data.note });
   }
   revalidatePath('/one-on-ones');
   revalidatePath('/dashboard');
@@ -194,16 +192,15 @@ export async function updateProfile(_prev: ActionState, formData: FormData): Pro
       listen_for: d.listenFor ?? null,
       services: d.services,
       show_in_directory: d.showInDirectory,
-      show_stats: d.showStats,
       show_phone_public: d.showPhonePublic,
     })
     .eq('id', user.id);
   if (error) {
-    const taken = /profiles_one_per_category/.test(error.message);
+    const taken = /category is full/.test(error.message);
     return {
       status: 'error',
-      message: taken ? 'Another member already holds that category.' : GENERIC,
-      errors: taken ? { categoryId: 'This category is taken' } : undefined,
+      message: taken ? 'That category is full. Choose another or ask an admin.' : GENERIC,
+      errors: taken ? { categoryId: 'This category is full' } : undefined,
       values,
     };
   }
@@ -214,6 +211,19 @@ export async function updateProfile(_prev: ActionState, formData: FormData): Pro
   revalidatePath('/profile');
   revalidatePath('/members');
   return { status: 'success', message: 'Profile saved.' };
+}
+
+export async function saveWeeklyAsk(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formToObject(formData);
+  const parsed = weeklyAskSchema.safeParse(values);
+  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values };
+  const { supabase, user } = await session();
+  if (!user) return { status: 'error', message: 'Please log in again.' };
+  const { error } = await supabase.from('profiles').update({ weekly_ask: parsed.data.weeklyAsk }).eq('id', user.id);
+  if (error) return { status: 'error', message: GENERIC, values };
+  revalidatePath('/dashboard');
+  revalidatePath('/members');
+  return { status: 'success', message: parsed.data.weeklyAsk ? 'Your ask is saved.' : 'Your ask is cleared.' };
 }
 
 const mediaSchema = z.object({ kind: z.enum(['avatar', 'logo']), path: z.string().max(200) });

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Countdown } from '@/components/Countdown';
 import { CheckIcon, PageHero, SectionHead } from '@/components/ui';
 import { joinSteps, meetingFormat, visitTips, site } from '@/lib/content';
-import { getNextMeeting, getUpcomingMeetings } from '@/lib/data/public';
+import { getCategorySeats, getNextMeeting, getUpcomingMeetings } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { referralCode as referralCodeSchema } from '@/lib/validation';
@@ -17,11 +17,13 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
   const referralCode = code.success ? code.data : undefined;
 
   const supabase = await createClient();
-  const [next, upcoming, referrer] = await Promise.all([
+  const [next, upcoming, referrer, seats] = await Promise.all([
     getNextMeeting(),
     getUpcomingMeetings(6),
     referralCode ? supabase.from('profiles').select('first_name, last_name').eq('referral_code', referralCode).maybeSingle() : Promise.resolve({ data: null }),
+    getCategorySeats(),
   ]);
+  const open = seats.filter((c) => c.open && c.name !== 'Other');
   const referrerName = referrer.data ? `${referrer.data.first_name} ${referrer.data.last_name}` : undefined;
   const meetingOptions = upcoming
     .filter((m) => m.category === 'Networking')
@@ -127,6 +129,32 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
             </li>
           ))}
         </ol>
+      </section>
+
+      <section className="border-line bg-canvas border-y" aria-labelledby="open-h">
+        <div className="container-site flex flex-col gap-5 py-16">
+          <div className="flex max-w-[760px] flex-col gap-2.5">
+            <p className="eyebrow m-0">One member per profession</p>
+            <h2 id="open-h" className="h2">
+              Open professions
+            </h2>
+            <p className="text-ink-soft m-0">
+              Each profession has one seat, so members never compete for referrals. These professions are open right now. Don&apos;t see yours? Visit anyway:
+              we&apos;d love to meet you.
+            </p>
+          </div>
+          {open.length === 0 ? (
+            <p className="m-0">Every listed profession is taken right now.</p>
+          ) : (
+            <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+              {open.map((c) => (
+                <li key={c.id} className="pill bg-teal-tint text-teal-hover">
+                  {c.name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </section>
 
       <section id="request" className="bg-band" aria-labelledby="request-title">

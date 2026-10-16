@@ -22,3 +22,16 @@ export function flagDuplicates(rows: Pairable[]): Set<string> {
   }
   return dupes;
 }
+
+type Named = { first_name: string; last_name: string };
+
+/** Sort admin stats rows by a numeric column (or 'name'); ties fall back to name A–Z. Returns a new array. */
+export function sortStatRows<T extends Named>(rows: T[], key: keyof T | 'name', dir: 'asc' | 'desc'): T[] {
+  const byName = (a: T, b: T) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
+  const sign = dir === 'asc' ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    if (key === 'name') return sign * byName(a, b);
+    const diff = Number(a[key]) - Number(b[key]);
+    return diff !== 0 ? sign * diff : byName(a, b);
+  });
+}

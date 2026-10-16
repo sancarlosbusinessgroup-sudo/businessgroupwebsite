@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, EmptyState, PageHero } from '@/components/ui';
+import { getViewer, isApproved } from '@/lib/auth';
 import { getCategories, getDirectory, getMemberCount } from '@/lib/data/public';
+import { createClient } from '@/lib/supabase/server';
 import { filterDirectory, paginate } from '@/lib/directory';
 import { mediaUrl } from '@/lib/env';
 import { site } from '@/lib/content';
@@ -16,7 +18,15 @@ type Search = { q?: string; category?: string; sort?: string; page?: string };
 
 export default async function MembersPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
-  const [all, categories, total] = await Promise.all([getDirectory(), getCategories(), getMemberCount()]);
+  const [all, categories, total, viewer] = await Promise.all([getDirectory(), getCategories(), getMemberCount(), getViewer()]);
+  const member = isApproved(viewer);
+  // Contact details: members only (RLS returns nothing to anyone else anyway).
+  const contacts = new Map<string, { email: string; phone: string | null }>();
+  if (member) {
+    const supabase = await createClient();
+    const { data } = await supabase.from('member_contacts').select('profile_id, email, phone');
+    for (const c of data ?? []) contacts.set(c.profile_id, { email: c.email, phone: c.phone });
+  }
   const filtered = filterDirectory(all, sp);
   const { page, pages, items } = paginate(filtered, Number(sp.page ?? 1), PAGE_SIZE);
   const usedCategories = categories.filter((c) => all.some((p) => p.categories?.name === c.name));
@@ -80,7 +90,18 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
           <p className="m-0" aria-live="polite">
             Showing <strong className="text-heading">{filtered.length}</strong> of {total} member businesses
           </p>
-          <p className="m-0">Logged-in members also see phone and email</p>
+          {member ? (
+            <div className="flex flex-wrap gap-2">
+              <a className="btn btn-outline btn-sm" href="/members/export?format=csv" download>
+                Download spreadsheet (CSV)
+              </a>
+              <a className="btn btn-outline btn-sm" href="/members/export?format=vcf" download>
+                Download contacts (vCard)
+              </a>
+            </div>
+          ) : (
+            <p className="m-0">Logged-in members also see phone and email</p>
+          )}
         </div>
 
         {items.length === 0 ? (
@@ -92,12 +113,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
             {items.map((p, i) => {
               const logo = mediaUrl('profile-media', p.logo_path);
               const name = `${p.first_name} ${p.last_name}`;
+              const contact = contacts.get(p.id);
               return (
                 <li key={p.id}>
-                  <Link
-                    href={`/members/${p.slug}`}
-                    className="card text-ink hover:border-teal hover:text-ink flex h-full flex-col overflow-hidden no-underline"
-                  >
+                  <article className="card hover:border-teal relative flex h-full flex-col overflow-hidden">
                     <span className={`relative flex h-[150px] items-center justify-center ${bands[i % bands.length]}`}>
                       {logo ? (
                         <Image src={logo} alt="" fill sizes="300px" className="object-contain p-4" />
@@ -107,13 +126,45 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                         </span>
                       )}
                     </span>
-                    <span className="flex flex-1 flex-col gap-1.5 p-[18px]">
+                    <div className="flex flex-1 flex-col gap-1.5 p-[18px]">
                       <span className="text-ink-muted text-xs font-bold tracking-[0.08em] uppercase">{p.categories?.name ?? 'Member'}</span>
-                      <span className="font-display text-berry text-[19px] leading-tight font-bold">{p.business_name}</span>
+                      <h2 className="font-display m-0 text-[19px] leading-tight font-bold">
+                        <Link href={`/members/${p.slug}`} className="text-berry no-underline after:absolute after:inset-0 after:content-['']">
+                          {p.business_name}
+                        </Link>
+                      </h2>
                       <span className="text-heading text-[15px] font-semibold">{name}</span>
+                      {p.weekly_ask ? (
+                        <p className="bg-teal-tint text-heading m-0 rounded-lg px-2.5 py-1.5 text-[14px]">
+                          <span className="text-teal-hover font-bold">Looking for: </span>
+                          {p.weekly_ask}
+                        </p>
+                      ) : null}
                       {p.about ? <span className="text-ink-soft line-clamp-4 text-[15px]">{p.about}</span> : null}
-                    </span>
-                  </Link>
+                      {contact ? (
+                        <ul
+                          className="border-line-soft relative z-10 m-0 mt-auto flex list-none flex-col gap-0.5 border-t p-0 pt-2.5 text-[14px]"
+                          aria-label={`Contact ${name}`}
+                        >
+                          <li className="truncate">
+                            <a href={`mailto:${contact.email}`}>{contact.email}</a>
+                          </li>
+                          {contact.phone ? (
+                            <li>
+                              <a href={`tel:${contact.phone.replace(/[^0-9+]/g, '')}`}>{contact.phone}</a>
+                            </li>
+                          ) : null}
+                          {p.website ? (
+                            <li className="truncate">
+                              <a href={p.website} target="_blank" rel="noopener noreferrer nofollow">
+                                {p.website.replace(/^https?:\/\//, '')}
+                              </a>
+                            </li>
+                          ) : null}
+                        </ul>
+                      ) : null}
+                    </div>
+                  </article>
                 </li>
               );
             })}

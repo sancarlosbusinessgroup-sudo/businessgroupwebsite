@@ -2,7 +2,6 @@
 
 import { useActionState } from 'react';
 import { SelectField, SubmitButton, TextArea, TextField } from '@/components/forms';
-import { StarRating } from '@/components/StarRating';
 import { useClientValidation } from '@/components/useClientValidation';
 import { Notice } from '@/components/ui';
 import { idle, oneOnOneSchema } from '@/lib/validation';
@@ -41,29 +40,18 @@ export function ReportForm({ members, today, minDate, defaultPartner }: Props) {
           </option>
         ))}
       </SelectField>
-      <div className="flex flex-wrap gap-5">
-        <div className="flex-[1_1_220px]">
-          <TextField
-            name="metOn"
-            type="date"
-            label="Activity date"
-            required
-            min={minDate}
-            max={today}
-            defaultValue={v.metOn ?? today}
-            error={errors.metOn}
-            help="Today or the previous 14 days."
-          />
-        </div>
-        <div className="flex-[1_1_240px]">
-          <StarRating
-            key={`r-${state.status}`}
-            name="rating"
-            legend="How was the one-on-one?"
-            help="Ratings are private and never shown to either participant."
-            error={errors.rating}
-          />
-        </div>
+      <div className="max-w-xs">
+        <TextField
+          name="metOn"
+          type="date"
+          label="Activity date"
+          required
+          min={minDate}
+          max={today}
+          defaultValue={v.metOn ?? today}
+          error={errors.metOn}
+          help="Today or the previous 14 days."
+        />
       </div>
       <TextArea
         name="note"

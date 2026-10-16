@@ -1,17 +1,26 @@
 import type { Metadata } from 'next';
-import { EmptyState, Pill } from '@/components/ui';
+import { AdminNav } from '@/components/AdminNav';
+import { EmptyState, Notice, Pill } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { guestStatusLabels } from '@/lib/content';
+import { getCategorySeats } from '@/lib/data/public';
 import { formatShortDate } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { resolveCorrection, setGuestStatus, setMemberStatus } from '../actions/admin';
+import { SeatForm } from './SeatForm';
 
 export const metadata: Metadata = { title: 'Admin' };
 
-export default async function AdminPage() {
+const errors: Record<string, string> = {
+  category_full: 'That category is full. Raise its seats under “Category seats” below, or ask the applicant to pick another category.',
+  save: 'Something went wrong. Please try again.',
+};
+
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
   await requireAdmin();
   const supabase = await createClient();
-  const [pendingRes, guestsRes, corrRes] = await Promise.all([
+  const [pendingRes, guestsRes, corrRes, seats, downloadsRes] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -29,13 +38,21 @@ export default async function AdminPage() {
       .select('id, note, created_at, profile:profiles!attendance_corrections_profile_id_fkey(first_name, last_name), meeting:meetings(starts_at)')
       .eq('resolved', false)
       .order('created_at'),
+    getCategorySeats(),
+    supabase
+      .from('directory_downloads')
+      .select('id, format, created_at, profile:profiles(first_name, last_name)')
+      .order('created_at', { ascending: false })
+      .limit(20),
   ]);
-  if (pendingRes.error || guestsRes.error || corrRes.error) throw new Error('Could not load admin data');
+  if (pendingRes.error || guestsRes.error || corrRes.error || downloadsRes.error) throw new Error('Could not load admin data');
 
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Admin</h1>
+        <AdminNav current="/admin" />
+        {error && errors[error] ? <Notice tone="error">{errors[error]}</Notice> : null}
 
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="ap-h">
           <h2 id="ap-h" className="font-display m-0 text-[22px] font-extrabold">
@@ -177,6 +194,61 @@ export default async function AdminPage() {
             </ul>
           )}
           <p className="text-ink-muted m-0 text-sm">To change an attendance record, edit the attendance table in the Supabase dashboard (see README).</p>
+        </section>
+        <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="seats-h">
+          <h2 id="seats-h" className="font-display m-0 text-[22px] font-extrabold">
+            Category seats
+          </h2>
+          <p className="text-ink-muted m-0 text-[15px]">
+            How many approved members each profession can have (usually 1). Full categories are shown as closed on the Visit and Join pages.
+          </p>
+          <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-x-6 gap-y-1 p-0">
+            {seats.map((c) => (
+              <li key={c.id} className="border-line-soft flex flex-wrap items-center justify-between gap-2 border-t py-2">
+                <span className="font-semibold">
+                  {c.name}
+                  {!c.open ? <span className="text-ink-muted text-sm font-normal"> · full</span> : null}
+                </span>
+                <SeatForm id={c.id} name={c.name} seatLimit={c.seat_limit} taken={c.taken} />
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="dl-h">
+          <h2 id="dl-h" className="font-display m-0 text-[22px] font-extrabold">
+            Directory downloads
+          </h2>
+          {downloadsRes.data.length === 0 ? (
+            <EmptyState title="No downloads yet" />
+          ) : (
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Directory downloads table">
+              <table className="data-table">
+                <caption className="sr-only">Latest member directory downloads</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Member</th>
+                    <th scope="col">Format</th>
+                    <th scope="col">When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {downloadsRes.data.map((d) => (
+                    <tr key={d.id}>
+                      <td>
+                        {d.profile?.first_name} {d.profile?.last_name}
+                      </td>
+                      <td>{d.format === 'vcf' ? 'vCard' : 'CSV'}</td>
+                      <td>
+                        {formatShortDate(new Date(d.created_at))},{' '}
+                        {new Date(d.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })} PT
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       </div>
     </div>

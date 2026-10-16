@@ -7,7 +7,6 @@ export const site = {
   founded: 2016,
   meetingCadence: 'Every other Monday',
   meetingTime: '8:15 AM',
-  supporter: 'SanCarlosLife.com',
   serviceArea:
     'San Carlos, Redwood City, Belmont, San Mateo, Foster City, Burlingame, Millbrae, Hillsborough, Menlo Park, Atherton, Palo Alto and surrounding communities',
   credit: 'Artwork and images contributed by Vabrato Real Estate & Upendo Ventures',
@@ -36,7 +35,7 @@ export const howItWorks = [
   { title: 'Visit twice, free', text: 'Get invited by a member and attend up to two meetings as a guest.' },
   { title: 'Meet the committee', text: "Three one-on-ones with membership committee members. If it's a fit, welcome aboard." },
   { title: 'Refer and connect', text: 'Share warm introductions and invite guests. Your referral link tracks every one.' },
-  { title: 'Watch it grow', text: 'Your dashboard shows referrals, one-on-ones, attendance and closed business.' },
+  { title: 'Watch it grow', text: 'Report referrals, one-on-ones and closed deals. The leaderboard shows the whole group’s progress.' },
 ];
 
 export const values = [
@@ -48,7 +47,7 @@ export const values = [
 export const metrics = [
   { title: 'Referrals', text: 'Members share leads, introductions and opportunities. A referral is any warm connection that may help another business grow.' },
   { title: 'One-on-ones', text: "Friendly, focused meetings between two members to learn each other's services, goals and ideal customers." },
-  { title: 'Closed business', text: "When a referral turns into paid work, it's counted. It shows how conversations become real results." },
+  { title: 'Closed deals', text: "When a referral turns into paid work, it's counted. It shows how conversations become real results." },
 ];
 
 export const timeline = [
@@ -57,6 +56,7 @@ export const timeline = [
   { year: 'Today', text: 'Meeting every other Monday, online with hybrid gatherings' },
 ];
 
+/** Shown on About only until admins add people to the Management list (Admin → Management). */
 export const leadership = {
   name: 'Viv Kelvin',
   business: 'Vabrato Real Estate',
@@ -102,17 +102,27 @@ export const albums = [
 ] as const;
 
 export const warmthOptions = [
-  { value: 'hot', label: "Hot: they're expecting a call" },
-  { value: 'warm', label: 'Warm: introduced by email' },
-  { value: 'tip', label: 'Tip: just a lead' },
+  { value: 'hot', label: "Hot: they're expecting your call" },
+  { value: 'warm', label: 'Warm: introduced, open to hearing from you' },
+  { value: 'cold', label: 'Cold: a lead worth following up' },
 ] as const;
 
+export const warmthLabels = { hot: 'Hot', warm: 'Warm', cold: 'Cold' } as const;
+
 export const referralStatusLabels = {
-  sent: 'Sent',
+  new: 'New',
   contacted: 'Contacted',
-  closed: 'Closed',
+  meeting_set: 'Meeting set',
+  closed_deal: 'Closed deal',
   not_a_fit: 'Not a fit',
 } as const;
+
+export const leaderboardMetrics = [
+  { key: 'one_on_ones', label: 'One-on-ones' },
+  { key: 'referrals', label: 'Referrals' },
+  { key: 'closed_deals', label: 'Closed deals' },
+  { key: 'visitors', label: 'Visitors brought' },
+] as const;
 
 export const guestStatusLabels = {
   requested: 'Invited',

@@ -11,12 +11,14 @@ import { signUp } from '../actions/auth';
 const STEPS = ['Account', 'Business', 'Referral', 'Done'] as const;
 const stepSchemas = [joinAccountSchema, joinBusinessSchema, joinReferralSchema];
 
-type Props = { categories: { id: number; name: string }[]; referralCode?: string; referrerName?: string };
+type Props = { categories: { id: number; name: string; open: boolean }[]; referralCode?: string; referrerName?: string };
 
 export function JoinForm({ categories, referralCode, referrerName }: Props) {
   const [state, action] = useActionState(signUp, idle);
   const [step, setStep] = useState(0);
   const [clientErrors, setClientErrors] = useState<Record<string, string> | null>(null);
+  const [categoryId, setCategoryId] = useState<string>(state.values?.categoryId ?? '');
+  const fullCategory = categories.find((c) => String(c.id) === categoryId && !c.open);
   const formRef = useRef<HTMLFormElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const done = state.status === 'success';
@@ -170,15 +172,20 @@ export function JoinForm({ categories, referralCode, referrerName }: Props) {
                 label="Category"
                 required
                 defaultValue={v.categoryId ?? ''}
+                onChange={(e) => setCategoryId(e.target.value)}
                 error={errors.categoryId}
-                help="One member per category. We'll let you know if it's taken."
+                help={
+                  fullCategory
+                    ? `${fullCategory.name} already has a member, and we keep one member per profession. You can still apply; an admin will contact you about fit.`
+                    : 'One member per profession. Categories marked “full” already have a member.'
+                }
               >
                 <option value="" disabled>
                   Choose a category
                 </option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {c.open ? c.name : `${c.name} (full)`}
                   </option>
                 ))}
               </SelectField>

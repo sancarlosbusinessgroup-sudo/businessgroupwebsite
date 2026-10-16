@@ -79,7 +79,6 @@ test.describe('member area', () => {
     await page.getByRole('button', { name: 'Report one-on-one' }).click();
     await expect(page.getByText('Choose who you met with')).toBeVisible();
     await page.getByLabel('Who did you meet with?').selectOption({ label: 'Riley Second · Second Test Bakery' });
-    await page.getByRole('radio', { name: '5 stars' }).check();
     await page.getByLabel('Private note').fill('Great fit for catering referrals.');
     await page.getByRole('button', { name: 'Report one-on-one' }).click();
     await expect(page.getByText(/One-on-one reported/)).toBeVisible();
@@ -92,29 +91,37 @@ test.describe('member area', () => {
     await expect(page.getByText(/CONFIRMED/).first()).toBeVisible();
   });
 
-  test('send a referral (invalid then valid); receiver marks it closed with an amount', async ({ page }) => {
-    await page.goto('/referrals?tab=business');
-    await page.getByRole('button', { name: 'Send referral' }).click();
+  test('file a referral slip (invalid then valid); receiver marks it a closed deal', async ({ page }) => {
+    await page.goto('/referrals');
+    await page.getByRole('button', { name: 'Send referral slip' }).click();
     await expect(page.getByText('Choose a member to refer to')).toBeVisible();
     await page.getByLabel('Refer to member').selectOption({ label: 'Riley Second · Second Test Bakery' });
-    await page.getByLabel('Contact name').fill('Wedding cake client');
-    await page.getByRole('button', { name: 'Send referral' }).click();
-    await expect(page.getByText('Referral sent.')).toBeVisible();
+    await page.getByLabel('Prospect name').fill('Wedding cake client');
+    await page.getByLabel('Prospect phone').fill('(650) 555-0199');
+    await page.getByLabel('Temperature').selectOption('hot');
+    await page.getByLabel('The prospect has agreed to be contacted').check();
+    await page.getByRole('button', { name: 'Send referral slip' }).click();
+    await expect(page.getByText('Referral slip sent.')).toBeVisible();
 
     await page.getByRole('button', { name: 'Log out' }).click();
-    await login(page, users.member2, undefined, '/referrals?tab=business');
+    await login(page, users.member2, undefined, '/referrals');
     const form = page.getByRole('form', { name: 'Update referral: Wedding cake client' });
-    await form.getByLabel('Status').selectOption('closed');
+    await expect(page.getByText('(650) 555-0199')).toBeVisible();
+    await form.getByLabel('Status').selectOption('closed_deal');
     await form.getByRole('button', { name: 'Save' }).click();
-    await expect(form.getByText('Enter the amount of closed business')).toBeVisible();
-    await form.getByLabel('Amount ($)').fill('850');
-    await form.getByRole('button', { name: 'Save' }).click();
-    await expect(page.getByText(/Closed · \$850/)).toBeVisible();
+    await expect(form.getByText('Saved')).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('listitem').filter({ hasText: 'Wedding cake client' }).locator('.pill', { hasText: 'Closed deal' })).toBeVisible();
+    const [row] = await db<{ status: string; closed_at: string | null; prospect_consent: boolean }>(
+      'referrals?contact_name=eq.Wedding%20cake%20client&select=status,closed_at,prospect_consent',
+    );
+    expect(row).toMatchObject({ status: 'closed_deal', prospect_consent: true });
+    expect(row?.closed_at).not.toBeNull();
   });
 
   test('invite link is shown and copyable', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await page.goto('/referrals');
+    await page.goto('/dashboard');
     const link = page.getByLabel('Your invite link');
     await expect(link).toContainText('/visit?ref=');
     await page.getByRole('button', { name: 'Copy link' }).click();

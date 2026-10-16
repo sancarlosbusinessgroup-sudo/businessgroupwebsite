@@ -1,51 +1,65 @@
 import 'server-only';
 import { createClient } from '../supabase/server';
-
-export type MemberStats = {
-  referrals_given: number;
-  referrals_given_prior: number;
-  referrals_received: number;
-  referrals_received_closed: number;
-  closed_amount: number;
-  one_on_ones: number;
-  group_avg_one_on_ones: number;
-  meetings_held: number;
-  meetings_present: number;
-  guests_invited: number;
-  guests_visited: number;
-  guests_applied: number;
-  guests_joined: number;
-};
+import type { MemberPeriodStats } from '../database.types';
+import { localDateKey } from '../dates';
+import type { DateRange } from '../periods';
 
 function fail(what: string, error: { message: string } | null): never {
   throw new Error(`Could not load ${what}${error ? `: ${error.message}` : ''}`);
 }
 
-export async function getMyStats(): Promise<MemberStats> {
+export type GroupTotals = { one_on_ones: number; referrals: number; closed_deals: number; visitors: number };
+export type LeaderRow = { metric: string; rank: number; profile_id: string; first_name: string; last_name: string; value: number };
+
+/** Group totals for a Pacific date range (approved members only). */
+export async function getGroupTotals(range: DateRange): Promise<GroupTotals> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('member_stats');
-  if (error) fail('your stats', error);
-  return data as MemberStats;
+  const { data, error } = await supabase.rpc('group_totals', { p_from: range.from, p_to: range.to });
+  if (error) fail('group totals', error);
+  return data as GroupTotals;
 }
 
-export async function getGroupMonth(): Promise<{ closed_amount: number; one_on_ones: number }> {
+/** Top members per metric (names + counts only). */
+export async function getLeaderboard(range: DateRange, limit = 5): Promise<LeaderRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('group_month_stats');
-  if (error) fail('group stats', error);
-  return data as { closed_amount: number; one_on_ones: number };
-}
-
-export async function getMonthlyActivity() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc('monthly_activity');
-  if (error) fail('your activity', error);
+  const { data, error } = await supabase.rpc('leaderboard', { p_from: range.from, p_to: range.to, p_limit: limit });
+  if (error) fail('the leaderboard', error);
   return data;
 }
 
-export async function getTopInviters() {
+/** Per-member counts. The database refuses this for anyone but admins. */
+export async function getAdminStats(range: DateRange): Promise<MemberPeriodStats[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('top_inviters', { p_limit: 5 });
-  if (error) fail('the leaderboard', error);
+  const { data, error } = await supabase.rpc('admin_member_stats', { p_from: range.from, p_to: range.to });
+  if (error) fail('member stats', error);
+  return data;
+}
+
+/** Calendar date (Pacific) of the most recent group meeting that has started, for "this meeting cycle". */
+export async function getLastMeetingDate(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('meetings')
+    .select('starts_at')
+    .eq('category', 'Networking')
+    .lte('starts_at', new Date().toISOString())
+    .order('starts_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) fail('meetings', error);
+  return data ? localDateKey(new Date(data.starts_at)) : null;
+}
+
+/** Guests credited to me (my own invitation records). */
+export async function getMyGuests(meId: string, limit = 5) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('guest_requests')
+    .select('id, first_name, last_name, status, created_at')
+    .eq('referrer_id', meId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) fail('your guests', error);
   return data;
 }
 

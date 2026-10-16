@@ -13,6 +13,19 @@ type Rel = {
 
 type E = Database['public']['Enums'];
 
+export type MemberPeriodStats = {
+  profile_id: string;
+  first_name: string;
+  last_name: string;
+  business_name: string;
+  one_on_ones: number;
+  referrals_given: number;
+  referrals_received: number;
+  closed_deals: number;
+  closed_deals_received: number;
+  visitors_brought: number;
+};
+
 export type Database = {
   __InternalSupabase: { PostgrestVersion: '12.2' };
   public: {
@@ -60,10 +73,24 @@ export type Database = {
         ];
       };
       categories: {
-        Row: { id: number; name: string };
-        Insert: { id?: never; name: string };
-        Update: { id?: never; name?: string };
+        Row: { id: number; name: string; seat_limit: number };
+        Insert: { id?: never; name: string; seat_limit?: number };
+        Update: { id?: never; name?: string; seat_limit?: number };
         Relationships: [];
+      };
+      directory_downloads: {
+        Row: { created_at: string; format: string; id: string; profile_id: string };
+        Insert: { created_at?: string; format: string; id?: string; profile_id?: string };
+        Update: { created_at?: string; format?: string; id?: string; profile_id?: string };
+        Relationships: [
+          {
+            foreignKeyName: 'directory_downloads_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       gallery_photos: {
         Row: {
@@ -157,6 +184,50 @@ export type Database = {
           {
             foreignKeyName: 'guest_requests_referrer_id_fkey';
             columns: ['referrer_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      leadership: {
+        Row: {
+          bio: string | null;
+          created_at: string;
+          id: string;
+          name: string;
+          photo_path: string | null;
+          profile_id: string | null;
+          role: string;
+          sort_order: number;
+          updated_at: string;
+        };
+        Insert: {
+          bio?: string | null;
+          created_at?: string;
+          id?: string;
+          name: string;
+          photo_path?: string | null;
+          profile_id?: string | null;
+          role: string;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Update: {
+          bio?: string | null;
+          created_at?: string;
+          id?: string;
+          name?: string;
+          photo_path?: string | null;
+          profile_id?: string | null;
+          role?: string;
+          sort_order?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'leadership_profile_id_fkey';
+            columns: ['profile_id'];
             isOneToOne: false;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
@@ -280,9 +351,9 @@ export type Database = {
         ];
       };
       one_on_one_feedback: {
-        Row: { author_id: string; created_at: string; note: string | null; one_on_one_id: string; rating: number | null };
-        Insert: { author_id: string; created_at?: string; note?: string | null; one_on_one_id: string; rating?: number | null };
-        Update: { author_id?: string; created_at?: string; note?: string | null; one_on_one_id?: string; rating?: number | null };
+        Row: { author_id: string; created_at: string; note: string | null; one_on_one_id: string };
+        Insert: { author_id: string; created_at?: string; note?: string | null; one_on_one_id: string };
+        Update: { author_id?: string; created_at?: string; note?: string | null; one_on_one_id?: string };
         Relationships: [
           {
             foreignKeyName: 'one_on_one_feedback_author_id_fkey';
@@ -346,10 +417,11 @@ export type Database = {
           services: string[];
           show_in_directory: boolean;
           show_phone_public: boolean;
-          show_stats: boolean;
           slug: string;
           status: E['member_status'];
           updated_at: string;
+          weekly_ask: string | null;
+          weekly_ask_updated_at: string | null;
           website: string | null;
         };
         Insert: {
@@ -376,10 +448,11 @@ export type Database = {
           services?: string[];
           show_in_directory?: boolean;
           show_phone_public?: boolean;
-          show_stats?: boolean;
           slug: string;
           status?: E['member_status'];
           updated_at?: string;
+          weekly_ask?: string | null;
+          weekly_ask_updated_at?: string | null;
           website?: string | null;
         };
         Update: {
@@ -406,10 +479,11 @@ export type Database = {
           services?: string[];
           show_in_directory?: boolean;
           show_phone_public?: boolean;
-          show_stats?: boolean;
           slug?: string;
           status?: E['member_status'];
           updated_at?: string;
+          weekly_ask?: string | null;
+          weekly_ask_updated_at?: string | null;
           website?: string | null;
         };
         Relationships: [
@@ -431,36 +505,45 @@ export type Database = {
       };
       referrals: {
         Row: {
-          closed_amount: number | null;
+          closed_at: string | null;
           contact_name: string;
           created_at: string;
           from_id: string;
           id: string;
           notes: string | null;
+          prospect_consent: boolean;
+          prospect_email: string | null;
+          prospect_phone: string | null;
           status: E['referral_status'];
           to_id: string;
           updated_at: string;
           warmth: E['referral_warmth'];
         };
         Insert: {
-          closed_amount?: number | null;
+          closed_at?: string | null;
           contact_name: string;
           created_at?: string;
           from_id: string;
           id?: string;
           notes?: string | null;
+          prospect_consent?: boolean;
+          prospect_email?: string | null;
+          prospect_phone?: string | null;
           status?: E['referral_status'];
           to_id: string;
           updated_at?: string;
           warmth?: E['referral_warmth'];
         };
         Update: {
-          closed_amount?: number | null;
+          closed_at?: string | null;
           contact_name?: string;
           created_at?: string;
           from_id?: string;
           id?: string;
           notes?: string | null;
+          prospect_consent?: boolean;
+          prospect_email?: string | null;
+          prospect_phone?: string | null;
           status?: E['referral_status'];
           to_id?: string;
           updated_at?: string;
@@ -483,17 +566,19 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
-      confirm_one_on_one: { Args: { p_id: string; p_rating?: number }; Returns: undefined };
-      group_month_stats: { Args: never; Returns: Json };
+      admin_member_stats: { Args: { p_from?: string | null; p_to?: string | null }; Returns: MemberPeriodStats[] };
+      confirm_one_on_one: { Args: { p_id: string }; Returns: undefined };
+      group_totals: { Args: { p_from?: string | null; p_to?: string | null }; Returns: Json };
       is_admin: { Args: never; Returns: boolean };
       is_approved_member: { Args: never; Returns: boolean };
       join_meeting: { Args: { p_meeting: string }; Returns: string };
+      leaderboard: {
+        Args: { p_from?: string | null; p_to?: string | null; p_limit?: number };
+        Returns: { first_name: string; last_name: string; metric: string; profile_id: string; rank: number; value: number }[];
+      };
       member_count: { Args: never; Returns: number };
-      member_stats: { Args: { p_profile?: string }; Returns: Json };
-      monthly_activity: { Args: never; Returns: { month: string; one_on_ones: number; referrals: number }[] };
-      public_member_stats: { Args: { p_slug: string }; Returns: Json };
+      open_categories: { Args: never; Returns: { id: number; name: string; seat_limit: number; taken: number }[] };
       public_phone: { Args: { p_slug: string }; Returns: string };
-      top_inviters: { Args: { p_limit?: number }; Returns: { first_name: string; invited: number; last_name: string; profile_id: string }[] };
     };
     Enums: {
       attendance_status: 'present' | 'excused' | 'absent';
@@ -501,8 +586,8 @@ export type Database = {
       guest_status: 'requested' | 'visited' | 'applied' | 'joined';
       member_role: 'member' | 'admin';
       member_status: 'pending' | 'approved' | 'declined' | 'inactive';
-      referral_status: 'sent' | 'contacted' | 'closed' | 'not_a_fit';
-      referral_warmth: 'hot' | 'warm' | 'tip';
+      referral_status: 'new' | 'contacted' | 'meeting_set' | 'closed_deal' | 'not_a_fit';
+      referral_warmth: 'hot' | 'warm' | 'cold';
       speaker_slot: 'education' | 'presentation';
     };
     CompositeTypes: { [_ in never]: never };

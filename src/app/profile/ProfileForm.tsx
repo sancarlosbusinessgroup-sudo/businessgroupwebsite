@@ -21,7 +21,6 @@ export type ProfileDefaults = {
   listenFor: string;
   services: string;
   showInDirectory: boolean;
-  showStats: boolean;
   showPhonePublic: boolean;
 };
 
@@ -31,7 +30,7 @@ export function ProfileForm({ defaults, categories }: { defaults: ProfileDefault
   const errors = clientErrors ?? state.errors ?? {};
   const v = state.status === 'error' && state.values ? state.values : null;
   const val = (k: keyof ProfileDefaults) => (v ? (v[k] ?? '') : String(defaults[k] ?? ''));
-  const checked = (k: 'showInDirectory' | 'showStats' | 'showPhonePublic') => (v ? v[k] === 'on' : defaults[k]);
+  const checked = (k: 'showInDirectory' | 'showPhonePublic') => (v ? v[k] === 'on' : defaults[k]);
 
   return (
     <form action={action} onSubmit={onSubmit} noValidate className="card flex flex-col gap-[22px] p-7" aria-label="Edit profile">
@@ -72,7 +71,6 @@ export function ProfileForm({ defaults, categories }: { defaults: ProfileDefault
       <fieldset className="border-line m-0 flex flex-col gap-1 rounded-xl border p-4">
         <legend className="label px-1.5">Visibility</legend>
         <Checkbox name="showInDirectory" label="Show my listing in the public directory" defaultChecked={checked('showInDirectory')} />
-        <Checkbox name="showStats" label="Show my activity stats on my profile" defaultChecked={checked('showStats')} />
         <Checkbox name="showPhonePublic" label="Show my phone number to visitors (not just members)" defaultChecked={checked('showPhonePublic')} />
       </fieldset>
       <div className="flex justify-end">
