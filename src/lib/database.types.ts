@@ -302,9 +302,9 @@ export type Database = {
         ];
       };
       meeting_slide_settings: {
-        Row: { meeting_id: string; slides: string[]; updated_at: string };
-        Insert: { meeting_id: string; slides: string[]; updated_at?: string };
-        Update: { meeting_id?: string; slides?: string[]; updated_at?: string };
+        Row: { meeting_id: string; slides: string[]; notes: Json; updated_at: string };
+        Insert: { meeting_id: string; slides: string[]; notes?: Json; updated_at?: string };
+        Update: { meeting_id?: string; slides?: string[]; notes?: Json; updated_at?: string };
         Relationships: [
           {
             foreignKeyName: 'meeting_slide_settings_meeting_id_fkey';
@@ -365,6 +365,7 @@ export type Database = {
       };
       meetings: {
         Row: {
+          cancelled_reason: string | null;
           category: string;
           created_at: string;
           description: string | null;
@@ -379,6 +380,7 @@ export type Database = {
           title: string;
         };
         Insert: {
+          cancelled_reason?: string | null;
           category?: string;
           created_at?: string;
           description?: string | null;
@@ -393,6 +395,7 @@ export type Database = {
           title: string;
         };
         Update: {
+          cancelled_reason?: string | null;
           category?: string;
           created_at?: string;
           description?: string | null;
@@ -500,6 +503,54 @@ export type Database = {
             columns: ['one_on_one_id'];
             isOneToOne: false;
             referencedRelation: 'one_on_ones';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      one_on_one_requests: {
+        Row: {
+          created_at: string;
+          id: string;
+          invitee_id: string;
+          message: string | null;
+          proposed_on: string | null;
+          requester_id: string;
+          responded_at: string | null;
+          status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          invitee_id: string;
+          message?: string | null;
+          proposed_on?: string | null;
+          requester_id?: string;
+          responded_at?: string | null;
+          status?: 'pending' | 'accepted' | 'declined' | 'cancelled';
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          invitee_id?: string;
+          message?: string | null;
+          proposed_on?: string | null;
+          requester_id?: string;
+          responded_at?: string | null;
+          status?: 'pending' | 'accepted' | 'declined' | 'cancelled';
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'one_on_one_requests_invitee_id_fkey';
+            columns: ['invitee_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'one_on_one_requests_requester_id_fkey';
+            columns: ['requester_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },
         ];
@@ -638,6 +689,7 @@ export type Database = {
       };
       referrals: {
         Row: {
+          amount: number | null;
           closed_at: string | null;
           contact_name: string;
           created_at: string;
@@ -653,6 +705,7 @@ export type Database = {
           warmth: E['referral_warmth'];
         };
         Insert: {
+          amount?: number | null;
           closed_at?: string | null;
           contact_name: string;
           created_at?: string;
@@ -668,6 +721,7 @@ export type Database = {
           warmth?: E['referral_warmth'];
         };
         Update: {
+          amount?: number | null;
           closed_at?: string | null;
           contact_name?: string;
           created_at?: string;
@@ -699,6 +753,11 @@ export type Database = {
     };
     Views: { [_ in never]: never };
     Functions: {
+      admin_member_amounts: {
+        Args: { p_from?: string | null; p_to?: string | null };
+        Returns: { profile_id: string; closed_amount_given: number; closed_amount_received: number }[];
+      };
+      respond_one_on_one_request: { Args: { p_id: string; p_status: string }; Returns: undefined };
       admin_member_stats: { Args: { p_from?: string | null; p_to?: string | null }; Returns: MemberPeriodStats[] };
       confirm_one_on_one: { Args: { p_id: string }; Returns: undefined };
       group_totals: { Args: { p_from?: string | null; p_to?: string | null }; Returns: Json };

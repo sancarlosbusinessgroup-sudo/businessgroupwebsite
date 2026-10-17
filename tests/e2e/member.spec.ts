@@ -93,7 +93,7 @@ test.describe('member area', () => {
     await expect(page.getByText(/CONFIRMED/).first()).toBeVisible();
   });
 
-  test('file a referral slip (invalid then valid); receiver marks it a closed deal', async ({ page }) => {
+  test('file a referral slip with a dollar value (invalid then valid); receiver marks it a closed deal and updates the value', async ({ page }) => {
     await page.goto('/referrals');
     await page.getByRole('button', { name: 'Send referral slip' }).click();
     await expect(page.getByText('Choose a member to refer to')).toBeVisible();
@@ -101,7 +101,11 @@ test.describe('member area', () => {
     await page.getByLabel('Prospect name').fill('Wedding cake client');
     await page.getByLabel('Prospect phone').fill('(650) 555-0199');
     await expect(page.getByLabel('Temperature')).toHaveCount(0);
-    await page.getByLabel('The prospect has agreed to be contacted').check();
+    await expect(page.getByLabel('The prospect has agreed to be contacted')).toHaveCount(0);
+    await page.getByLabel('Referral value ($)').fill('abc');
+    await page.getByRole('button', { name: 'Send referral slip' }).click();
+    await expect(page.getByText('Enter a dollar amount, like 1250 or 1,250.50')).toBeVisible();
+    await page.getByLabel('Referral value ($)').fill('3,000');
     await page.getByRole('button', { name: 'Send referral slip' }).click();
     await expect(page.getByText('Referral slip sent.')).toBeVisible();
 
@@ -109,15 +113,17 @@ test.describe('member area', () => {
     await login(page, users.member2, undefined, '/referrals');
     const form = page.getByRole('form', { name: 'Update referral: Wedding cake client' });
     await expect(page.getByText('(650) 555-0199')).toBeVisible();
+    await expect(page.getByRole('listitem').filter({ hasText: 'Wedding cake client' }).getByText('$3,000')).toBeVisible();
     await form.getByLabel('Status').selectOption('closed_deal');
+    await form.getByLabel('Value ($)').fill('3500');
     await form.getByRole('button', { name: 'Save' }).click();
     await expect(form.getByText('Saved')).toBeVisible();
     await page.reload();
     await expect(page.getByRole('listitem').filter({ hasText: 'Wedding cake client' }).locator('.pill', { hasText: 'Closed deal' })).toBeVisible();
-    const [row] = await db<{ status: string; closed_at: string | null; prospect_consent: boolean }>(
-      'referrals?contact_name=eq.Wedding%20cake%20client&select=status,closed_at,prospect_consent',
+    const [row] = await db<{ status: string; closed_at: string | null; amount: number }>(
+      'referrals?contact_name=eq.Wedding%20cake%20client&select=status,closed_at,amount',
     );
-    expect(row).toMatchObject({ status: 'closed_deal', prospect_consent: true });
+    expect(row).toMatchObject({ status: 'closed_deal', amount: 3500 });
     expect(row?.closed_at).not.toBeNull();
   });
 

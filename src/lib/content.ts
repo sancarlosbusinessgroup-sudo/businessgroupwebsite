@@ -22,11 +22,19 @@ export const publicNav = [
   { href: '/gallery', label: 'Gallery' },
 ] as const;
 
-export const memberNav = [
+export type NavItem = { href: string; label: string; children?: readonly { href: string; label: string }[] };
+
+export const memberNav: readonly NavItem[] = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/meetings', label: 'Meetings' },
-  { href: '/referrals', label: 'Referrals' },
-  { href: '/one-on-ones', label: 'One-on-ones' },
+  {
+    href: '/referrals',
+    label: 'Report Activity',
+    children: [
+      { href: '/referrals', label: 'Referrals' },
+      { href: '/one-on-ones', label: 'One-on-ones' },
+    ],
+  },
   { href: '/members', label: 'Directory' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/profile', label: 'My profile' },
@@ -141,3 +149,9 @@ export const guestStatusLabels = {
 /** Speaker slots: database values stay 'education' / 'presentation'. */
 export const slotLabels = { education: '5-minute presentation', presentation: '10-minute presentation' } as const;
 export const slotShort = { education: '5-minute', presentation: '10-minute' } as const;
+/** What each speaker slot is for (owner's wording). */
+export const slotTitles = { education: '5-Minute Member Education', presentation: '10-Minute Presentation' } as const;
+export const slotDescriptions = {
+  education: 'One member shares something they’ve learned — a helpful insight, tool, or business tip.',
+  presentation: 'One member dives deeper into their business to teach the group how to refer them better.',
+} as const;

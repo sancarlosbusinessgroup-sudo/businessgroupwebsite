@@ -1,9 +1,9 @@
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { initials } from '@/components/ui';
-import { leaderboardMetrics, site, slotLabels } from '@/lib/content';
+import { leaderboardMetrics, site, slotDescriptions, slotLabels, slotTitles } from '@/lib/content';
 import type { DeckData, SpeakerCard } from '@/lib/data/slides';
-import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
+import { formatMeetingDate, formatMeetingTime, formatMoney } from '@/lib/dates';
 import { env, mediaUrl } from '@/lib/env';
 import { chunk, slideLabel, type SlideKey } from '@/lib/slides';
 import type { DeckSlide } from './Deck';
@@ -33,17 +33,19 @@ function Face({ name, path, size = 12 }: { name: string; path: string | null; si
   );
 }
 
-function SpeakerSlide({ label, s }: { label: string; s: SpeakerCard | null }) {
+function SpeakerSlide({ label, description, s }: { label: string; description: string; s: SpeakerCard | null }) {
   if (!s)
     return (
-      <Frame eyebrow={label} title={label} center>
+      <Frame eyebrow="Presentation" title={label} center>
+        <Big>{description}</Big>
         <p className="text-on-band-muted m-0 text-[2.4cqw]">This slot is open today.</p>
       </Frame>
     );
   return (
-    <div className="flex h-full flex-col gap-[2cqw] p-[5cqw]">
+    <div className="flex h-full flex-col gap-[1.6cqw] p-[5cqw]">
       <p className="font-display text-sky m-0 text-[1.8cqw] font-bold tracking-[0.14em] uppercase">Presentation</p>
       <h2 className="font-display text-on-band m-0 text-[4.4cqw] leading-[1.08] font-extrabold">{label}</h2>
+      <p className="text-on-band-muted m-0 text-[2cqw] leading-snug">{description}</p>
       <div className="flex flex-1 items-center gap-[4cqw]">
         <Face name={s.display_name} path={s.avatar_path} size={20} />
         <div className="flex min-w-0 flex-col gap-[1cqw]">
@@ -63,7 +65,23 @@ export function buildSlides(d: DeckData): DeckSlide[] {
   const start = new Date(d.meeting.starts_at);
   const visitUrl = `${env.siteUrl.replace(/^https?:\/\//, '')}/visit`;
   const out: DeckSlide[] = [];
-  const add = (key: SlideKey, node: ReactNode, suffix = '') => out.push({ id: key + suffix, label: slideLabel(key) + (suffix ? ` ${suffix}` : ''), node });
+  const add = (key: SlideKey, node: ReactNode, suffix = '') => {
+    const note = d.notes[key];
+    out.push({
+      id: key + suffix,
+      label: slideLabel(key) + (suffix ? ` ${suffix}` : ''),
+      node: note ? (
+        <div className="flex h-full flex-col">
+          <div className="min-h-0 flex-1">{node}</div>
+          <p className="bg-band-2 text-on-band border-accent mx-[5cqw] mb-[3cqw] rounded-[1cqw] border-l-[0.6cqw] px-[1.6cqw] py-[1.1cqw] text-[2cqw] leading-snug whitespace-pre-line">
+            {note}
+          </p>
+        </div>
+      ) : (
+        node
+      ),
+    });
+  };
 
   for (const key of d.slides) {
     switch (key) {
@@ -75,6 +93,40 @@ export function buildSlides(d: DeckData): DeckSlide[] {
             <Big>
               {formatMeetingDate(start)} · {formatMeetingTime(start)} PT
             </Big>
+          </Frame>,
+        );
+        break;
+      case 'networking':
+        add(
+          key,
+          <Frame eyebrow="8:15 – 8:30 AM" title="Open Networking" center>
+            <Big>A chance to chat, check tech, and warm up for the day — especially helpful on Zoom!</Big>
+          </Frame>,
+        );
+        break;
+      case 'introductions':
+        add(
+          key,
+          <Frame eyebrow="Introductions" title="Welcome, everyone">
+            <Big>We welcome everyone, introduce the leadership team, and get things started.</Big>
+            {d.leadership.length ? (
+              <ul className="m-0 grid flex-1 list-none grid-cols-3 content-start gap-[1.4cqw] p-0">
+                {d.leadership.slice(0, 12).map((l) => (
+                  <li key={`${l.name}${l.role}`} className="bg-band-2 flex flex-col gap-[0.3cqw] rounded-[1cqw] px-[1.4cqw] py-[1cqw]">
+                    <span className="text-on-band text-[2.1cqw] font-bold">{l.name}</span>
+                    <span className="text-sky text-[1.6cqw] font-semibold">{l.role}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </Frame>,
+        );
+        break;
+      case 'roundtable':
+        add(
+          key,
+          <Frame eyebrow="Roundtable check-in" title="Your 30-second spiel & Win of the Week" center>
+            <Big>Everyone gets a moment to share their 30-second spiel and their “Win of the Week.” We encourage positive updates!</Big>
           </Frame>,
         );
         break;
@@ -185,22 +237,23 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       }
       case 'five_minute':
-        add(key, <SpeakerSlide label={slotLabels.education} s={d.five} />);
+        add(key, <SpeakerSlide label={slotTitles.education} description={slotDescriptions.education} s={d.five} />);
         break;
       case 'ten_minute':
-        add(key, <SpeakerSlide label={slotLabels.presentation} s={d.ten} />);
+        add(key, <SpeakerSlide label={slotTitles.presentation} description={slotDescriptions.presentation} s={d.ten} />);
         break;
       case 'summary':
         add(
           key,
-          <Frame eyebrow="Group activity" title="Our numbers">
+          <Frame eyebrow="Activity numbers" title="Our numbers">
+            <p className="text-on-band-muted m-0 text-[2cqw]">We share referral stats, one-on-ones, and closed business from the last meeting.</p>
             <table className="w-full flex-1 border-separate border-spacing-[1cqw] text-left">
               <thead>
                 <tr>
                   <th scope="col" className="text-[1.8cqw]">
                     <span className="sr-only">Period</span>
                   </th>
-                  {['One-on-ones', 'Referrals', 'Closed deals'].map((h) => (
+                  {['One-on-ones', 'Referrals', 'Closed deals', 'Closed business'].map((h) => (
                     <th key={h} scope="col" className="text-sky text-[1.8cqw] font-bold tracking-[0.08em] uppercase">
                       {h}
                     </th>
@@ -213,8 +266,8 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                     <th scope="row" className="text-on-band-muted text-[2.1cqw] font-semibold">
                       {label}
                     </th>
-                    {[t.one_on_ones, t.referrals, t.closed_deals].map((v, n) => (
-                      <td key={n} className="font-display text-on-band text-[4.2cqw] font-extrabold tabular-nums">
+                    {[t.one_on_ones, t.referrals, t.closed_deals, formatMoney(t.closed_amount)].map((v, n) => (
+                      <td key={n} className="font-display text-on-band text-[3.6cqw] font-extrabold tabular-nums">
                         {v}
                       </td>
                     ))}
@@ -260,7 +313,8 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'events':
         add(
           key,
-          <Frame eyebrow="Save the date" title="Upcoming events">
+          <Frame eyebrow="Events & announcements" title="Upcoming events & announcements">
+            <p className="text-on-band-muted m-0 text-[2cqw]">We wrap up with upcoming events, shout-outs, and reminders.</p>
             {d.events.length ? (
               <ul className="m-0 grid flex-1 list-none grid-cols-2 content-start gap-[1.6cqw] p-0">
                 {d.events.map((e) => (

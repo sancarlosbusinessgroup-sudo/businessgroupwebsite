@@ -8,7 +8,7 @@ import { WeeklyAskForm } from '@/components/WeeklyAskForm';
 import { requireMember } from '@/lib/auth';
 import { getNextMeeting } from '@/lib/data/public';
 import { getGroupTotals, getLeaderboard, getMyGuests, getOneOnOnes, getPendingConfirmations } from '@/lib/data/member';
-import { formatLongToday, formatShortDate } from '@/lib/dates';
+import { formatLongToday, formatMoney, formatShortDate } from '@/lib/dates';
 import { env } from '@/lib/env';
 import { isPeriod, periodRange, type Period } from '@/lib/periods';
 import { confirmOneOnOne } from '../actions/member';
@@ -128,8 +128,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   { k: 'Referrals', v: totals.referrals },
                   { k: 'Closed deals', v: totals.closed_deals },
                   { k: 'Visitors', v: totals.visitors },
+                  { k: 'Business closed', v: formatMoney(totals.closed_amount) },
                 ].map((t) => (
-                  <div key={t.k} className="border-teal-tint flex flex-col-reverse rounded-xl border p-3">
+                  <div key={t.k} className={`border-teal-tint flex flex-col-reverse rounded-xl border p-3 ${t.k === 'Business closed' ? 'col-span-2' : ''}`}>
                     <dt className="text-ink-muted text-xs font-bold tracking-[0.08em] uppercase">{t.k}</dt>
                     <dd className="font-display m-0 text-2xl font-extrabold tabular-nums">{t.v}</dd>
                   </div>

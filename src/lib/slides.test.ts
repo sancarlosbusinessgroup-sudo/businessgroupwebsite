@@ -1,22 +1,34 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SLIDES, SLIDE_KEYS, chunk, resolveSlides, slideLabel } from './slides';
+import { DEFAULT_SLIDES, SLIDE_KEYS, chunk, resolveNotes, resolveSlides, slideLabel } from './slides';
 
 describe('slide settings', () => {
-  it('defaults follow the agreed agenda order', () => {
+  it('defaults follow the meeting format: networking, introductions, roundtable, numbers, presentations, events & announcements', () => {
     expect(DEFAULT_SLIDES).toEqual([
       'welcome',
+      'networking',
       'phones',
+      'introductions',
       'visitors',
       'newcomers',
+      'roundtable',
       'asks',
-      'five_minute',
-      'ten_minute',
       'summary',
       'leaderboards',
+      'five_minute',
+      'ten_minute',
       'events',
       'closing',
     ]);
+    expect(slideLabel('networking')).toContain('8:15 – 8:30 AM');
+    expect(slideLabel('summary')).toBe('Activity numbers');
+    expect(slideLabel('events')).toBe('Events & announcements');
     for (const k of SLIDE_KEYS) expect(slideLabel(k)).toMatch(/\w/);
+  });
+
+  it('extra slide text keeps only known slides with text', () => {
+    expect(resolveNotes({ welcome: '  Happy holidays!  ', bogus: 'x', events: '', phones: 3 })).toEqual({ welcome: 'Happy holidays!' });
+    expect(resolveNotes(null)).toEqual({});
+    expect(resolveNotes(['welcome'])).toEqual({});
   });
 
   it('uses saved settings, dropping unknown and duplicate keys', () => {

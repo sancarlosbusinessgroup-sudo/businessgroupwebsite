@@ -118,11 +118,24 @@ test.describe('data-backed public views', () => {
     await expect(page.getByRole('heading', { level: 3, name: 'Fall Mixer in Belmont' })).toHaveCount(0);
   });
 
+  test('directory cards: the person is the link and the larger heading, the business is below', async ({ page }) => {
+    await page.goto('/members?q=Harbor');
+    const heading = page.getByRole('heading', { level: 2, name: 'Avery Lindqvist' });
+    await expect(heading).toBeVisible();
+    const business = page.getByText('Harbor Lane Realty', { exact: true });
+    const [h, b] = await Promise.all([
+      heading.evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+      business.evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+    ]);
+    expect(h).toBeGreaterThan(b);
+  });
+
   test('members directory search, category filter and clear', async ({ page }) => {
     await page.goto('/members');
     await page.getByLabel('Keyword').fill('hearing');
     await page.getByRole('button', { name: 'Search' }).click();
-    await expect(page.getByRole('link', { name: /ClearTone Hearing/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Wesley Tran', exact: true })).toBeVisible();
+    await expect(page.getByText('ClearTone Hearing')).toBeVisible();
     await expect(page.getByText(/Showing\s+1\s+of/)).toBeVisible();
     await page.getByLabel('Keyword').fill('zzzz-no-match');
     await page.getByRole('button', { name: 'Search' }).click();
@@ -130,7 +143,7 @@ test.describe('data-backed public views', () => {
     await page.getByRole('link', { name: 'Clear', exact: true }).click();
     await page.getByLabel('Category').selectOption('Real Estate');
     await page.getByRole('button', { name: 'Search' }).click();
-    await expect(page.getByRole('link', { name: /Harbor Lane Realty/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Avery Lindqvist', exact: true })).toBeVisible();
   });
 
   test('public profile hides email and phone from visitors unless the member opted in', async ({ page }) => {

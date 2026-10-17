@@ -213,7 +213,7 @@ describe('stats', () => {
         return t;
       };
       const before = await get();
-      expect(Object.keys(before).sort()).toEqual(['closed_deals', 'one_on_ones', 'referrals', 'visitors']);
+      expect(Object.keys(before).sort()).toEqual(['closed_amount', 'closed_deals', 'one_on_ones', 'referrals', 'visitors']);
       await c.query(`insert into one_on_ones (reporter_id, partner_id, met_on, confirmed_at) values ($1,$2,${today},now())`, [ids.member, ids.member3]);
       await c.query(`insert into referrals (from_id,to_id,contact_name,status) values ($1,$2,'Lead X','new')`, [ids.member, ids.member3]);
       const after = await get();

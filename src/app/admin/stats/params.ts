@@ -1,3 +1,4 @@
+import { formatMoney } from '@/lib/dates';
 import { isPeriod, periodRange, type Period } from '@/lib/periods';
 
 export type StatsSearch = { period?: string; from?: string; to?: string; sort?: string; dir?: string };
@@ -8,8 +9,13 @@ export const statColumns = [
   { key: 'referrals_received', label: 'Referrals received' },
   { key: 'closed_deals', label: 'Closed deals' },
   { key: 'closed_deals_received', label: 'Closed deals received' },
+  { key: 'closed_amount_given', label: 'Business given ($)', money: true },
+  { key: 'closed_amount_received', label: 'Business received ($)', money: true },
   { key: 'visitors_brought', label: 'Visitors brought' },
 ] as const;
+
+/** Shows a stat cell: dollar columns as money, the rest as counts. */
+export const statValue = (c: (typeof statColumns)[number], n: number) => ('money' in c && c.money ? formatMoney(n) : String(n));
 export type StatKey = (typeof statColumns)[number]['key'] | 'name';
 
 export function parseStatsSearch(sp: StatsSearch, lastMeeting: string | null) {

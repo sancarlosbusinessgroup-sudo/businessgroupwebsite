@@ -14,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     [
       {
         uid: m.id,
-        title: m.title,
+        title: m.cancelledReason ? `Cancelled: ${m.title}` : m.title,
         description:
           m.kind === 'group'
             ? `${m.description ?? ''}\n\nMembers: join from ${env.siteUrl}/meetings`
@@ -23,6 +23,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
         start: new Date(m.starts_at),
         end: new Date(m.ends_at),
         url,
+        cancelled: !!m.cancelledReason,
       },
     ],
     site.shortName,

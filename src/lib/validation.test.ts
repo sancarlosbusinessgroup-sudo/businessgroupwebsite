@@ -4,11 +4,13 @@ import {
   guestRequestSchema,
   joinSchema,
   newPasswordSchema,
+  oneOnOneRequestSchema,
   oneOnOneSchema,
   otpSchema,
   profileSchema,
   leadershipSchema,
   memberEventSchema,
+  slideNotesSchema,
   slideSettingsSchema,
   speakerTopicSchema,
   referralSchema,
@@ -124,20 +126,25 @@ describe('member forms', () => {
     expect(errs.toId).toBeDefined();
     expect(errs.contactName).toBeDefined();
   });
-  it('referral slip: optional prospect phone/email are checked, consent is a checkbox, no temperature field', () => {
+  it('referral slip: optional prospect phone/email and dollar value are checked; no consent or temperature field', () => {
     const toId = '00000000-0000-4000-8000-000000000001';
     const ok = referralSchema.safeParse({
       toId,
       contactName: 'Jo Prospect',
       prospectPhone: '(650) 555-0100',
       prospectEmail: 'JO@Example.org',
-      consent: 'on',
+      amount: '$2,500.50',
     });
     expect(ok.success).toBe(true);
     expect(ok.success && ok.data.prospectEmail).toBe('jo@example.org');
-    expect(ok.success && ok.data.consent).toBe(true);
+    expect(ok.success && ok.data.amount).toBe(2500.5);
+    expect(ok.success && 'consent' in ok.data).toBe(false);
     const bare = referralSchema.safeParse({ toId, contactName: 'Jo Prospect' });
-    expect(bare.success && bare.data.consent).toBe(false);
+    expect(bare.success && bare.data.amount).toBeUndefined();
+    const badAmount = referralSchema.safeParse({ toId, contactName: 'Jo Prospect', amount: 'lots' });
+    expect(badAmount.success).toBe(false);
+    expect(fieldErrors(badAmount.error!).amount).toMatch(/dollar amount/);
+    expect(referralSchema.safeParse({ toId, contactName: 'Jo Prospect', amount: '-5' }).success).toBe(false);
     const bad = referralSchema.safeParse({ toId, contactName: 'Jo', prospectPhone: 'abc', prospectEmail: 'nope' });
     expect(bad.success).toBe(false);
     const errs = fieldErrors(bad.error!);
@@ -145,11 +152,13 @@ describe('member forms', () => {
     expect(errs.prospectPhone).toBeDefined();
     expect(errs.prospectEmail).toBeDefined();
   });
-  it('referral status update takes the new statuses and no amount', () => {
+  it('referral status update takes the new statuses and an optional dollar value', () => {
     const id = '00000000-0000-4000-8000-000000000001';
     for (const status of ['new', 'contacted', 'meeting_set', 'closed_deal', 'not_a_fit']) {
       expect(referralUpdateSchema.safeParse({ id, status }).success, status).toBe(true);
     }
+    const withAmount = referralUpdateSchema.safeParse({ id, status: 'closed_deal', amount: '12,000' });
+    expect(withAmount.success && withAmount.data.amount).toBe(12000);
     expect(referralUpdateSchema.safeParse({ id, status: 'closed' }).success).toBe(false);
     expect(referralUpdateSchema.safeParse({ id, status: 'sent' }).success).toBe(false);
   });
@@ -243,5 +252,26 @@ describe('phase B forms', () => {
     const r = slideSettingsSchema.safeParse({ show_welcome: 'on', order_welcome: '2', show_closing: 'on', order_closing: '1', order_phones: '3' });
     expect(r.success && r.data).toEqual(['closing', 'welcome']);
     expect(slideSettingsSchema.safeParse({ order_welcome: '1' }).success).toBe(false);
+  });
+
+  it('one-on-one request: a member is required; the suggested date is optional but not in the past', () => {
+    const now = new Date('2026-10-15T12:00:00Z');
+    const schema = oneOnOneRequestSchema(now);
+    const inviteeId = '00000000-0000-4000-8000-000000000001';
+    expect(schema.safeParse({ inviteeId }).success).toBe(true);
+    expect(schema.safeParse({ inviteeId, proposedOn: '2026-10-20', message: 'Coffee?' }).success).toBe(true);
+    const past = schema.safeParse({ inviteeId, proposedOn: '2026-10-01' });
+    expect(past.success).toBe(false);
+    expect(fieldErrors(past.error!).proposedOn).toBe('Choose today or a later date');
+    const none = schema.safeParse({ inviteeId: '' });
+    expect(fieldErrors(none.error!).inviteeId).toBe('Choose who you would like to meet');
+    expect(schema.safeParse({ inviteeId, message: 'x'.repeat(501) }).success).toBe(false);
+  });
+  it('extra slide text: trimmed per slide, empty ones dropped, 600 characters at most', () => {
+    const r = slideNotesSchema.safeParse({ note_welcome: '  Happy Thanksgiving!  ', note_events: '', note_bogus: 'x', show_welcome: 'on' });
+    expect(r.success && r.data).toEqual({ welcome: 'Happy Thanksgiving!' });
+    const long = slideNotesSchema.safeParse({ note_closing: 'x'.repeat(601) });
+    expect(long.success).toBe(false);
+    expect(fieldErrors(long.error!).note_closing).toMatch(/600 characters/);
   });
 });

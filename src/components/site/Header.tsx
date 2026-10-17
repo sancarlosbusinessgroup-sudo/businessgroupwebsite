@@ -51,15 +51,15 @@ export async function Header() {
         <Link href="/login" className="font-display text-heading flex min-h-11 items-center px-3 text-[15px] font-bold no-underline">
           Log in
         </Link>
-        <Link href="/join" className="btn btn-primary btn-sm">
-          Join us
+        <Link href="/visit#request" className="btn btn-primary btn-sm">
+          Request for an Invite
         </Link>
       </>
     );
   }
 
   return (
-    <header className="border-teal bg-surface font-display text-heading border-b-4">
+    <header className="border-brand bg-surface font-display text-heading border-b-4">
       <a href="#main" className="sr-only-focusable btn btn-primary absolute top-2 left-2 z-50">
         Skip to content
       </a>

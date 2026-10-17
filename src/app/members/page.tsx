@@ -122,18 +122,18 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                         <Image src={logo} alt="" fill sizes="300px" className="object-contain p-4" />
                       ) : (
                         <span className="bg-surface flex h-[84px] w-[84px] items-center justify-center rounded-full">
-                          <Avatar name={p.business_name} size={64} index={i} />
+                          <Avatar name={name} size={64} index={i} />
                         </span>
                       )}
                     </span>
                     <div className="flex flex-1 flex-col gap-1.5 p-[18px]">
                       <span className="text-ink-muted text-xs font-bold tracking-[0.08em] uppercase">{p.categories?.name ?? 'Member'}</span>
                       <h2 className="font-display m-0 text-[19px] leading-tight font-bold">
-                        <Link href={`/members/${p.slug}`} className="text-berry no-underline after:absolute after:inset-0 after:content-['']">
-                          {p.business_name}
+                        <Link href={`/members/${p.slug}`} className="text-teal-text no-underline after:absolute after:inset-0 after:content-['']">
+                          {name}
                         </Link>
                       </h2>
-                      <span className="text-heading text-[15px] font-semibold">{name}</span>
+                      <span className="text-heading text-[15px] font-semibold">{p.business_name}</span>
                       {p.weekly_ask ? (
                         <p className="bg-teal-tint text-heading m-0 rounded-lg px-2.5 py-1.5 text-[14px]">
                           <span className="text-teal-hover font-bold">Looking for: </span>

@@ -3,8 +3,9 @@ import { AdminNav } from '@/components/AdminNav';
 import { EmptyState, Notice, Pill } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { guestStatusLabels } from '@/lib/content';
-import { getCategorySeats } from '@/lib/data/public';
-import { formatShortDate } from '@/lib/dates';
+import { getCategorySeats, getUpcomingMeetings } from '@/lib/data/public';
+import { formatMeetingDate, formatMeetingTime, formatShortDate } from '@/lib/dates';
+import { MeetingCancelForm } from './MeetingCancelForm';
 import { createClient } from '@/lib/supabase/server';
 import { resolveCorrection, setGuestStatus, setMemberStatus } from '../actions/admin';
 import { SeatForm } from './SeatForm';
@@ -20,7 +21,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { error } = await searchParams;
   await requireAdmin();
   const supabase = await createClient();
-  const [pendingRes, guestsRes, corrRes, seats, downloadsRes] = await Promise.all([
+  const [pendingRes, guestsRes, corrRes, seats, downloadsRes, schedule] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -44,6 +45,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       .select('id, format, created_at, profile:profiles(first_name, last_name)')
       .order('created_at', { ascending: false })
       .limit(20),
+    getUpcomingMeetings(10),
   ]);
   if (pendingRes.error || guestsRes.error || corrRes.error || downloadsRes.error) throw new Error('Could not load admin data');
 
@@ -247,6 +249,27 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           )}
           <p className="text-ink-muted m-0 text-sm">To change an attendance record, edit the attendance table in the Supabase dashboard (see README).</p>
         </section>
+        <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="sched-h">
+          <h2 id="sched-h" className="font-display m-0 text-[22px] font-extrabold">
+            Meeting schedule
+          </h2>
+          <p className="text-ink-muted m-0 text-[15px]">
+            Cancel a meeting for a holiday or any other reason. It stays on the schedule, marked cancelled with your reason; the countdown and slides move to
+            the next meeting.
+          </p>
+          <ul className="m-0 flex list-none flex-col p-0">
+            {schedule.map((m) => (
+              <li key={m.id} className="border-line-soft flex flex-wrap items-center justify-between gap-3 border-t py-3">
+                <span>
+                  <strong>{formatMeetingDate(new Date(m.starts_at))}</strong>
+                  <span className="text-ink-muted"> · {formatMeetingTime(new Date(m.starts_at))} PT · {m.title}</span>
+                </span>
+                <MeetingCancelForm id={m.id} label={m.title} reason={m.cancelled_reason} />
+              </li>
+            ))}
+          </ul>
+        </section>
+
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="seats-h">
           <h2 id="seats-h" className="font-display m-0 text-[22px] font-extrabold">
             Category seats

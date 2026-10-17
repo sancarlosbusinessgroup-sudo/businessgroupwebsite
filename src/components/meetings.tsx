@@ -82,6 +82,7 @@ export function EventCard({ item, member }: { item: CalendarItem; member: boolea
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-2 px-[22px] py-5">
         <div className="text-ink-muted flex flex-wrap items-center gap-2 text-sm">
           <span className="pill bg-green-tint text-green-ink">{item.category}</span>
+          {item.cancelledReason ? <span className="pill bg-red-tint text-red">Cancelled</span> : null}
           <span>
             {formatMeetingTime(start)}–{formatMeetingTime(end)}
           </span>
@@ -92,13 +93,20 @@ export function EventCard({ item, member }: { item: CalendarItem; member: boolea
           <p className="text-berry m-0 text-sm font-semibold">Member event · hosted by {item.hostName ?? `a ${site.shortName} member`}</p>
         ) : null}
         <h3 className="font-display text-heading m-0 text-[21px] leading-tight font-bold">
-          <Link href={`/events/${item.slug}`} className="text-heading no-underline hover:underline">
+          <Link
+            href={`/events/${item.slug}`}
+            className={`text-heading no-underline hover:underline ${item.cancelledReason ? 'decoration-red line-through' : ''}`}
+          >
             {item.title}
           </Link>
         </h3>
-        {item.description ? <p className="text-ink-soft m-0 line-clamp-3 text-base">{item.description}</p> : null}
+        {item.cancelledReason ? (
+          <p className="text-red m-0 text-base font-semibold">No meeting this week: {item.cancelledReason}.</p>
+        ) : item.description ? (
+          <p className="text-ink-soft m-0 line-clamp-3 text-base">{item.description}</p>
+        ) : null}
         <div className="mt-1.5 flex flex-wrap gap-2.5">
-          {item.kind === 'group' && item.is_online ? (
+          {item.kind === 'group' && item.is_online && !item.cancelledReason ? (
             <Link className="btn btn-primary btn-sm" href={member ? '/meetings' : '/login?next=/meetings'}>
               {member ? 'Join on Zoom' : 'Join · members'}
             </Link>

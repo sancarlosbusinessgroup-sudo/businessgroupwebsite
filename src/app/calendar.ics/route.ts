@@ -10,13 +10,14 @@ export async function GET() {
   const body = buildIcs(
     items.map((m) => ({
       uid: m.id,
-      title: m.title,
+      title: m.cancelledReason ? `Cancelled: ${m.title}` : m.title,
       description:
         m.kind === 'member' ? [m.hostName ? `Member event hosted by ${m.hostName}` : null, m.description].filter(Boolean).join('\n\n') : m.description,
       location: m.is_online && m.onlineUrl ? m.onlineUrl : m.location,
       start: new Date(m.starts_at),
       end: new Date(m.ends_at),
       url: `${env.siteUrl}/events/${m.slug}`,
+      cancelled: !!m.cancelledReason,
     })),
     site.shortName,
   );

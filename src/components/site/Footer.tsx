@@ -21,7 +21,7 @@ const members = [
 export function Footer() {
   const year = new Date().getFullYear();
   return (
-    <footer className="bg-band text-on-band-muted text-[15px] leading-relaxed">
+    <footer className="bg-band text-on-band-muted border-brand border-t-4 text-[15px] leading-relaxed">
       <div className="container-site flex flex-col gap-9 pt-14 pb-7">
         <div className="flex flex-wrap gap-10">
           <div className="flex min-w-0 flex-[2_1_320px] flex-col gap-3.5">

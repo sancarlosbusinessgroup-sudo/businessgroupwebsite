@@ -94,3 +94,33 @@ export async function removeLeader(formData: FormData): Promise<void> {
   revalidatePath('/admin/leadership');
   revalidatePath('/about');
 }
+
+const cancelSchema = z.object({
+  id: z.uuid(),
+  reason: z
+    .string()
+    .trim()
+    .max(120, 'Keep the reason to 120 characters or fewer')
+    .optional()
+    .transform((v) => (v ? v : undefined)),
+  restore: z.string().optional(),
+});
+
+/** Cancel a meeting (it stays on the schedule, marked cancelled) or restore it. */
+export async function setMeetingCancelled(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formToObject(formData);
+  const parsed = cancelSchema.safeParse(values);
+  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values };
+  const restoring = parsed.data.restore === '1';
+  if (!restoring && (!parsed.data.reason || parsed.data.reason.length < 2))
+    return { status: 'error', errors: { reason: 'Give a short reason, e.g. "Thanksgiving holiday"' }, values };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('meetings')
+    .update({ cancelled_reason: restoring ? null : (parsed.data.reason ?? null) })
+    .eq('id', parsed.data.id)
+    .select('id');
+  if (error || !data?.length) return { status: 'error', message: GENERIC, values };
+  for (const p of ['/admin', '/', '/group-meetings', '/meetings', '/dashboard']) revalidatePath(p);
+  return { status: 'success', message: restoring ? 'Meeting restored.' : 'Meeting marked cancelled.' };
+}

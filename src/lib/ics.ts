@@ -6,6 +6,7 @@ export type IcsEvent = {
   start: Date;
   end: Date;
   url?: string;
+  cancelled?: boolean;
 };
 
 const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
@@ -31,6 +32,7 @@ export function buildIcs(events: IcsEvent[], calName: string): string {
     if (e.description) lines.push(`DESCRIPTION:${esc(e.description)}`);
     if (e.location) lines.push(`LOCATION:${esc(e.location)}`);
     if (e.url) lines.push(`URL:${e.url}`);
+    if (e.cancelled) lines.push('STATUS:CANCELLED');
     lines.push('END:VEVENT');
   }
   lines.push('END:VCALENDAR');

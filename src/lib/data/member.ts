@@ -8,7 +8,7 @@ function fail(what: string, error: { message: string } | null): never {
   throw new Error(`Could not load ${what}${error ? `: ${error.message}` : ''}`);
 }
 
-export type GroupTotals = { one_on_ones: number; referrals: number; closed_deals: number; visitors: number };
+export type GroupTotals = { one_on_ones: number; referrals: number; closed_deals: number; closed_amount: number; visitors: number };
 export type LeaderRow = { metric: string; rank: number; profile_id: string; first_name: string; last_name: string; value: number };
 
 /** Group totals for a Pacific date range (approved members only). */
@@ -16,7 +16,8 @@ export async function getGroupTotals(range: DateRange): Promise<GroupTotals> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('group_totals', { p_from: range.from, p_to: range.to });
   if (error) fail('group totals', error);
-  return data as GroupTotals;
+  const t = data as Partial<GroupTotals>;
+  return { one_on_ones: 0, referrals: 0, closed_deals: 0, visitors: 0, ...t, closed_amount: Number(t.closed_amount ?? 0) };
 }
 
 /** Top members per metric (names + counts only). */
@@ -27,12 +28,22 @@ export async function getLeaderboard(range: DateRange, limit = 5): Promise<Leade
   return data;
 }
 
-/** Per-member counts. The database refuses this for anyone but admins. */
-export async function getAdminStats(range: DateRange): Promise<MemberPeriodStats[]> {
+export type AdminStatRow = MemberPeriodStats & { closed_amount_given: number; closed_amount_received: number };
+
+/** Per-member counts and closed-deal dollars. The database refuses this for anyone but admins. */
+export async function getAdminStats(range: DateRange): Promise<AdminStatRow[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('admin_member_stats', { p_from: range.from, p_to: range.to });
-  if (error) fail('member stats', error);
-  return data;
+  const [counts, amounts] = await Promise.all([
+    supabase.rpc('admin_member_stats', { p_from: range.from, p_to: range.to }),
+    supabase.rpc('admin_member_amounts', { p_from: range.from, p_to: range.to }),
+  ]);
+  if (counts.error || amounts.error) fail('member stats', counts.error ?? amounts.error);
+  const byId = new Map(amounts.data.map((a) => [a.profile_id, a]));
+  return counts.data.map((r) => ({
+    ...r,
+    closed_amount_given: Number(byId.get(r.profile_id)?.closed_amount_given ?? 0),
+    closed_amount_received: Number(byId.get(r.profile_id)?.closed_amount_received ?? 0),
+  }));
 }
 
 /** Calendar date (Pacific) of the most recent group meeting that has started, for "this meeting cycle". */
@@ -103,4 +114,35 @@ export async function getOneOnOnes(opts: { meId?: string; days: number; limit: n
   const { data, error } = await q;
   if (error) fail('one-on-ones', error);
   return data;
+}
+
+export type OneOnOneRequest = {
+  id: string;
+  requester_id: string;
+  invitee_id: string;
+  proposed_on: string | null;
+  message: string | null;
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+  created_at: string;
+  responded_at: string | null;
+  requester: { first_name: string; last_name: string; business_name: string; slug: string } | null;
+  invitee: { first_name: string; last_name: string; business_name: string; slug: string } | null;
+};
+
+/** One-on-one requests I sent or received in the last 60 days (RLS: only the two members and admins). */
+export async function getOneOnOneRequests(meId: string): Promise<{ incoming: OneOnOneRequest[]; outgoing: OneOnOneRequest[] }> {
+  const supabase = await createClient();
+  const since = new Date(Date.now() - 60 * 86400000).toISOString();
+  const { data, error } = await supabase
+    .from('one_on_one_requests')
+    .select(
+      '*, requester:profiles!one_on_one_requests_requester_id_fkey(first_name, last_name, business_name, slug), invitee:profiles!one_on_one_requests_invitee_id_fkey(first_name, last_name, business_name, slug)',
+    )
+    .or(`requester_id.eq.${meId},invitee_id.eq.${meId}`)
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) fail('one-on-one requests', error);
+  const rows = data as OneOnOneRequest[];
+  return { incoming: rows.filter((r) => r.invitee_id === meId), outgoing: rows.filter((r) => r.requester_id === meId) };
 }

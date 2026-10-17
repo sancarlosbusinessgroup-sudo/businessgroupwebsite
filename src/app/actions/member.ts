@@ -10,6 +10,8 @@ import {
   fieldErrors,
   formToObject,
   galleryMetaSchema,
+  oneOnOneRequestSchema,
+  oneOnOneRequestStatuses,
   oneOnOneSchema,
   profileSchema,
   referralSchema,
@@ -123,7 +125,7 @@ export async function sendReferral(_prev: ActionState, formData: FormData): Prom
     contact_name: d.contactName,
     prospect_phone: d.prospectPhone ?? null,
     prospect_email: d.prospectEmail ?? null,
-    prospect_consent: d.consent,
+    amount: d.amount ?? null,
     notes: d.notes ?? null,
   });
   if (error) return { status: 'error', message: GENERIC, values };
@@ -138,7 +140,12 @@ export async function updateReferral(_prev: ActionState, formData: FormData): Pr
   if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values };
   const { supabase, user } = await session();
   if (!user) return { status: 'error', message: 'Please log in again.' };
-  const { data, error } = await supabase.from('referrals').update({ status: parsed.data.status }).eq('id', parsed.data.id).eq('to_id', user.id).select('id');
+  const { data, error } = await supabase
+    .from('referrals')
+    .update({ status: parsed.data.status, amount: parsed.data.amount ?? null })
+    .eq('id', parsed.data.id)
+    .eq('to_id', user.id)
+    .select('id');
   if (error || !data?.length) return { status: 'error', message: 'Only the member who received a referral can update it.' };
   revalidatePath('/referrals');
   revalidatePath('/dashboard');
@@ -272,4 +279,41 @@ export async function addGalleryPhoto(input: z.input<typeof galleryInput>): Prom
   revalidatePath('/gallery');
   revalidatePath('/');
   return { status: 'success' };
+}
+
+// --- One-on-one requests ------------------------------------------------------
+
+export async function requestOneOnOne(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formToObject(formData);
+  const parsed = oneOnOneRequestSchema().safeParse(values);
+  if (!parsed.success) return { status: 'error', message: 'Please fix the highlighted fields.', errors: fieldErrors(parsed.error), values };
+  const { supabase, user } = await session();
+  if (!user) return { status: 'error', message: 'Please log in again.' };
+  if (parsed.data.inviteeId === user.id) return { status: 'error', errors: { inviteeId: 'Choose another member' }, values };
+  const { error } = await supabase.from('one_on_one_requests').insert({
+    requester_id: user.id,
+    invitee_id: parsed.data.inviteeId,
+    proposed_on: parsed.data.proposedOn ?? null,
+    message: parsed.data.message ?? null,
+  });
+  if (error) {
+    const message = /already have an open request/.test(error.message)
+      ? 'You already have an open request with this member.'
+      : /too many open requests/.test(error.message)
+        ? 'You have 10 open requests. Wait for answers or cancel one first.'
+        : GENERIC;
+    return { status: 'error', message, values };
+  }
+  revalidatePath('/one-on-ones');
+  return { status: 'success', message: 'Request sent. They will see it on their One-on-ones page.' };
+}
+
+export async function respondOneOnOneRequest(formData: FormData): Promise<void> {
+  const id = uuid.safeParse(formData.get('id'));
+  const status = z.enum(oneOnOneRequestStatuses).safeParse(formData.get('status'));
+  if (!id.success || !status.success) return;
+  const { supabase, user } = await session();
+  if (!user) return;
+  await supabase.rpc('respond_one_on_one_request', { p_id: id.data, p_status: status.data });
+  revalidatePath('/one-on-ones');
 }

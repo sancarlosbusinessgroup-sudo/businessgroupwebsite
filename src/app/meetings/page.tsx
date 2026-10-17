@@ -10,7 +10,7 @@ import { attendancePct } from '@/lib/stats';
 import { createClient } from '@/lib/supabase/server';
 import { joinMeeting, releaseSpeakerSlot, toggleRsvp } from '../actions/member';
 import { ClaimSlotForm } from './ClaimSlotForm';
-import { slotShort } from '@/lib/content';
+import { slotDescriptions, slotShort, slotTitles } from '@/lib/content';
 import { CorrectionForm } from './CorrectionForm';
 
 export const metadata: Metadata = { title: 'Meetings & attendance' };
@@ -86,6 +86,14 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           <h2 id="up-h" className="font-display m-0 text-[22px] font-extrabold">
             Upcoming meetings
           </h2>
+          <dl className="text-ink-soft m-0 grid gap-x-6 gap-y-1 text-[15px] sm:grid-cols-2">
+            {(['education', 'presentation'] as const).map((slot) => (
+              <div key={slot}>
+                <dt className="text-teal-text inline font-bold">{slotTitles[slot]}: </dt>
+                <dd className="m-0 inline">{slotDescriptions[slot]}</dd>
+              </div>
+            ))}
+          </dl>
           {upcoming.length === 0 ? (
             <EmptyState title="No upcoming meetings scheduled" />
           ) : (
@@ -97,15 +105,17 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                 const live = inCheckInWindow(start, new Date(m.ends_at), now);
                 const edu = speakerFor(m, 'education');
                 const main = speakerFor(m, 'presentation');
+                const cancelled = m.cancelled_reason;
                 return (
                   <li key={m.id} className="border-line flex flex-wrap items-center gap-4 rounded-[14px] border p-4">
                     <DateBadge day={d.day} month={d.month} />
                     <div className="min-w-0 flex-[1_1_260px]">
-                      <h3 className="font-display m-0 text-base font-bold">{m.title}</h3>
+                      <h3 className={`font-display m-0 text-base font-bold ${cancelled ? 'line-through' : ''}`}>{m.title}</h3>
+                      {cancelled ? <p className="text-red m-0 text-sm font-semibold">Cancelled: {cancelled}</p> : null}
                       <p className="text-ink-muted m-0 text-sm">
                         {formatMeetingDate(start)} · {formatMeetingTime(start)} PT · {m.location}
                       </p>
-                      {m.category === 'Networking' ? (
+                      {m.category === 'Networking' && !cancelled ? (
                         <ul className="text-ink-soft m-0 mt-1 list-none p-0 text-sm">
                           {[
                             { k: '5-minute', s: edu },
@@ -119,7 +129,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                         </ul>
                       ) : null}
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className={`flex flex-wrap items-center gap-2 ${cancelled ? 'hidden' : ''}`}>
                       <form action={toggleRsvp}>
                         <input type="hidden" name="meetingId" value={m.id} />
                         <input type="hidden" name="going" value={String(isGoing)} />
@@ -156,7 +166,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                         </form>
                       ) : null}
                     </div>
-                    {m.category === 'Networking' && start.getTime() > now.getTime()
+                    {m.category === 'Networking' && !cancelled && start.getTime() > now.getTime()
                       ? (['education', 'presentation'] as const)
                           .filter((slot) => !speakerFor(m, slot))
                           .map((slot) => <ClaimSlotForm key={slot} meetingId={m.id} slot={slot} when={formatMeetingDate(start)} />)

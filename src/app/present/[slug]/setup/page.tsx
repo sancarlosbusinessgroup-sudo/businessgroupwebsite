@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth';
 import { getMeetingBySlug } from '@/lib/data/public';
 import { formatMeetingDate } from '@/lib/dates';
-import { DEFAULT_SLIDES, resolveSlides, slideLabel } from '@/lib/slides';
+import { DEFAULT_SLIDES, resolveNotes, resolveSlides, slideLabel } from '@/lib/slides';
 import { createClient } from '@/lib/supabase/server';
 import { SlideSettingsForm } from './SlideSettingsForm';
 
@@ -16,10 +16,11 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
   const meeting = await getMeetingBySlug(slug);
   if (!meeting) notFound();
   const supabase = await createClient();
-  const { data } = await supabase.from('meeting_slide_settings').select('slides').eq('meeting_id', meeting.id).maybeSingle();
+  const { data } = await supabase.from('meeting_slide_settings').select('slides, notes').eq('meeting_id', meeting.id).maybeSingle();
   const shown = resolveSlides(data?.slides);
   const hidden = DEFAULT_SLIDES.filter((k) => !shown.includes(k));
-  const rows = [...shown, ...hidden].map((k, n) => ({ key: k, label: slideLabel(k), shown: shown.includes(k), position: n + 1 }));
+  const notes = resolveNotes(data?.notes);
+  const rows = [...shown, ...hidden].map((k, n) => ({ key: k, label: slideLabel(k), shown: shown.includes(k), position: n + 1, note: notes[k] ?? '' }));
 
   return (
     <div className="bg-canvas">

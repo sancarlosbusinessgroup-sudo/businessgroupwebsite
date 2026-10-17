@@ -44,6 +44,15 @@ const website = z
   .transform((v) => (v ? v : undefined))
   .refine((v) => v === undefined || /^https?:\/\/[^\s]+\.[^\s]+$/i.test(v), 'Website must start with http:// or https://');
 
+/** Optional dollar amount typed like "1250", "$1,250" or "1250.50". */
+export const money = z
+  .string()
+  .trim()
+  .optional()
+  .transform((v) => (v ? v.replace(/[$,\s]/g, '') : undefined))
+  .refine((v) => v === undefined || /^\d{1,9}(\.\d{1,2})?$/.test(v), 'Enter a dollar amount, like 1250 or 1,250.50')
+  .transform((v) => (v === undefined ? undefined : Number(v)));
+
 const password = z.string({ error: 'Password is required' }).min(8, 'Use at least 8 characters').max(72, 'Use 72 characters or fewer');
 
 export const referralCode = z
@@ -173,14 +182,29 @@ export const referralSchema = z.object({
     .optional()
     .transform((v) => (v ? v : undefined))
     .refine((v) => v === undefined || (v.length <= 254 && z.email().safeParse(v).success), 'Enter a valid email address'),
+  amount: money,
   notes: optionalText(1000, 'Notes'),
-  consent: checkbox,
 });
 
 export const referralUpdateSchema = z.object({
   id: uuid('Missing referral'),
   status: z.enum(referralStatuses, { error: 'Choose a status' }),
+  amount: money,
 });
+
+/** Asking another member for a one-on-one that hasn't happened yet. */
+export const oneOnOneRequestSchema = (now: Date = new Date()) =>
+  z.object({
+    inviteeId: uuid('Choose who you would like to meet'),
+    proposedOn: z
+      .string()
+      .optional()
+      .transform((v) => (v ? v : undefined))
+      .refine((d) => d === undefined || (/^\d{4}-\d{2}-\d{2}$/.test(d) && d >= localDateKey(now)), 'Choose today or a later date'),
+    message: optionalText(500, 'Message'),
+  });
+
+export const oneOnOneRequestStatuses = ['accepted', 'declined', 'cancelled'] as const;
 
 export const oneOnOneSchema = (now: Date = new Date()) =>
   z.object({
@@ -356,6 +380,23 @@ export const slideSettingsSchema = z.record(z.string(), z.string()).transform((f
     return Number.isFinite(n) ? n : SLIDE_KEYS.indexOf(k) + 1;
   };
   return [...shown].sort((a, b) => pos(a) - pos(b) || SLIDE_KEYS.indexOf(a) - SLIDE_KEYS.indexOf(b));
+});
+
+export const SLIDE_NOTE_MAX = 600;
+
+/** Extra text admins add to slides (form fields note_<slide>), up to 600 characters each. */
+export const slideNotesSchema = z.record(z.string(), z.string()).transform((form, ctx) => {
+  const notes: Partial<Record<SlideKey, string>> = {};
+  for (const k of SLIDE_KEYS) {
+    const v = (form[`note_${k}`] ?? '').trim();
+    if (!v) continue;
+    if (v.length > SLIDE_NOTE_MAX) {
+      ctx.addIssue({ code: 'custom', path: [`note_${k}`], message: `Keep slide text to ${SLIDE_NOTE_MAX} characters or fewer` });
+      continue;
+    }
+    notes[k] = v;
+  }
+  return notes;
 });
 
 export type FieldErrors = Record<string, string[] | undefined>;

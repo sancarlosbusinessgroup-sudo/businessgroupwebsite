@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import { Checkbox, SelectField, SubmitButton, TextArea, TextField } from '@/components/forms';
+import { SelectField, SubmitButton, TextArea, TextField } from '@/components/forms';
 import { useClientValidation } from '@/components/useClientValidation';
 import { Notice } from '@/components/ui';
 import { referralStatusLabels } from '@/lib/content';
@@ -40,14 +40,22 @@ export function SendReferralForm({ members, defaultTo }: { members: Option[]; de
       <TextField name="contactName" label="Prospect name" required defaultValue={v.contactName} error={errors.contactName} />
       <TextField name="prospectPhone" type="tel" label="Prospect phone" defaultValue={v.prospectPhone} error={errors.prospectPhone} />
       <TextField name="prospectEmail" type="email" label="Prospect email" defaultValue={v.prospectEmail} error={errors.prospectEmail} />
+      <TextField
+        name="amount"
+        inputMode="decimal"
+        label="Referral value ($)"
+        placeholder="e.g. 2,500"
+        defaultValue={v.amount}
+        error={errors.amount}
+        help="Your best estimate of the business. The member who receives it can update it when the deal closes."
+      />
       <TextArea name="notes" label="Notes" defaultValue={v.notes} error={errors.notes} />
-      <Checkbox name="consent" label="The prospect has agreed to be contacted" defaultChecked={v.consent === 'on'} />
       <SubmitButton pendingText="Sending…">Send referral slip</SubmitButton>
     </form>
   );
 }
 
-export function UpdateReferralForm({ id, status, label }: { id: string; status: string; label: string }) {
+export function UpdateReferralForm({ id, status, amount, label }: { id: string; status: string; amount: number | null; label: string }) {
   const [state, action] = useActionState(updateReferral, idle);
   const { clientErrors, onSubmit } = useClientValidation(referralUpdateSchema);
   const errors = clientErrors ?? state.errors ?? {};
@@ -62,6 +70,16 @@ export function UpdateReferralForm({ id, status, label }: { id: string; status: 
             </option>
           ))}
         </SelectField>
+      </div>
+      <div className="w-36">
+        <TextField
+          name="amount"
+          id={`amt-${id}`}
+          inputMode="decimal"
+          label="Value ($)"
+          defaultValue={state.values?.amount ?? (amount === null ? '' : String(amount))}
+          error={errors.amount}
+        />
       </div>
       <SubmitButton pendingText="Saving…" className="btn btn-outline btn-sm">
         Save

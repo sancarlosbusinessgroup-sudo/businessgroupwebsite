@@ -3,7 +3,7 @@ import { Countdown } from '@/components/Countdown';
 import { EventCard } from '@/components/meetings';
 import { Avatar, EmptyState, PageHero } from '@/components/ui';
 import { getViewer, isApproved } from '@/lib/auth';
-import { site } from '@/lib/content';
+import { site, slotDescriptions, slotTitles } from '@/lib/content';
 import { getCalendarBetween, getUpcomingCalendar, type CalendarKind } from '@/lib/data/events';
 import { getNextMeeting } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime, localDateKey, monthGrid } from '@/lib/dates';
@@ -204,10 +204,11 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
                                   key={e.id}
                                   href={`/events/${e.slug}`}
                                   className={`mt-1 block rounded-md px-1.5 py-1 text-xs leading-tight font-semibold no-underline ${
-                                    e.is_online ? 'bg-teal text-on-teal' : 'bg-amber-tint text-amber'
+                                    e.cancelledReason ? 'bg-red-tint text-red line-through' : e.is_online ? 'bg-teal text-on-teal' : 'bg-amber-tint text-amber'
                                   }`}
                                 >
-                                  {formatMeetingTime(new Date(e.starts_at))} {e.regular ? 'Group meeting' : e.title}
+                                  {e.cancelledReason ? 'Cancelled: ' : `${formatMeetingTime(new Date(e.starts_at))} `}
+                                  {e.regular ? 'Group meeting' : e.title}
                                 </Link>
                               ))}
                             </td>
@@ -302,6 +303,17 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
             </>
           ) : (
             <>
+              <div className="card flex flex-col gap-3 p-5">
+                <h2 className="font-display m-0 text-lg">Presentations at every meeting</h2>
+                <dl className="m-0 flex flex-col gap-2.5">
+                  {(['education', 'presentation'] as const).map((slot) => (
+                    <div key={slot}>
+                      <dt className="text-teal-text font-bold">{slotTitles[slot]}</dt>
+                      <dd className="text-ink-soft m-0 text-[15px]">{slotDescriptions[slot]}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
               <div className="bg-band text-on-band flex flex-col gap-2.5 rounded-2xl p-5">
                 <h2 className="font-display text-on-band m-0 text-lg">Want to speak at a meeting?</h2>
                 <p className="text-on-band-muted m-0 text-[15px]">Members claim 5-minute and 10-minute presentation slots on the members&apos; Meetings page.</p>

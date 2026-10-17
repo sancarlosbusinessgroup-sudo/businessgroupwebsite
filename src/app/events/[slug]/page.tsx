@@ -6,7 +6,7 @@ import { Countdown } from '@/components/Countdown';
 import { speakerFor } from '@/components/meetings';
 import { Avatar, PageHero } from '@/components/ui';
 import { getViewer, isAdmin, isApproved } from '@/lib/auth';
-import { site, slotLabels } from '@/lib/content';
+import { site, slotDescriptions, slotTitles } from '@/lib/content';
 import { getCalendarItemBySlug, listPathFor } from '@/lib/data/events';
 import { formatMeetingDate, formatMeetingTime, nowMs } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
@@ -28,7 +28,8 @@ export default async function EventDetail({ params }: Props) {
   const canManage = m.kind === 'member' && member && (viewer?.userId === m.hostId || isAdmin(viewer));
   const start = new Date(m.starts_at);
   const end = new Date(m.ends_at);
-  const upcoming = end.getTime() > nowMs();
+  const cancelled = !!m.cancelledReason;
+  const upcoming = end.getTime() > nowMs() && !cancelled;
   const image = mediaUrl('gallery', m.imagePath);
   const where = m.is_online ? (m.kind === 'group' ? (m.location ?? 'Online · Zoom') : 'Online') : (m.location ?? '');
 
@@ -43,6 +44,11 @@ export default async function EventDetail({ params }: Props) {
       </PageHero>
       <section className="container-site flex flex-wrap gap-10 py-14">
         <div className="flex min-w-0 flex-[2_1_420px] flex-col gap-5 text-lg">
+          {cancelled ? (
+            <div role="status" className="bg-red-tint text-red rounded-2xl p-4 text-base font-semibold">
+              This meeting is cancelled: {m.cancelledReason}. The schedule continues with the next meeting.
+            </div>
+          ) : null}
           {m.kind === 'member' ? (
             <p className="text-berry m-0 text-base font-semibold">
               Member event · hosted by{' '}
@@ -61,23 +67,30 @@ export default async function EventDetail({ params }: Props) {
               <strong>Address:</strong> {m.location}
             </p>
           ) : null}
-          {m.speakers.length ? (
+          {m.regular ? (
             <div className="flex flex-col gap-3">
-              <h2 className="h3">Speakers</h2>
+              <h2 className="h3">Presentations</h2>
               <ul className="m-0 flex list-none flex-col gap-3 p-0">
                 {(['education', 'presentation'] as const).map((slot, i) => {
                   const s = speakerFor(m, slot);
-                  return s ? (
-                    <li key={slot} className="card flex items-center gap-3 p-4">
-                      <Avatar name={s.display_name} size={44} index={i} />
-                      <div>
-                        <div className="text-ink-muted text-[13px] font-bold tracking-[0.08em] uppercase">{slotLabels[slot]}</div>
-                        <div className="font-semibold">{s.display_name}</div>
-                        {s.business ? <div className="text-ink-muted text-[15px]">{s.business}</div> : null}
-                        {s.topic ? <div className="text-[15px] italic">“{s.topic}”</div> : null}
-                      </div>
+                  return (
+                    <li key={slot} className="card flex flex-col gap-2 p-4">
+                      <div className="text-teal-text text-[13px] font-bold tracking-[0.08em] uppercase">{slotTitles[slot]}</div>
+                      <p className="text-ink-soft m-0 text-[15px]">{slotDescriptions[slot]}</p>
+                      {s ? (
+                        <div className="flex items-center gap-3">
+                          <Avatar name={s.display_name} size={44} index={i} />
+                          <div>
+                            <div className="font-semibold">{s.display_name}</div>
+                            {s.business ? <div className="text-ink-muted text-[15px]">{s.business}</div> : null}
+                            {s.topic ? <div className="text-[15px] italic">“{s.topic}”</div> : null}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-ink-muted m-0 text-[15px]">{cancelled ? 'No presentation (meeting cancelled).' : 'Speaker to be announced.'}</p>
+                      )}
                     </li>
-                  ) : null;
+                  );
                 })}
               </ul>
             </div>

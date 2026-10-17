@@ -2,10 +2,10 @@ import 'server-only';
 import { createClient } from '../supabase/server';
 import { localDateKey } from '../dates';
 import { periodRange } from '../periods';
-import { resolveSlides, type SlideKey } from '../slides';
+import { resolveNotes, resolveSlides, type SlideKey, type SlideNotes } from '../slides';
 import { getUpcomingMemberEvents, type CalendarItem, fromMeeting } from './events';
 import { getGroupTotals, getLeaderboard, type GroupTotals, type LeaderRow } from './member';
-import { getCategorySeats, getMeetingBySlug, getUpcomingMeetings, type MeetingWithSpeakers, type Speaker } from './public';
+import { getCategorySeats, getLeadership, getMeetingBySlug, getUpcomingMeetings, type MeetingWithSpeakers, type Speaker } from './public';
 
 // Everything the meeting slide deck shows, loaded as the signed-in member (RLS applies).
 
@@ -15,7 +15,9 @@ export type DeckData = {
   meeting: MeetingWithSpeakers;
   number: number;
   slides: SlideKey[];
+  notes: SlideNotes;
   saved: boolean;
+  leadership: { name: string; role: string }[];
   openCategories: string[];
   newMembers: { first_name: string; last_name: string; business_name: string }[];
   visitors: { display_name: string; business_name: string | null; invited_by: string | null }[];
@@ -39,7 +41,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
   const start = meeting.starts_at;
 
   const [settingsRes, prevRes, countRes, nextRes] = await Promise.all([
-    supabase.from('meeting_slide_settings').select('slides').eq('meeting_id', meeting.id).maybeSingle(),
+    supabase.from('meeting_slide_settings').select('slides, notes').eq('meeting_id', meeting.id).maybeSingle(),
     supabase
       .from('meetings')
       .select('starts_at')
@@ -53,6 +55,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
       .from('meetings')
       .select('*, meeting_speakers(slot, display_name, business, profile_id, topic, topic_description)')
       .eq('category', 'Networking')
+      .is('cancelled_reason', null)
       .gt('starts_at', start)
       .order('starts_at')
       .limit(1)
@@ -65,7 +68,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
   const cycle = { from: localDateKey(new Date(prevStart)), to: meetingDay };
 
   const speakerIds = meeting.meeting_speakers.map((s) => s.profile_id).filter((x): x is string => !!x);
-  const [visitorsRes, newRes, asksRes, avatarsRes, seats, cycleT, monthT, yearT, leaders, groupEvents, memberEvents] = await Promise.all([
+  const [visitorsRes, newRes, asksRes, avatarsRes, seats, cycleT, monthT, yearT, leaders, groupEvents, memberEvents, leadership] = await Promise.all([
     supabase.rpc('meeting_visitors', { p_meeting: meeting.id }),
     supabase
       .from('profiles')
@@ -88,6 +91,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     getLeaderboard(periodRange({ period: 'month' })),
     getUpcomingMeetings(12),
     getUpcomingMemberEvents(12),
+    getLeadership(),
   ]);
   if (visitorsRes.error || newRes.error || asksRes.error || avatarsRes.error) fail('the slides', visitorsRes.error ?? newRes.error ?? asksRes.error);
 
@@ -97,7 +101,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     return s ? { ...s, avatar_path: s.profile_id ? (avatar.get(s.profile_id) ?? null) : null } : null;
   };
   const horizon = Date.parse(start) + 45 * 86400000;
-  const events = [...groupEvents.filter((m) => m.category !== 'Networking').map(fromMeeting), ...memberEvents]
+  const events = [...groupEvents.filter((m) => m.category !== 'Networking' && !m.cancelled_reason).map(fromMeeting), ...memberEvents]
     .filter((e) => Date.parse(e.ends_at) > Date.now() && Date.parse(e.starts_at) < horizon)
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
     .slice(0, 6);
@@ -107,7 +111,9 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     meeting,
     number: countRes.count ?? 1,
     slides: resolveSlides(settingsRes.data?.slides),
+    notes: resolveNotes(settingsRes.data?.notes),
     saved: !!settingsRes.data,
+    leadership: leadership.map((l) => ({ name: l.name, role: l.role })),
     openCategories: seats.filter((c) => c.open && c.name !== 'Other').map((c) => c.name),
     newMembers: newRes.data,
     visitors: visitorsRes.data ?? [],

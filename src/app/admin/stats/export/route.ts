@@ -7,7 +7,7 @@ import { parseStatsSearch, statColumns } from '../params';
 
 export const dynamic = 'force-dynamic';
 
-// CSV of every member's counts for the chosen period (admins only; the database checks again).
+// CSV of every member's counts and closed-deal dollars for the chosen period (admins only; the database checks again).
 export async function GET(req: NextRequest) {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) return NextResponse.redirect(new URL('/dashboard', req.url));

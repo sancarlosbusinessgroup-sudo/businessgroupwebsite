@@ -58,7 +58,7 @@ test.describe('members', () => {
     await login(page, users.member);
   });
 
-  test('dashboard: leaderboard, group totals, invite card; no personal stat tiles', async ({ page }) => {
+  test('dashboard: leaderboard, group totals (with closed business in dollars), invite card; no personal stat tiles', async ({ page }) => {
     const errors = trackConsole(page);
     await page.goto('/dashboard');
     await expect(page.getByRole('heading', { name: 'Leaderboard' })).toBeVisible();
@@ -72,7 +72,8 @@ test.describe('members', () => {
     await expect(page.getByRole('region', { name: /Group this/ })).toContainText('Closed deals');
     await expect(page.getByRole('region', { name: 'Invite a visitor' })).toBeVisible();
     await expect(page.getByRole('heading', { name: /My numbers/ })).toHaveCount(0);
-    await expect(page.getByText('$')).toHaveCount(0);
+    await expect(page.getByRole('region', { name: /Group this/ }).getByText('Business closed')).toBeVisible();
+    await expect(page.getByRole('region', { name: /Group this/ }).getByText(/^\$[\d,]+(\.\d\d)?$/)).toBeVisible();
     expect(errors).toEqual([]);
   });
 
@@ -159,7 +160,7 @@ test.describe('admins', () => {
     const csv = await download(page, 'Download CSV');
     expect(csv.name).toMatch(/^member-stats-.*\.csv$/);
     expect(csv.text).toContain(
-      'First name,Last name,Business,One-on-ones,Referrals given,Referrals received,Closed deals,Closed deals received,Visitors brought',
+      'First name,Last name,Business,One-on-ones,Referrals given,Referrals received,Closed deals,Closed deals received,Business given ($),Business received ($),Visitors brought',
     );
     expect(csv.text).toContain('Lindqvist');
   });

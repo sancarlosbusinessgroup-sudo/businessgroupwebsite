@@ -6,7 +6,7 @@ import { requireAdmin } from '@/lib/auth';
 import { getAdminStats, getLastMeetingDate } from '@/lib/data/member';
 import { PERIODS, describeRange, periodLabel } from '@/lib/periods';
 import { sortStatRows } from '@/lib/stats';
-import { parseStatsSearch, statColumns, statsQuery, type StatKey, type StatsSearch } from './params';
+import { parseStatsSearch, statColumns, statsQuery, statValue, type StatKey, type StatsSearch } from './params';
 
 export const metadata: Metadata = { title: 'Member stats' };
 
@@ -31,7 +31,7 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
         <AdminNav current="/admin/stats" />
         <p className="text-ink-muted m-0 max-w-[760px]">
           Per-member counts are visible to admins only. Members see the leaderboard and group totals. One-on-ones count for both members once confirmed;
-          referrals and closed deals count for the member who gave the referral.
+          referrals and closed deals count for the member who gave the referral. Business given and received add up the dollar value of closed deals.
         </p>
 
         <form action="/admin/stats" className="card flex flex-wrap items-end gap-4 p-5" aria-label="Choose a period">
@@ -110,7 +110,7 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
                       </th>
                       {statColumns.map((c) => (
                         <td key={c.key} className="text-right tabular-nums">
-                          {Number(r[c.key])}
+                          {statValue(c, Number(r[c.key]))}
                         </td>
                       ))}
                     </tr>
@@ -123,7 +123,7 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
                     </th>
                     {statColumns.map((c) => (
                       <td key={c.key} className="text-right font-bold tabular-nums">
-                        {totals[c.key]}
+                        {statValue(c, totals[c.key] ?? 0)}
                       </td>
                     ))}
                   </tr>

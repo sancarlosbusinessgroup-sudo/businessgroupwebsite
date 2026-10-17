@@ -21,7 +21,7 @@ export function ReportForm({ members, today, minDate, defaultPartner }: Props) {
         <h2 id="report-h" className="font-display m-0 text-[22px]">
           Report a one-on-one
         </h2>
-        <p className="text-ink-muted m-0 text-sm">Your signed-in account is recorded as the reporter.</p>
+        <p className="text-ink-muted m-0 text-sm">For a one-on-one that already happened. Your signed-in account is recorded as the reporter.</p>
       </div>
       {state.status === 'success' ? <Notice tone="success">{state.message}</Notice> : null}
       {state.status === 'error' && state.message ? <Notice tone="error">{state.message}</Notice> : null}

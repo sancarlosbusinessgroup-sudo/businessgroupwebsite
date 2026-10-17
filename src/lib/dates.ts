@@ -96,3 +96,9 @@ export function isoToPacificLocal(iso: string): string {
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
   return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
 }
+
+/** US dollars: "$2,500" or "$2,500.50". */
+export function formatMoney(n: number): string {
+  const whole = Number.isInteger(n);
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 });
+}

@@ -18,13 +18,14 @@ export async function getUpcomingMeetings(limit = 10): Promise<MeetingWithSpeake
   return data;
 }
 
-/** The next (or currently running) regular Monday meeting. */
+/** The next (or currently running) regular Monday meeting that isn't cancelled. */
 export async function getNextMeeting(): Promise<MeetingWithSpeakers | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('meetings')
     .select(MEETING_FIELDS)
     .eq('category', 'Networking')
+    .is('cancelled_reason', null)
     .gt('ends_at', new Date().toISOString())
     .order('starts_at')
     .limit(1)

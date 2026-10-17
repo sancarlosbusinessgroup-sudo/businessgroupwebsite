@@ -112,7 +112,7 @@ test.describe('meeting slides', () => {
 
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByText(/^Slide 2 of/)).toBeVisible();
-    await expect(deck.getByRole('heading', { name: 'Please silence your phones' })).toBeVisible();
+    await expect(deck.getByRole('heading', { name: 'Open Networking' })).toBeVisible();
     await page.keyboard.press('ArrowLeft');
     await expect(deck.getByText(/^Slide 1 of/)).toBeVisible();
     await page.keyboard.press('PageDown'); // presentation clickers send PageDown / PageUp
@@ -125,8 +125,8 @@ test.describe('meeting slides', () => {
 
     // Jump to the 5-minute presentation slide
     await page.keyboard.press('Home');
-    for (let i = 0; i < 12; i++) {
-      if (await deck.getByRole('heading', { name: '5-minute presentation' }).isVisible()) break;
+    for (let i = 0; i < 16; i++) {
+      if (await deck.getByRole('heading', { name: '5-Minute Member Education' }).isVisible()) break;
       await page.keyboard.press('ArrowRight');
     }
     await expect(deck.getByText('Nathan Pryor')).toBeVisible();

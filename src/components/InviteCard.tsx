@@ -11,7 +11,7 @@ type Guest = { id: string; first_name: string; last_name: string; status: keyof 
 export function InviteCard({ link, guests }: { link: string; guests: Guest[] }) {
   const invite = encodeURIComponent(`I'd love for you to visit ${site.name} as my guest: ${link}`);
   return (
-    <section className="bg-band text-on-band flex flex-col gap-3.5 rounded-[20px] p-6" aria-labelledby="invite-h">
+    <section id="invite" className="bg-band text-on-band flex scroll-mt-6 flex-col gap-3.5 rounded-[20px] p-6" aria-labelledby="invite-h">
       <h2 id="invite-h" className="font-display text-on-band m-0 text-[22px] font-extrabold">
         Invite a visitor
       </h2>

@@ -3,7 +3,7 @@ import { EmptyState, Pill } from '@/components/ui';
 import { requireMember } from '@/lib/auth';
 import { referralStatusLabels, site } from '@/lib/content';
 import { getMemberOptions } from '@/lib/data/member';
-import { formatShortDate } from '@/lib/dates';
+import { formatMoney, formatShortDate } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { SendReferralForm, UpdateReferralForm } from './ReferralForms';
 
@@ -21,7 +21,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
     supabase
       .from('referrals')
       .select(
-        'id, from_id, to_id, contact_name, prospect_phone, prospect_email, prospect_consent, notes, status, created_at, from:profiles!referrals_from_id_fkey(first_name, last_name), to:profiles!referrals_to_id_fkey(first_name, last_name)',
+        'id, from_id, to_id, contact_name, prospect_phone, prospect_email, amount, notes, status, created_at, from:profiles!referrals_from_id_fkey(first_name, last_name), to:profiles!referrals_to_id_fkey(first_name, last_name)',
       )
       .or(`from_id.eq.${me.id},to_id.eq.${me.id}`)
       .order('created_at', { ascending: false })
@@ -56,10 +56,12 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
             {r.notes ? <span>{r.notes}</span> : null}
           </div>
         ) : null}
-        <span className="text-ink-muted text-[13px]">
-          {r.prospect_consent ? 'The prospect has agreed to be contacted.' : 'Check with the referring member before contacting.'}
-        </span>
-        {isReceived ? <UpdateReferralForm id={r.id} status={r.status} label={r.contact_name} /> : null}
+        {r.amount !== null ? (
+          <span className="text-ink-soft text-[15px]">
+            Value: <strong>{formatMoney(r.amount)}</strong>
+          </span>
+        ) : null}
+        {isReceived ? <UpdateReferralForm id={r.id} status={r.status} amount={r.amount} label={r.contact_name} /> : null}
       </li>
     );
   };
@@ -71,7 +73,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
           <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Referral tracker</h1>
           <p className="text-ink-muted m-0 mt-1">
             Pass business to fellow {site.name} members with a referral slip. The member who receives it updates the status; a referral that produces business
-            becomes a closed deal.
+            becomes a closed deal, and its dollar value counts toward the business the group has generated.
           </p>
         </div>
 

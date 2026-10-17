@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { EventCard, NextMeetingCard } from '@/components/meetings';
-import { CheckIcon, EmptyState, SectionHead } from '@/components/ui';
+import { EmptyState, SectionHead } from '@/components/ui';
 import { getViewer, isApproved } from '@/lib/auth';
 import { howItWorks, site } from '@/lib/content';
 import { getUpcomingCalendar } from '@/lib/data/events';
@@ -34,7 +34,6 @@ export default async function HomePage() {
         <div className="bg-band/75 absolute inset-0 -z-10 md:bg-transparent md:bg-linear-to-r md:from-band/90 md:via-band/65 md:to-band/10" aria-hidden="true" />
         <div className="container-site flex flex-wrap items-center gap-12 py-16 md:py-24">
           <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
-            <p className="eyebrow text-sky m-0">San Francisco Bay Area Peninsula · Since {site.founded}</p>
             <h1 className="font-display text-on-band m-0 text-[clamp(38px,5vw,60px)] leading-[1.05] font-extrabold tracking-[-0.02em]">
               Local businesses, growing through real referrals.
             </h1>
@@ -43,17 +42,16 @@ export default async function HomePage() {
               just connection.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link className="btn btn-light" href="/visit">
-                Visit a meeting free
-              </Link>
-              <Link className="btn btn-ghost-band" href="/join">
-                Become a member
-              </Link>
+              {member ? (
+                <Link className="btn btn-light" href="/dashboard#invite">
+                  Invite a friend
+                </Link>
+              ) : (
+                <Link className="btn btn-light" href="/visit#request">
+                  Request for an Invite
+                </Link>
+              )}
             </div>
-            <p className="text-on-band-muted m-0 flex items-center gap-2.5 text-base">
-              <CheckIcon className="text-sky" />
-              Zero membership dues. Participation is what we ask.
-            </p>
           </div>
           <div className="min-w-0 flex-[1_1_420px]">
             <NextMeetingCard meeting={next} member={member} />
@@ -82,7 +80,7 @@ export default async function HomePage() {
         <ol className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-5 p-0">
           {howItWorks.map((s, i) => (
             <li key={s.title} className="card flex flex-col gap-2.5 p-6">
-              <span className="font-display text-green font-extrabold" aria-hidden="true">
+              <span className="font-display text-teal-text text-2xl font-extrabold" aria-hidden="true">
                 {String(i + 1).padStart(2, '0')}
               </span>
               <h3 className="font-display m-0 text-xl">{s.title}</h3>

@@ -6,22 +6,26 @@
  * (text-ink, bg-surface, border-line, ...). Dark mode swaps the raw values.
  */
 :root {
-  /* Brand: #008080 (teal). Text on light backgrounds uses --teal-text, a slightly deeper teal, for AA contrast. */
+  /* Brand palette (owner, 2026-10-17): main #00c2cb, secondary #12a89d and #0c7b74.
+     Buttons and text links use #0c7b74 (white on it passes AA). #00c2cb and #12a89d are for bars, borders,
+     icons and large highlights: they are too light for small text on white. */
+  --brand: #00c2cb;
+  --accent: #12a89d;
   --ink: #1c2e2e;
   --ink-soft: #384c4c;
   --ink-muted: #4f6464;
   --heading: #0b3b3b;
   --band: #0b3b3b;
-  --band-2: #114c4c;
+  --band-2: #0d4242;
   --band-line: #1d5e5e;
   --on-band: #ffffff;
   --on-band-muted: #bfdcdc;
   --band-outline: #4e8f8f;
-  --sky: #8ed8d4;
-  --teal: #008080;
-  --teal-text: #006f6f;
-  --teal-hover: #006060;
-  --teal-tint: #e3f2f2;
+  --sky: #00c2cb;
+  --teal: #0c7b74;
+  --teal-text: #0c7b74;
+  --teal-hover: #096660;
+  --teal-tint: #e0f7f8;
   --on-teal: #ffffff;
   --green: #2c7a3a;
   --green-ink: #22612d;
@@ -35,14 +39,14 @@
   --star: #e0a458;
   --star-line: #b7791f;
   --surface: #ffffff;
-  --canvas: #f2f8f8;
-  --line: #d9e6e6;
-  --line-soft: #ebf3f3;
+  --canvas: #f1fbfb;
+  --line: #d3ecec;
+  --line-soft: #e8f6f6;
   --line-strong: #c0d4d4;
   --placeholder-a: #d9ebea;
   --placeholder-b: #e3ecdf;
   --placeholder-c: #ece3e6;
-  --focus: #008080;
+  --focus: #0c7b74;
   color-scheme: light;
 }
 
@@ -58,10 +62,12 @@
     --on-band: #eff7f7;
     --on-band-muted: #b3cfcf;
     --band-outline: #457676;
-    --sky: #8ed8d4;
-    --teal: #4cc2c2;
-    --teal-text: #4cc2c2;
-    --teal-hover: #7ad6d6;
+    --brand: #00c2cb;
+    --accent: #12a89d;
+    --sky: #00c2cb;
+    --teal: #00c2cb;
+    --teal-text: #00c2cb;
+    --teal-hover: #5ad8de;
     --teal-tint: #123636;
     --on-teal: #061a1a;
     --green: #7cc68a;
@@ -83,7 +89,7 @@
     --placeholder-a: #1a3535;
     --placeholder-b: #213326;
     --placeholder-c: #33242a;
-    --focus: #7ad6d6;
+    --focus: #00c2cb;
     color-scheme: dark;
   }
 }
@@ -99,6 +105,8 @@
   --color-on-band: var(--on-band);
   --color-on-band-muted: var(--on-band-muted);
   --color-sky: var(--sky);
+  --color-brand: var(--brand);
+  --color-accent: var(--accent);
   --color-teal: var(--teal);
   --color-teal-text: var(--teal-text);
   --color-teal-hover: var(--teal-hover);
@@ -189,7 +197,7 @@
     font-size: 13px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--green);
+    color: var(--teal-text);
   }
   .h1 {
     margin: 0;
@@ -367,3 +375,25 @@
     white-space: nowrap;
   }
 }
+
+/* Meeting slides: white slides with #008080 text and the brand palette (owner request, 2026-10-17),
+   in light and dark mode alike. Re-maps the band tokens the slide layouts use. */
+.deck-light {
+  --band: #ffffff;
+  --band-2: #effbfc;
+  --band-line: #c9eef0;
+  --on-band: #008080;
+  --on-band-muted: #355856;
+  --band-outline: #12a89d;
+  --sky: #0c7b74;
+  --canvas: #f1fbfb;
+  --line: #c9eef0;
+  --teal: #0c7b74;
+  --teal-hover: #096660;
+  --teal-tint: #e0f7f8;
+  --on-teal: #ffffff;
+  --surface: #ffffff;
+  --focus: #0c7b74;
+  color-scheme: light;
+}
+
