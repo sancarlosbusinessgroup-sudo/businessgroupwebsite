@@ -71,6 +71,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         add(
           key,
           <Frame eyebrow={`Meeting #${d.number}`} title={`Welcome to ${site.name}`} center>
+            <Image src="/images/logo-mark.png" alt="" width={256} height={256} className="order-first h-[14cqw] w-[14cqw]" />
             <Big>
               {formatMeetingDate(start)} · {formatMeetingTime(start)} PT
             </Big>

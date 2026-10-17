@@ -30,6 +30,8 @@ Legend: **S** static · **I** interactive (client only) · **D** data-backed (Su
 | Radii      | 999px pills/buttons · 20px hero cards · 16px cards · 12–14px inputs/tiles · 10px small |                                  |
 
 > **Changed after build (owner request, 2026-10-15):** brand colour is now `#008080`; the navy family became deep teal (`#0b3b3b`), text-on-light teal is `#006f6f` for AA contrast. The image logo was removed from the header and replaced with a text wordmark (the group name); the tab icon is a plain teal mark. The group is being renamed: all copy shows the placeholder `[New Name]` (from `src/lib/content.ts`). Current values live in `src/app/globals.css`.
+>
+> **Changed again (owner request, 2026-10-17):** the group is **Bay Area Referral Partners**. The header shows the logo mark (`public/images/logo-mark.png`, cropped from the owner's logo) beside a two-line wordmark; the footer and the welcome slide show the mark too; the tab icon is the mark. Home's hero has the owner's Golden Gate photo (`public/images/hero-bridge.jpg`) full width behind the text and countdown, under a dark-teal overlay. Public nav: Home, About, Meetings (`/group-meetings`), Events (`/events`, member events only), Members, Visit, Gallery.
 > | Type | H1 clamp(34px, 4.4–5vw, 52–60px) 800 · H2 clamp(28px, 3.2vw, 40px) 800 · eyebrow 13px 700 uppercase .12em · body 17–18px/1.55 | |
 > | Layout | max-width 1200px, 24px gutters, sections 48–72px vertical padding | |
 > | Targets | buttons min-height 44–48px | |

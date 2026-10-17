@@ -10,10 +10,11 @@ import { formatShortDate } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
 
 export default async function HomePage() {
-  const [viewer, next, upcoming, photos, count] = await Promise.all([
+  const [viewer, next, meetings, events, photos, count] = await Promise.all([
     getViewer(),
     getNextMeeting(),
-    getUpcomingCalendar(3),
+    getUpcomingCalendar(3, 'group'),
+    getUpcomingCalendar(3, 'member'),
     getGallery(undefined, 3),
     getMemberCount(),
   ]);
@@ -21,27 +22,36 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="border-line bg-canvas border-b">
-        <div className="container-site flex flex-wrap items-center gap-12 py-16 md:pb-20">
+      <section className="bg-band relative isolate overflow-hidden">
+        <Image
+          src="/images/hero-bridge.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="-z-20 object-cover object-[70%_center]"
+        />
+        <div className="bg-band/75 absolute inset-0 -z-10 md:bg-transparent md:bg-linear-to-r md:from-band/90 md:via-band/65 md:to-band/10" aria-hidden="true" />
+        <div className="container-site flex flex-wrap items-center gap-12 py-16 md:py-24">
           <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
-            <p className="eyebrow m-0">San Carlos · SF Peninsula · Since {site.founded}</p>
-            <h1 className="font-display text-heading m-0 text-[clamp(38px,5vw,60px)] leading-[1.05] font-extrabold tracking-[-0.02em]">
+            <p className="eyebrow text-sky m-0">San Francisco Bay Area Peninsula · Since {site.founded}</p>
+            <h1 className="font-display text-on-band m-0 text-[clamp(38px,5vw,60px)] leading-[1.05] font-extrabold tracking-[-0.02em]">
               Local businesses, growing through real referrals.
             </h1>
-            <p className="text-ink-soft m-0 max-w-[560px] text-xl">
+            <p className="text-on-band m-0 max-w-[560px] text-xl">
               We meet every other Monday at 8:15 AM, mostly on Zoom with occasional in-person gatherings. Come as a guest up to two times, free. No pressure,
               just connection.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link className="btn btn-primary" href="/visit">
+              <Link className="btn btn-light" href="/visit">
                 Visit a meeting free
               </Link>
-              <Link className="btn btn-outline" href="/join">
+              <Link className="btn btn-ghost-band" href="/join">
                 Become a member
               </Link>
             </div>
-            <p className="text-ink-muted m-0 flex items-center gap-2.5 text-base">
-              <CheckIcon className="text-green" />
+            <p className="text-on-band-muted m-0 flex items-center gap-2.5 text-base">
+              <CheckIcon className="text-sky" />
               Zero membership dues. Participation is what we ask.
             </p>
           </div>
@@ -86,18 +96,36 @@ export default async function HomePage() {
         <div className="container-site flex flex-col gap-7 py-14">
           <SectionHead
             eyebrow="Upcoming"
-            title="Events & meetings"
+            title="Group meetings"
             action={
-              <Link href="/events" className="text-base font-bold">
-                See the full calendar →
+              <Link href="/group-meetings" className="text-base font-bold">
+                All meetings →
               </Link>
             }
           />
-          {upcoming.length === 0 ? (
-            <EmptyState title="No upcoming events yet">Check back soon.</EmptyState>
+          {meetings.length === 0 ? (
+            <EmptyState title="No upcoming meetings yet">Check back soon.</EmptyState>
           ) : (
             <div className="flex flex-col gap-4">
-              {upcoming.map((m) => (
+              {meetings.map((m) => (
+                <EventCard key={m.id} item={m} member={member} />
+              ))}
+            </div>
+          )}
+          <SectionHead
+            eyebrow="Hosted by members"
+            title="Member events"
+            action={
+              <Link href="/events" className="text-base font-bold">
+                All member events →
+              </Link>
+            }
+          />
+          {events.length === 0 ? (
+            <EmptyState title="No member events coming up">Members can post workshops, socials and open houses.</EmptyState>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {events.map((m) => (
                 <EventCard key={m.id} item={m} member={member} />
               ))}
             </div>

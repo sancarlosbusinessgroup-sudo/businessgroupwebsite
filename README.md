@@ -1,6 +1,6 @@
-# [New Name] website
+# Bay Area Referral Partners website
 
-Members' hub for the business networking group (name to be decided, shown as `[New Name]`): public pages (home, about, events, member directory, visit, gallery), sign-up with admin approval, and a members area (dashboard, meetings & attendance, referral tracker, one-on-ones, profile, admin).
+Members' hub for the business networking group Bay Area Referral Partners: public pages (home, about, group meetings, member events, member directory, visit, gallery, bylaws), sign-up with admin approval, and a members area (dashboard, meetings & attendance, referral tracker, one-on-ones, profile, admin).
 
 - **Stack:** Next.js 16 (App Router, TypeScript strict) · Tailwind CSS 4 · Supabase (Postgres, Auth, Storage) · Vercel
 - **Design source:** the membership site mockups canvas. Element inventory in [`docs/mockup-inventory.md`](docs/mockup-inventory.md)
@@ -110,16 +110,17 @@ npm run build && npm run test:e2e   # Playwright end-to-end + axe accessibility 
 
 ## Changing the group name
 
-The name appears as the placeholder `[New Name]`. To set the real one:
+The group is **Bay Area Referral Partners** (set 2026-10-17). To change it again:
 
 1. Edit `name` (full name) and `shortName` (header, page titles, buttons) in `src/lib/content.ts`. Every page reads them from there.
 2. In Supabase → SQL Editor, update the meeting titles and descriptions:
    ```sql
    update public.meetings set
-     title = replace(title, '[New Name]', 'Real Name'),
-     description = replace(description, '[New Name]', 'Real Name');
+     title = replace(title, 'Bay Area Referral Partners', 'Real Name'),
+     description = replace(description, 'Bay Area Referral Partners', 'Real Name');
    ```
-3. Update the sender name in Supabase → Authentication → SMTP Settings, and the email templates if they mention the name.
+3. Replace the logo files: `public/images/logo-mark.png` (header, footer, welcome slide), `public/images/logo.png` (full logo), `src/app/icon.png` and `src/app/apple-icon.png` (browser tab and phone home screen).
+4. Update the sender name in Supabase → Authentication → SMTP Settings, and the email templates if they mention the name.
 
 ## Project layout
 

@@ -3,7 +3,8 @@ import { createClient } from '../supabase/server';
 import type { Tables } from '../database.types';
 import { getMeetingBySlug, getMeetingsBetween, getUpcomingMeetings, type MeetingWithSpeakers, type Speaker } from './public';
 
-// Group meetings/events (admin-run, `meetings`) and member events (`member_events`) shown as one calendar.
+// Group meetings/events (admin-run, `meetings`) and member events (`member_events`).
+// The public site shows them on separate pages (/group-meetings and /events); the .ics feed and slides combine them.
 
 export type CalendarItem = {
   id: string;
@@ -92,21 +93,32 @@ export async function getUpcomingMemberEvents(limit = 20): Promise<CalendarItem[
   return (data as HostedEvent[]).map(fromMemberEvent);
 }
 
-/** Upcoming group meetings/events and member events, soonest first. */
-export async function getUpcomingCalendar(limit = 12): Promise<CalendarItem[]> {
-  const [meetings, events] = await Promise.all([getUpcomingMeetings(limit), getUpcomingMemberEvents(limit)]);
+/** 'group' = meetings run by the group; 'member' = events hosted by members; omitted = both. */
+export type CalendarKind = CalendarItem['kind'];
+
+/** Upcoming items, soonest first. The public site lists group meetings and member events on separate pages. */
+export async function getUpcomingCalendar(limit = 12, kind?: CalendarKind): Promise<CalendarItem[]> {
+  const [meetings, events] = await Promise.all([
+    kind === 'member' ? [] : getUpcomingMeetings(limit),
+    kind === 'group' ? [] : getUpcomingMemberEvents(limit),
+  ]);
   return [...meetings.map(fromMeeting), ...events].sort(byStart).slice(0, limit);
 }
 
-export async function getCalendarBetween(fromIso: string, toIso: string): Promise<CalendarItem[]> {
+export async function getCalendarBetween(fromIso: string, toIso: string, kind?: CalendarKind): Promise<CalendarItem[]> {
   const supabase = await createClient();
   const [meetings, eventsRes] = await Promise.all([
-    getMeetingsBetween(fromIso, toIso),
-    supabase.from('member_events').select(EVENT_FIELDS).gte('starts_at', fromIso).lt('starts_at', toIso).order('starts_at'),
+    kind === 'member' ? [] : getMeetingsBetween(fromIso, toIso),
+    kind === 'group'
+      ? { data: [], error: null }
+      : supabase.from('member_events').select(EVENT_FIELDS).gte('starts_at', fromIso).lt('starts_at', toIso).order('starts_at'),
   ]);
   if (eventsRes.error) fail('member events', eventsRes.error);
   return [...meetings.map(fromMeeting), ...(eventsRes.data as HostedEvent[]).map(fromMemberEvent)].sort(byStart);
 }
+
+/** The public list page an item belongs to. */
+export const listPathFor = (kind: CalendarKind) => (kind === 'group' ? '/group-meetings' : '/events');
 
 export async function getMemberEventBySlug(slug: string): Promise<CalendarItem | null> {
   const supabase = await createClient();

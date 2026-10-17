@@ -68,7 +68,7 @@ test.describe('member events', () => {
     expect(await db(`member_events?slug=eq.${slug}&select=id`)).toEqual([]);
   });
 
-  test('an online event shows its link and the "Member events" filter works', async ({ page }) => {
+  test('an online event shows its link and is listed on the member events page', async ({ page }) => {
     await login(page, users.member2, undefined, '/events/new');
     await page.getByLabel('Event title').fill('Bakery business webinar');
     await page.getByLabel('Category').selectOption('Workshop');
@@ -83,9 +83,9 @@ test.describe('member events', () => {
     await expect(page.getByRole('link', { name: 'Join online' })).toHaveAttribute('href', 'https://meet.example.org/bakery');
 
     await page.goto('/events');
-    await page.getByRole('link', { name: /^Member events · / }).click();
+    await page.getByRole('link', { name: /^Workshop · / }).click();
     await expect(page.getByRole('link', { name: 'Bakery business webinar', exact: true })).toBeVisible();
-    await expect(page.getByText(/\[New Name\] Meeting/)).toHaveCount(0);
+    await expect(page.getByText(/Bay Area Referral Partners Meeting/)).toHaveCount(0);
   });
 
   test('admins can remove any member event', async ({ page }) => {
@@ -106,7 +106,7 @@ test.describe('meeting slides', () => {
     const errors = trackConsole(page);
     await login(page, users.member, undefined, '/present/next');
     const deck = page.getByRole('region', { name: 'Meeting slides' });
-    await expect(deck.getByRole('heading', { name: /Welcome to \[New Name\]/ })).toBeVisible();
+    await expect(deck.getByRole('heading', { name: /Welcome to Bay Area Referral Partners/ })).toBeVisible();
     await expect(deck.getByText(/^Slide 1 of \d+$/)).toBeVisible();
     await expectAccessible(page);
 

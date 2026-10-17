@@ -79,6 +79,7 @@ export async function claimSpeakerSlot(_prev: ActionState, formData: FormData): 
   if (error) return { status: 'error', message: 'Someone may have just claimed this slot. Please refresh the page.', values };
   revalidatePath('/meetings');
   revalidatePath('/events');
+  revalidatePath('/group-meetings');
   revalidatePath('/dashboard');
   return { status: 'success' };
 }

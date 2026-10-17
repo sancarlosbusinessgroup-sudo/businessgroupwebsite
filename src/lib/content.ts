@@ -1,8 +1,8 @@
 // Site copy that rarely changes. Everything that members create lives in Supabase.
 
 export const site = {
-  name: '[New Name]',
-  shortName: '[New Name]',
+  name: 'Bay Area Referral Partners',
+  shortName: 'Bay Area Referral Partners',
   timezone: 'America/Los_Angeles',
   founded: 2016,
   meetingCadence: 'Every other Monday',
@@ -15,6 +15,7 @@ export const site = {
 export const publicNav = [
   { href: '/', label: 'Home' },
   { href: '/about', label: 'About' },
+  { href: '/group-meetings', label: 'Meetings' },
   { href: '/events', label: 'Events' },
   { href: '/members', label: 'Members' },
   { href: '/visit', label: 'Visit' },

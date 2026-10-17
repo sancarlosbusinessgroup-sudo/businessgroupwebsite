@@ -7,7 +7,7 @@ import { speakerFor } from '@/components/meetings';
 import { Avatar, PageHero } from '@/components/ui';
 import { getViewer, isAdmin, isApproved } from '@/lib/auth';
 import { site, slotLabels } from '@/lib/content';
-import { getCalendarItemBySlug } from '@/lib/data/events';
+import { getCalendarItemBySlug, listPathFor } from '@/lib/data/events';
 import { formatMeetingDate, formatMeetingTime, nowMs } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
 import { deleteMemberEvent } from '../../actions/events';
@@ -34,7 +34,7 @@ export default async function EventDetail({ params }: Props) {
 
   return (
     <>
-      <PageHero crumb="Events" title={m.title} lead={`${formatMeetingDate(start)} · ${formatMeetingTime(start)}–${formatMeetingTime(end)} PT · ${where}`}>
+      <PageHero crumb={m.kind === 'group' ? 'Meetings' : 'Member events'} title={m.title} lead={`${formatMeetingDate(start)} · ${formatMeetingTime(start)}–${formatMeetingTime(end)} PT · ${where}`}>
         {upcoming ? (
           <div className="card min-w-0 flex-[1_1_360px] p-5">
             <Countdown target={m.starts_at} />
@@ -117,8 +117,8 @@ export default async function EventDetail({ params }: Props) {
               </form>
             </div>
           ) : null}
-          <Link href="/events" className="mt-2 text-[15px] font-bold">
-            ← All events
+          <Link href={listPathFor(m.kind)} className="mt-2 text-[15px] font-bold">
+            {m.kind === 'group' ? '← All meetings' : '← All member events'}
           </Link>
         </aside>
       </section>

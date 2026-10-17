@@ -1,10 +1,12 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { site } from '@/lib/content';
 
 const quick = [
   { href: '/', label: 'Home' },
   { href: '/members', label: 'Members' },
-  { href: '/events', label: 'Events' },
+  { href: '/group-meetings', label: 'Meetings' },
+  { href: '/events', label: 'Member events' },
   { href: '/visit', label: 'Visitors' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/about', label: 'About' },
@@ -23,7 +25,10 @@ export function Footer() {
       <div className="container-site flex flex-col gap-9 pt-14 pb-7">
         <div className="flex flex-wrap gap-10">
           <div className="flex min-w-0 flex-[2_1_320px] flex-col gap-3.5">
-            <p className="font-display text-on-band m-0 text-[22px] font-extrabold">{site.name}</p>
+            <p className="font-display text-on-band m-0 flex items-center gap-3 text-[22px] font-extrabold">
+              <Image src="/images/logo-mark.png" alt="" width={44} height={44} className="h-11 w-11" />
+              {site.name}
+            </p>
             <p className="m-0 max-w-[460px]">
               Proudly supporting business connections across the San Francisco Bay Area Peninsula, including {site.serviceArea}.
             </p>

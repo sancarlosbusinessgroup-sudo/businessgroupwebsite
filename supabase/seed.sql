@@ -112,8 +112,8 @@ values ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-8000-0000000
 insert into public.meetings (slug, title, description, category, starts_at, ends_at, is_online, location, tags, organizer_id)
 select
   'group-meeting-' || to_char(d, 'YYYY-MM-DD'),
-  '[New Name] Meeting: ' || to_char(d, 'Mon FMDD'),
-  'Join [New Name] online. Connect with local business owners, build referral relationships, and start your week with focused conversations.',
+  'Bay Area Referral Partners Meeting: ' || to_char(d, 'Mon FMDD'),
+  'Join Bay Area Referral Partners online. Connect with local business owners, build referral relationships, and start your week with focused conversations.',
   'Networking',
   -- d is a plain date, so "date + time" is a Pacific wall-clock time converted to UTC (any session time zone)
   (d + time '08:15') at time zone 'America/Los_Angeles',

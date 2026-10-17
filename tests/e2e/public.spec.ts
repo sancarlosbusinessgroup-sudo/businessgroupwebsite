@@ -3,13 +3,14 @@ import { db, expectAccessible, trackConsole } from './support';
 
 const pages = [
   { path: '/', heading: 'Local businesses, growing through real referrals.' },
-  { path: '/about', heading: 'About [New Name]' },
-  { path: '/events', heading: 'Business networking events' },
-  { path: '/members', heading: 'Our [New Name] members' },
+  { path: '/about', heading: 'About Bay Area Referral Partners' },
+  { path: '/group-meetings', heading: 'Group meetings' },
+  { path: '/events', heading: 'Member events' },
+  { path: '/members', heading: 'Our Bay Area Referral Partners members' },
   { path: '/members/harbor-lane-realty', heading: 'Avery Lindqvist' },
-  { path: '/visit', heading: 'Come visit [New Name]' },
+  { path: '/visit', heading: 'Come visit Bay Area Referral Partners' },
   { path: '/gallery', heading: 'Gallery' },
-  { path: '/join', heading: 'Join [New Name]' },
+  { path: '/join', heading: 'Join Bay Area Referral Partners' },
   { path: '/login', heading: 'More than networking. A system for business growth.' },
   { path: '/forgot-password', heading: 'Reset your password' },
   { path: '/terms', heading: 'Terms of use' },
@@ -48,6 +49,7 @@ test.describe('navigation', () => {
     const nav = page.getByRole('navigation', { name: 'Main' });
     for (const [label, path] of [
       ['About', '/about'],
+      ['Meetings', '/group-meetings'],
       ['Events', '/events'],
       ['Members', '/members'],
       ['Visit', '/visit'],
@@ -91,7 +93,29 @@ test.describe('data-backed public views', () => {
     expect(await timer.textContent()).not.toEqual(first);
     const [count] = await db<{ count: number }>('profiles?select=count&status=eq.approved');
     await expect(page.getByLabel('At a glance').getByText(String(count?.count), { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Events & meetings' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: 'Group meetings' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: 'Member events' })).toBeVisible();
+  });
+
+  test('home: header logo and the full-width hero photo behind the text and countdown', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('link', { name: 'Bay Area Referral Partners, home' })).toBeVisible();
+    const hero = page.locator('section', { has: page.getByRole('heading', { level: 1 }) });
+    const photo = hero.locator('img[src*="hero-bridge"]');
+    await expect(photo).toBeVisible();
+    await expect(hero.getByRole('timer', { name: 'Time until the next meeting' })).toBeVisible();
+    const [p, vw] = await Promise.all([photo.boundingBox(), page.evaluate(() => document.documentElement.clientWidth)]);
+    expect(Math.round(p?.width ?? 0)).toBeGreaterThanOrEqual(vw - 1);
+  });
+
+  test('group meetings and member events are on separate pages', async ({ page }) => {
+    await page.goto('/group-meetings');
+    await expect(page.getByRole('heading', { level: 3, name: /Bay Area Referral Partners Meeting/ }).first()).toBeVisible();
+    await expect(page.getByText(/Member event · hosted by/)).toHaveCount(0);
+    await page.goto('/events');
+    await expect(page.getByText(/Member event · hosted by/).first()).toBeVisible();
+    await expect(page.getByRole('heading', { level: 3, name: /Bay Area Referral Partners Meeting/ })).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 3, name: 'Fall Mixer in Belmont' })).toHaveCount(0);
   });
 
   test('members directory search, category filter and clear', async ({ page }) => {
@@ -115,8 +139,8 @@ test.describe('data-backed public views', () => {
     await expect(page.getByRole('link', { name: /@example\.com/ })).toHaveCount(0);
   });
 
-  test('events list/calendar toggle, month navigation, category filter and detail page', async ({ page }) => {
-    await page.goto('/events');
+  test('meetings list/calendar toggle, month navigation, category filter and detail page', async ({ page }) => {
+    await page.goto('/group-meetings');
     await page.getByRole('link', { name: 'Calendar', exact: true }).click();
     await expect(page).toHaveURL(/view=month/);
     const title = page.getByRole('heading', { level: 3 }).first();
@@ -124,11 +148,13 @@ test.describe('data-backed public views', () => {
     await page.getByRole('link', { name: 'Next month' }).click();
     await expect(title).not.toHaveText(before ?? '');
     await page.getByRole('link', { name: 'List', exact: true }).click();
-    await expect(page).toHaveURL('/events');
+    await expect(page).toHaveURL('/group-meetings');
     await page.getByRole('link', { name: /Social · / }).click();
     await expect(page.getByRole('heading', { level: 3, name: 'Fall Mixer in Belmont' })).toBeVisible();
     await page.getByRole('link', { name: /View details for Fall Mixer/ }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Fall Mixer in Belmont' })).toBeVisible();
+    await page.getByRole('link', { name: '← All meetings' }).click();
+    await expect(page).toHaveURL('/group-meetings');
     const ics = await page.request.get('/events/fall-mixer-belmont/calendar.ics');
     expect(await ics.text()).toContain('SUMMARY:Fall Mixer in Belmont');
   });
