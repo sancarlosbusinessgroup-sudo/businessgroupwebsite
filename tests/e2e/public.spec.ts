@@ -55,6 +55,7 @@ test.describe('navigation', () => {
       ['Members', '/members'],
       ['Visit', '/visit'],
       ['Gallery', '/gallery'],
+      ['Support', '/support'],
       ['Home', '/'],
     ] as const) {
       await nav.getByRole('link', { name: label, exact: true }).click();

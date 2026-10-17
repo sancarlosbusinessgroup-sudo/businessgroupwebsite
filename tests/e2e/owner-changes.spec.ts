@@ -215,3 +215,35 @@ test.describe('banners, directory, profile and support (second request of the da
     await expect(dialog).toBeHidden();
   });
 });
+
+test.describe('fourth request of the day', () => {
+  test('home: the countdown card is a light, slightly see-through panel with dark text (also in dark mode)', async ({ page }) => {
+    for (const scheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto('/');
+      const card = page.getByRole('region', { name: /Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday/ }).first();
+      const bg = await card.evaluate((el) => getComputedStyle(el).backgroundImage);
+      // white (rgba 255,255,255 or oklab lightness ~1) at partial opacity
+      expect(bg).toMatch(/gradient\(/);
+      expect(bg).toMatch(/rgba\(255, 255, 255, 0\.\d+\)|oklab\(0\.99\d* [^)]*\/ 0\.\d+\)/);
+      const color = await card.getByRole('heading', { level: 2 }).evaluate((el) => getComputedStyle(el).color);
+      expect(color).toBe('rgb(11, 59, 59)');
+    }
+    await expectAccessible(page);
+  });
+
+  test('Support is in the main menu for members too', async ({ page }) => {
+    await login(page, users.member);
+    await page.goto('/dashboard');
+    if ((page.viewportSize()?.width ?? 1280) < 768) await page.getByRole('button', { name: 'Menu' }).click();
+    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Support', exact: true }).click();
+    await expect(page).toHaveURL('/support');
+  });
+
+  test('visit page: the invite section describes the group', async ({ page }) => {
+    await page.goto('/visit');
+    const section = page.getByRole('region', { name: 'Request a guest invite' });
+    await expect(section.getByText(/We keep one member per profession/)).toBeVisible();
+    await expect(section.getByText(/We'll send the Zoom link/)).toHaveCount(0);
+  });
+});

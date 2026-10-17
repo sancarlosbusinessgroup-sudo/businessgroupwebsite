@@ -11,13 +11,47 @@ export function speakerFor(m: MeetingWithSpeakers | { speakers: Speaker[] }, slo
   return list.find((s) => s.slot === slot) ?? null;
 }
 
-/** Dark "next meeting" card used on Home and the member dashboard. */
-export function NextMeetingCard({ meeting, member }: { meeting: MeetingWithSpeakers | null; member: boolean }) {
+/**
+ * "Next meeting" card. Dark on the member dashboard; on Home (variant "glass") it is a white panel that fades slightly
+ * transparent so the bridge photo shows through.
+ */
+export function NextMeetingCard({ meeting, member, variant = 'dark' }: { meeting: MeetingWithSpeakers | null; member: boolean; variant?: 'dark' | 'glass' }) {
+  const glass = variant === 'glass';
+  const shell = glass
+    ? 'on-white border border-white/60 bg-linear-to-br from-white/95 via-white/90 to-white/80 shadow-xl backdrop-blur-[2px]'
+    : 'bg-band text-on-band';
+  const t = glass
+    ? {
+        eyebrow: 'text-teal-text',
+        title: 'text-heading',
+        sub: 'text-ink-soft',
+        line: 'border-line',
+        item: 'border border-line bg-white/75',
+        label: 'text-teal-text',
+        name: 'text-heading',
+        biz: 'text-ink-soft',
+        topic: 'text-ink',
+        primary: 'btn btn-primary',
+        secondary: 'btn btn-outline',
+      }
+    : {
+        eyebrow: 'text-sky',
+        title: 'text-on-band',
+        sub: 'text-on-band-muted',
+        line: 'border-band-line',
+        item: 'bg-band-2',
+        label: 'text-sky',
+        name: '',
+        biz: 'text-on-band-muted',
+        topic: 'text-on-band',
+        primary: 'btn btn-light',
+        secondary: 'btn btn-ghost-band',
+      };
   if (!meeting) {
     return (
-      <div className="bg-band text-on-band flex flex-col gap-3 rounded-[20px] p-7">
-        <p className="eyebrow text-sky m-0">Next meeting</p>
-        <p className="font-display m-0 text-xl font-bold">The next meeting date will be posted soon.</p>
+      <div className={`flex flex-col gap-3 rounded-[20px] p-7 ${shell}`}>
+        <p className={`eyebrow m-0 ${t.eyebrow}`}>Next meeting</p>
+        <p className={`font-display m-0 text-xl font-bold ${t.title}`}>The next meeting date will be posted soon.</p>
       </div>
     );
   }
@@ -25,17 +59,17 @@ export function NextMeetingCard({ meeting, member }: { meeting: MeetingWithSpeak
   const edu = speakerFor(meeting, 'education');
   const main = speakerFor(meeting, 'presentation');
   return (
-    <section aria-labelledby="next-meeting-title" className="bg-band text-on-band flex flex-col gap-5 rounded-[20px] p-7">
+    <section aria-labelledby="next-meeting-title" className={`flex flex-col gap-5 rounded-[20px] p-7 ${shell}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="font-display text-sky m-0 text-[13px] font-bold tracking-[0.12em] uppercase">Next meeting starts in</p>
+        <p className={`font-display m-0 text-[13px] font-bold tracking-[0.12em] uppercase ${t.eyebrow}`}>Next meeting starts in</p>
         {meeting.is_online ? <span className="pill bg-green text-on-teal">On Zoom</span> : null}
       </div>
-      <Countdown target={meeting.starts_at} tone="dark" />
-      <div className="border-band-line flex flex-col gap-1 border-t pt-4">
-        <h2 id="next-meeting-title" className="font-display text-on-band m-0 text-xl font-bold">
+      <Countdown target={meeting.starts_at} tone={glass ? 'light' : 'dark'} />
+      <div className={`flex flex-col gap-1 border-t pt-4 ${t.line}`}>
+        <h2 id="next-meeting-title" className={`font-display m-0 text-xl font-bold ${t.title}`}>
           {formatMeetingDate(start)} · {formatMeetingTime(start)} PT
         </h2>
-        <p className="text-on-band-muted m-0 text-base">{meeting.title}</p>
+        <p className={`m-0 text-base ${t.sub}`}>{meeting.title}</p>
       </div>
       {edu || main ? (
         <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2">
@@ -44,13 +78,13 @@ export function NextMeetingCard({ meeting, member }: { meeting: MeetingWithSpeak
             { s: main, label: slotLabels.presentation },
           ].map(({ s, label }, i) =>
             s ? (
-              <li key={label} className="bg-band-2 flex items-center gap-3 rounded-xl p-3.5">
+              <li key={label} className={`flex items-center gap-3 rounded-xl p-3.5 ${t.item}`}>
                 <Avatar name={s.display_name} size={44} index={i} />
                 <div className="min-w-0">
-                  <div className="text-sky text-xs font-bold tracking-[0.08em] uppercase">{label}</div>
-                  <div className="text-base font-semibold">{s.display_name}</div>
-                  {s.business ? <div className="text-on-band-muted text-[13px]">{s.business}</div> : null}
-                  {s.topic ? <div className="text-on-band mt-0.5 text-[13px] italic">“{s.topic}”</div> : null}
+                  <div className={`text-xs font-bold tracking-[0.08em] uppercase ${t.label}`}>{label}</div>
+                  <div className={`text-base font-semibold ${t.name}`}>{s.display_name}</div>
+                  {s.business ? <div className={`text-[13px] ${t.biz}`}>{s.business}</div> : null}
+                  {s.topic ? <div className={`mt-0.5 text-[13px] italic ${t.topic}`}>“{s.topic}”</div> : null}
                 </div>
               </li>
             ) : null,
@@ -58,10 +92,10 @@ export function NextMeetingCard({ meeting, member }: { meeting: MeetingWithSpeak
         </ul>
       ) : null}
       <div className="flex flex-wrap gap-2.5">
-        <Link className="btn btn-light" href={member ? '/meetings' : '/login?next=/meetings'}>
+        <Link className={t.primary} href={member ? '/meetings' : '/login?next=/meetings'}>
           {member ? 'Join on Zoom' : 'Members: log in to join'}
         </Link>
-        <a className="btn btn-ghost-band" href={`/events/${meeting.slug}/calendar.ics`}>
+        <a className={t.secondary} href={`/events/${meeting.slug}/calendar.ics`}>
           Add to calendar
         </a>
       </div>

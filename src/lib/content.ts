@@ -20,6 +20,7 @@ export const publicNav = [
   { href: '/members', label: 'Members' },
   { href: '/visit', label: 'Visit' },
   { href: '/gallery', label: 'Gallery' },
+  { href: '/support', label: 'Support' },
 ] as const;
 
 export type NavItem = { href: string; label: string; children?: readonly { href: string; label: string }[] };
@@ -38,6 +39,7 @@ export const memberNav: readonly NavItem[] = [
   { href: '/members', label: 'Directory' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/profile', label: 'My profile' },
+  { href: '/support', label: 'Support' },
 ] as const;
 
 export const howItWorks = [

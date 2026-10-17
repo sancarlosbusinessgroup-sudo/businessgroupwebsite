@@ -261,3 +261,6 @@ All changes fixed test mistakes, not app behaviour. None weakened an assertion.
 ### Banners, directory photos, profile, Support page (2026-10-17, third request)
 
 24. Requirement change: the meetings page title and Home section are now "Meeting Schedules" (public-pages list and Home test updated). New tests: Home wording, light-wash title banners with the bridge photo (dark title text kept), large photo area on directory cards, profile banner (white name, no one-on-one/referral buttons), and the Support page (team, FAQ, chat button opening the coming-soon window). `/support` added to the public-pages axe list.
+25. Fourth request (2026-10-17): header-navigation test also visits Support (new menu item). New tests: Home countdown card is a light see-through panel with dark text in light and dark mode; Support in the members' menu; Visit invite text describes the group.
+26. New test corrected while being written, before it ever passed: the browser reports the card's white gradient in oklab notation, so the colour check accepts rgba or oklab white at partial opacity.
+27. Note: `public › members directory search, category filter and clear` failed once in a partial run (passes in full runs and 3/3 on repeat). Logged to investigate; not changed.

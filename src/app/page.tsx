@@ -54,7 +54,7 @@ export default async function HomePage() {
             </div>
           </div>
           <div className="min-w-0 flex-[1_1_420px]">
-            <NextMeetingCard meeting={next} member={member} />
+            <NextMeetingCard meeting={next} member={member} variant="glass" />
           </div>
         </div>
       </section>

@@ -397,3 +397,30 @@
   color-scheme: light;
 }
 
+/* Light panel that stays light in dark mode too (e.g. the Home countdown card over the bridge photo).
+   Re-maps the text and surface tokens to their light-mode values. */
+.on-white {
+  --ink: #1c2e2e;
+  --ink-soft: #384c4c;
+  --ink-muted: #4f6464;
+  --heading: #0b3b3b;
+  --teal: #0c7b74;
+  --teal-text: #0c7b74;
+  --teal-hover: #096660;
+  --teal-tint: #e0f7f8;
+  --on-teal: #ffffff;
+  --green: #2c7a3a;
+  --green-ink: #22612d;
+  --green-tint: #e9f3ea;
+  --berry: #9c1c4c;
+  --berry-tint: #f6e3ea;
+  --amber: #7a4a0c;
+  --amber-tint: #f6ecdc;
+  --surface: #ffffff;
+  --line: #d3ecec;
+  --line-strong: #c0d4d4;
+  --focus: #0c7b74;
+  color: var(--ink);
+  color-scheme: light;
+}
+
