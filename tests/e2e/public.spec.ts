@@ -4,7 +4,8 @@ import { db, expectAccessible, trackConsole } from './support';
 const pages = [
   { path: '/', heading: 'Local businesses, growing through real referrals.' },
   { path: '/about', heading: 'About Bay Area Referral Partners' },
-  { path: '/group-meetings', heading: 'Group meetings' },
+  { path: '/group-meetings', heading: 'Meeting Schedules' },
+  { path: '/support', heading: 'Support' },
   { path: '/events', heading: 'Member events' },
   { path: '/members', heading: 'Our Bay Area Referral Partners members' },
   { path: '/members/harbor-lane-realty', heading: 'Avery Lindqvist' },
@@ -93,7 +94,7 @@ test.describe('data-backed public views', () => {
     expect(await timer.textContent()).not.toEqual(first);
     const [count] = await db<{ count: number }>('profiles?select=count&status=eq.approved');
     await expect(page.getByLabel('At a glance').getByText(String(count?.count), { exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { level: 2, name: 'Group meetings' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: 'Meeting Schedules' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 2, name: 'Member events' })).toBeVisible();
   });
 

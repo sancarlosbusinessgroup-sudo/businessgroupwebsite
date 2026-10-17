@@ -21,8 +21,8 @@ const copy = {
   group: {
     basePath: '/group-meetings',
     crumb: 'Meetings',
-    title: 'Group meetings',
-    lead: `We meet ${site.meetingCadence.toLowerCase()} at ${site.meetingTime} on Zoom, with occasional in-person gatherings. Guests may attend twice for free.`,
+    title: 'Meeting Schedules',
+    lead: `We meet ${site.meetingCadence.toLowerCase()} at ${site.meetingTime} on Zoom, with occasional in-person gatherings. You may come as a guest if it is your first time to join.`,
     heading: 'Upcoming meetings',
     noun: ['meeting', 'meetings'],
     empty: 'No upcoming meetings in this category',

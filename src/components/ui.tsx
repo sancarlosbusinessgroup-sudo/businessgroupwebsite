@@ -1,9 +1,16 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+/** Page title banner: the Golden Gate photo from Home under a light wash, so titles keep their normal dark colours. */
 export function PageHero({ crumb, title, lead, children }: { crumb?: string; title: string; lead?: ReactNode; children?: ReactNode }) {
   return (
-    <section className="border-line bg-canvas border-b">
+    <section className="border-line bg-canvas relative isolate overflow-hidden border-b">
+      <Image src="/images/hero-bridge.jpg" alt="" fill sizes="100vw" className="-z-20 object-cover object-[70%_center]" />
+      <div
+        className="bg-canvas/85 md:from-canvas/95 md:via-canvas/80 md:to-canvas/40 absolute inset-0 -z-10 md:bg-transparent md:bg-linear-to-r"
+        aria-hidden="true"
+      />
       <div className="container-site flex flex-wrap items-center gap-8 py-12">
         <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-3">
           {crumb ? (

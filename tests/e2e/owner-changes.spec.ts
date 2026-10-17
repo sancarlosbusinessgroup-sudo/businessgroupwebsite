@@ -159,3 +159,59 @@ test.describe('cancelled meetings and slides', () => {
     await expect(page.getByText('Back to the standard agenda.')).toBeVisible();
   });
 });
+
+test.describe('banners, directory, profile and support (second request of the day)', () => {
+  test('home hero: brighter photo, new guest wording and section titles', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByText('You may come as a guest if it is your first time to join.')).toBeVisible();
+    await expect(page.getByText(/Come as a guest up to two times/)).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 2, name: 'A system for business growth.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /More than networking/ })).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 2, name: 'Meeting Schedules' })).toBeVisible();
+  });
+
+  test('page title banners use the bridge photo with a light wash, keeping dark title text @responsive', async ({ page }) => {
+    for (const path of ['/about', '/group-meetings', '/members', '/visit', '/support']) {
+      await page.goto(path);
+      const hero = page.locator('section', { has: page.getByRole('heading', { level: 1 }) }).first();
+      await expect(hero.locator('img[src*="hero-bridge"]')).toBeAttached();
+      const color = await hero.getByRole('heading', { level: 1 }).evaluate((el) => getComputedStyle(el).color);
+      expect(color).not.toBe('rgb(255, 255, 255)');
+    }
+    await expectAccessible(page);
+  });
+
+  test('directory cards show a large person photo area (initials when there is no photo)', async ({ page }) => {
+    await page.goto('/members?q=Harbor');
+    const card = page.getByRole('article').filter({ hasText: 'Avery Lindqvist' });
+    const area = card.locator('span.aspect-\\[4\\/3\\]');
+    const box = await area.boundingBox();
+    expect(box?.height ?? 0).toBeGreaterThan(180);
+    await expect(card.getByText('AL', { exact: true })).toBeVisible();
+  });
+
+  test('member profile: bridge photo banner, name in white, no one-on-one or referral buttons', async ({ page }) => {
+    await page.goto('/members/harbor-lane-realty');
+    const name = page.getByRole('heading', { level: 1, name: 'Avery Lindqvist' });
+    expect(await name.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(255, 255, 255)');
+    await expect(page.locator('img[src*="hero-bridge"]')).toBeAttached();
+    await expect(page.getByRole('link', { name: 'Request a one-on-one' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Refer business' })).toHaveCount(0);
+    await expectAccessible(page);
+  });
+
+  test('support page: team, topics, FAQ and a chat button that opens (for now) a coming-soon window', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('contentinfo').getByRole('link', { name: 'Support' }).click();
+    await expect(page).toHaveURL('/support');
+    for (const n of ['Cedrick Velasco', 'Shermaine Baldorino', 'Rachanee Munar']) await expect(page.getByText(n, { exact: true })).toBeVisible();
+    await page.getByText('How do I change my photo?').click();
+    await expect(page.getByText(/open My profile and choose “Change photo”/)).toBeVisible();
+    await page.getByRole('button', { name: 'Chat with support' }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Live chat is coming soon' });
+    await expect(dialog).toBeVisible();
+    await expectAccessible(page);
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await expect(dialog).toBeHidden();
+  });
+});

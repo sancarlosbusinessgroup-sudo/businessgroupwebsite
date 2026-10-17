@@ -155,3 +155,30 @@ export const slotDescriptions = {
   education: 'One member shares something they’ve learned — a helpful insight, tool, or business tip.',
   presentation: 'One member dives deeper into their business to teach the group how to refer them better.',
 } as const;
+
+/** Support page (owner request, 2026-10-17). */
+export const supportTeam = [
+  { name: 'Cedrick Velasco', role: 'Support' },
+  { name: 'Shermaine Baldorino', role: 'Support' },
+  { name: 'Rachanee Munar', role: 'Support' },
+] as const;
+
+export const supportTopics = [
+  { title: 'Logging in', text: 'First-time sign-in, forgotten passwords and email codes.' },
+  { title: 'Your profile', text: 'Your photo, business details, website and weekly ask.' },
+  { title: 'Reporting activity', text: 'Referral slips, dollar values and one-on-one reports or requests.' },
+  { title: 'Meetings & events', text: 'The meeting schedule, Zoom links, speaker slots and member events.' },
+  { title: 'Visiting & joining', text: 'Requesting a guest invite and the membership application.' },
+  { title: 'Something not working', text: 'A page that looks wrong, an error message or a button that does nothing.' },
+] as const;
+
+export const supportFaq = [
+  {
+    q: 'How do I log in for the first time?',
+    a: 'Go to Log in and choose “Forgot password”. Enter the email the group has for you and follow the link to set your password. If nothing arrives, check your spam folder or ask support.',
+  },
+  { q: 'How do I change my photo?', a: 'Log in, open My profile and choose “Change photo”. Your photo is shown on your directory card and profile.' },
+  { q: 'How do I report a referral or a one-on-one?', a: 'Log in and open Report Activity in the menu. Choose Referrals to file a referral slip, or One-on-ones to report or request a one-on-one.' },
+  { q: 'Where is the Zoom link?', a: 'Members find it on the Meetings page (“Open Zoom link”). It is shared with logged-in members only.' },
+  { q: 'I’m not a member yet. How do I visit?', a: 'Use “Request for an Invite” at the top of any page. The leadership team will be in touch about the next meeting.' },
+] as const;

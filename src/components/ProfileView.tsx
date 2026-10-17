@@ -11,7 +11,7 @@ type Props = {
   isSelf?: boolean;
 };
 
-export function ProfileView({ profile: p, contact, viewerIsMember, isSelf }: Props) {
+export function ProfileView({ profile: p, contact }: Props) {
   const name = `${p.first_name} ${p.last_name}`;
   const avatar = mediaUrl('profile-media', p.avatar_path);
   const logo = mediaUrl('profile-media', p.logo_path);
@@ -19,27 +19,18 @@ export function ProfileView({ profile: p, contact, viewerIsMember, isSelf }: Pro
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="card overflow-hidden">
-        <div className="bg-band h-40" />
-        <div className="-mt-14 flex flex-wrap items-end gap-6 px-7 pb-7">
-          <span className="border-surface bg-teal-tint relative flex h-[120px] w-[120px] flex-none items-center justify-center overflow-hidden rounded-full border-[6px]">
+      <div className="bg-band relative isolate overflow-hidden rounded-[20px]">
+        <Image src="/images/hero-bridge.jpg" alt="" fill sizes="(min-width: 1200px) 1200px, 100vw" className="-z-20 object-cover object-[70%_center] brightness-110" />
+        <div className="bg-band/60 md:from-band/80 md:via-band/50 absolute inset-0 -z-10 md:bg-transparent md:bg-linear-to-r md:to-transparent" aria-hidden="true" />
+        <div className="flex flex-wrap items-end gap-6 px-7 pt-24 pb-7">
+          <span className="relative flex h-[120px] w-[120px] flex-none items-center justify-center overflow-hidden rounded-full border-[6px] border-white bg-white">
             {avatar ? <Image src={avatar} alt="" fill sizes="120px" className="object-cover" /> : <Avatar name={name} size={108} />}
           </span>
-          <div className="min-w-0 flex-[1_1_300px] pb-1.5">
-            <h1 className="font-display m-0 text-[32px] font-extrabold">{name}</h1>
-            <p className="text-berry m-0 text-lg font-semibold">{p.business_name}</p>
-            <p className="text-ink-muted m-0 text-[15px]">{[p.categories?.name, p.city, since ? `Member since ${since}` : null].filter(Boolean).join(' · ')}</p>
+          <div className="min-w-0 flex-[1_1_300px] pb-1.5 [text-shadow:0_1px_10px_rgb(0_0_0/0.55)]">
+            <h1 className="font-display m-0 text-[32px] font-extrabold text-white">{name}</h1>
+            <p className="m-0 text-lg font-semibold text-white">{p.business_name}</p>
+            <p className="m-0 text-[15px] text-white/90">{[p.categories?.name, p.city, since ? `Member since ${since}` : null].filter(Boolean).join(' · ')}</p>
           </div>
-          {!isSelf ? (
-            <div className="flex flex-wrap gap-2 pb-1.5">
-              <Link className="btn btn-primary btn-sm" href={viewerIsMember ? `/one-on-ones?partner=${p.id}` : '/login?next=/one-on-ones'}>
-                Request a one-on-one
-              </Link>
-              <Link className="btn btn-outline btn-sm" href={viewerIsMember ? `/referrals?tab=business&to=${p.id}` : '/login?next=/referrals'}>
-                Refer business
-              </Link>
-            </div>
-          ) : null}
         </div>
       </div>
 

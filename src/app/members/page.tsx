@@ -111,18 +111,18 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         ) : (
           <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-5 p-0">
             {items.map((p, i) => {
-              const logo = mediaUrl('profile-media', p.logo_path);
+              const photo = mediaUrl('profile-media', p.avatar_path);
               const name = `${p.first_name} ${p.last_name}`;
               const contact = contacts.get(p.id);
               return (
                 <li key={p.id}>
                   <article className="card hover:border-teal relative flex h-full flex-col overflow-hidden">
-                    <span className={`relative flex h-[150px] items-center justify-center ${bands[i % bands.length]}`}>
-                      {logo ? (
-                        <Image src={logo} alt="" fill sizes="300px" className="object-contain p-4" />
+                    <span className={`relative flex aspect-[4/3] items-center justify-center overflow-hidden ${bands[i % bands.length]}`}>
+                      {photo ? (
+                        <Image src={photo} alt="" fill sizes="(max-width: 640px) 100vw, 300px" className="object-cover object-top" />
                       ) : (
-                        <span className="bg-surface flex h-[84px] w-[84px] items-center justify-center rounded-full">
-                          <Avatar name={name} size={64} index={i} />
+                        <span className="bg-surface flex h-[150px] w-[150px] items-center justify-center rounded-full">
+                          <Avatar name={name} size={132} index={i} />
                         </span>
                       )}
                     </span>

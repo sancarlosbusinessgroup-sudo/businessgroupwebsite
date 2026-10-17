@@ -29,17 +29,17 @@ export default async function HomePage() {
           fill
           priority
           sizes="100vw"
-          className="-z-20 object-cover object-[70%_center]"
+          className="-z-20 object-cover object-[70%_center] brightness-110 saturate-[1.15]"
         />
-        <div className="bg-band/75 absolute inset-0 -z-10 md:bg-transparent md:bg-linear-to-r md:from-band/90 md:via-band/65 md:to-band/10" aria-hidden="true" />
+        <div className="bg-band/60 absolute inset-0 -z-10 md:bg-transparent md:bg-linear-to-r md:from-band/70 md:via-band/35 md:to-transparent" aria-hidden="true" />
         <div className="container-site flex flex-wrap items-center gap-12 py-16 md:py-24">
           <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
-            <h1 className="font-display text-on-band m-0 text-[clamp(38px,5vw,60px)] leading-[1.05] font-extrabold tracking-[-0.02em]">
+            <h1 className="font-display text-on-band m-0 [text-shadow:0_2px_16px_rgb(0_0_0/0.5)] text-[clamp(38px,5vw,60px)] leading-[1.05] font-extrabold tracking-[-0.02em]">
               Local businesses, growing through real referrals.
             </h1>
-            <p className="text-on-band m-0 max-w-[560px] text-xl">
-              We meet every other Monday at 8:15 AM, mostly on Zoom with occasional in-person gatherings. Come as a guest up to two times, free. No pressure,
-              just connection.
+            <p className="text-on-band m-0 max-w-[560px] text-xl font-medium [text-shadow:0_1px_10px_rgb(0_0_0/0.6)]">
+              We meet every other Monday at 8:15 AM, mostly on Zoom with occasional in-person gatherings. You may come as a guest if it is your first time to
+              join.
             </p>
             <div className="flex flex-wrap gap-3">
               {member ? (
@@ -76,7 +76,7 @@ export default async function HomePage() {
       </section>
 
       <section className="container-site flex flex-col gap-8 py-14">
-        <SectionHead eyebrow="How membership works" title="More than networking. A system for business growth." />
+        <SectionHead eyebrow="How membership works" title="A system for business growth." />
         <ol className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-5 p-0">
           {howItWorks.map((s, i) => (
             <li key={s.title} className="card flex flex-col gap-2.5 p-6">
@@ -94,7 +94,7 @@ export default async function HomePage() {
         <div className="container-site flex flex-col gap-7 py-14">
           <SectionHead
             eyebrow="Upcoming"
-            title="Group meetings"
+            title="Meeting Schedules"
             action={
               <Link href="/group-meetings" className="text-base font-bold">
                 All meetings →

@@ -10,6 +10,7 @@ const quick = [
   { href: '/visit', label: 'Visitors' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/about', label: 'About' },
+  { href: '/support', label: 'Support' },
 ];
 const members = [
   { href: '/login', label: 'Log in' },
