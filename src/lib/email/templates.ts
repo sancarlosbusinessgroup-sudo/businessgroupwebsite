@@ -199,7 +199,7 @@ export function guestThanksEmail(o: { siteUrl: string; firstName: string; meetin
       heading: `Thanks, ${o.firstName}!`,
       blocks: [
         { p: `We’ve received your request to visit ${site.name}${o.meeting ? ` on ${o.meeting}` : ''}. A member of our team will send you the Zoom link before the meeting.` },
-        { p: `We meet ${site.meetingCadence.toLowerCase()} at ${site.meetingTime} PT. Come ready with a 30-second introduction: your name, your business and who you help.` },
+        { p: `We meet ${site.meetingCadence.toLowerCase()} at ${site.meetingTime} PT. Come ready with a 60-second introduction: your name, your business and who you help.` },
       ],
       cta: { label: 'What to expect', href: `${o.siteUrl}/visit` },
       footer: `You get this email because you asked to visit ${site.name}.`,
@@ -264,7 +264,7 @@ export function meetingReminderEmail(o: {
       heading: `See you this morning, ${o.firstName}`,
       blocks: [
         { list },
-        { p: 'Have your 30-second spiel and your Win of the Week ready. Open networking starts at 8:15 AM.' },
+        { p: 'Have your 60-second infomercial ready: referrals, one-to-ones, closed business, thank-yous, testimonials and leads. Open networking starts at 8:15 AM; we call the meeting to order at 8:30 AM sharp.' },
         ...(o.joinUrl ? [{ p: `Zoom link: ${o.joinUrl}` }] : []),
       ],
       cta: o.joinUrl ? { label: 'Join on Zoom', href: o.joinUrl } : { label: 'Open Meetings', href: `${o.siteUrl}/meetings` },
@@ -341,6 +341,26 @@ export function adminDigestEmail(o: {
       ],
       cta: { label: 'Open Admin', href: `${o.siteUrl}/admin` },
       footer: prefsFooter(o.siteUrl),
+    }),
+  };
+}
+
+export function applyInviteEmail(o: { siteUrl: string; firstName: string; link: string }): Email {
+  return {
+    subject: `You're invited to apply to ${site.name}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: 'Your membership application form is ready.',
+      heading: `${o.firstName}, you're invited to apply`,
+      blocks: [
+        { p: `Thank you for visiting ${site.name}. The leadership team would love to have you apply for membership.` },
+        {
+          p: 'The membership application form takes about 10 minutes. You will need two business references, and you will be asked to agree to our terms, so please read the Bylaws and Procedures first.',
+        },
+        { p: 'Next, you will have one-to-ones with three members of our leadership team, who then review your application.' },
+      ],
+      cta: { label: 'Open the membership form', href: o.link },
+      footer: `You get this email because you visited ${site.name}.`,
     }),
   };
 }

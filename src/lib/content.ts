@@ -44,7 +44,7 @@ export const memberNav: readonly NavItem[] = [
 
 export const howItWorks = [
   { title: 'Visit twice, free', text: 'Get invited by a member and attend up to two meetings as a guest.' },
-  { title: 'Meet the committee', text: "Three one-on-ones with membership committee members. If it's a fit, welcome aboard." },
+  { title: 'Meet the leadership team', text: "One-to-ones with three leadership team members. If it's a fit, welcome aboard." },
   { title: 'Refer and connect', text: 'Share warm introductions and invite guests. Your referral link tracks every one.' },
   { title: 'Watch it grow', text: 'Report referrals, one-on-ones and closed deals. The leaderboard shows the whole group’s progress.' },
 ];
@@ -75,25 +75,25 @@ export const leadership = {
   caption: 'Leading with heart and consistency since day one.',
 };
 
-/** Official meeting agenda (Procedures, effective Jan 1, 2026). Times are Pacific. */
+/** Official meeting agenda (Procedures, effective October 19, 2026). Times are Pacific. */
 export const meetingAgenda = [
   { time: '8:15', item: 'Open networking' },
   { time: '8:30', item: 'Meeting called to order' },
   { time: '8:31', item: 'Introduction of the leadership team' },
-  { time: '8:32', item: '30-second infomercial' },
-  { time: '8:42', item: 'Introduction of guests' },
-  { time: '8:45', item: 'Statistics' },
-  { time: '8:50', item: '30-second referrals, leads, testimonials and thank-yous' },
+  { time: '8:32', item: 'Introduction of guests' },
+  { time: '8:33', item: '60-second infomercials: referrals, one-to-ones, closed business, thank-yous, testimonials and leads' },
+  { time: '9:00', item: 'Statistics' },
   { time: '9:05', item: '5-minute educational presentation' },
-  { time: '9:10', item: '10-minute presentation' },
-  { time: '9:20', item: '5 minutes of questions for the 10-minute presentation' },
-  { time: '9:25', item: 'Announcements' },
-  { time: '9:28', item: 'Thank you, visitors: we will contact you' },
+  { time: '9:10', item: '1 minute of questions for the 5-minute presentation' },
+  { time: '9:11', item: '10-minute presentation' },
+  { time: '9:21', item: '5 minutes of questions for the 10-minute presentation' },
+  { time: '9:26', item: 'Announcements' },
+  { time: '9:29', item: 'Thank you, visitors: we will contact you' },
   { time: '9:30', item: 'Adjourn' },
 ] as const;
 
 export const visitTips = [
-  'Come ready with a quick 30-second introduction: your name, your business, and who you help.',
+  'Come ready with a quick 60-second introduction: your name, your business, and who you help.',
   "If you've worked with anyone in the group before, feel free to share a quick thank-you.",
   "You'll hear two short presentations: a helpful tip, and a spotlight on a member's business.",
   "Bring any events or promos you'd like to share during the closing round.",

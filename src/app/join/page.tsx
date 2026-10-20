@@ -5,14 +5,32 @@ import { getCategorySeats } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
 import { formatShortDate, nowMs } from '@/lib/dates';
 import { referralCode as referralCodeSchema } from '@/lib/validation';
-import { JoinForm } from './JoinForm';
+import { z } from 'zod';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { JoinForm, type JoinPrefill } from './JoinForm';
 import { site } from '@/lib/content';
 
 export const metadata: Metadata = { title: `Join ${site.name}` };
 
-export default async function JoinPage({ searchParams }: { searchParams: Promise<{ ref?: string }> }) {
-  const { ref } = await searchParams;
-  const code = referralCodeSchema.safeParse(ref);
+/** An admin's "Invite to apply" email links here with ?invite=<guest request id>: fill in what we already know. */
+async function invitePrefill(invite: string | undefined): Promise<{ prefill: JoinPrefill; code: string | null } | null> {
+  const id = z.uuid().safeParse(invite);
+  const db = id.success ? createAdminClient() : null;
+  if (!db || !id.success) return null;
+  const { data: g } = await db
+    .from('guest_requests')
+    .select('first_name, last_name, email, business_name, status, referrer:profiles!guest_requests_referrer_id_fkey(referral_code)')
+    .eq('id', id.data)
+    .maybeSingle();
+  if (!g || g.status === 'applied' || g.status === 'joined') return null;
+  const ref = g.referrer as { referral_code: string } | null;
+  return { prefill: { firstName: g.first_name, lastName: g.last_name, email: g.email, businessName: g.business_name ?? '' }, code: ref?.referral_code ?? null };
+}
+
+export default async function JoinPage({ searchParams }: { searchParams: Promise<{ ref?: string; invite?: string }> }) {
+  const { ref, invite } = await searchParams;
+  const invited = await invitePrefill(invite);
+  const code = referralCodeSchema.safeParse(ref ?? invited?.code ?? undefined);
   const referralCode = code.success ? code.data : undefined;
   const supabase = await createClient();
   const [categories, referrer] = await Promise.all([
@@ -31,6 +49,12 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
             No dues. One business per category. Members commit to showing up, one-to-ones and bringing referrals or visitors. See our{' '}
             <Link href="/bylaws">Bylaws and Procedures</Link>.
           </p>
+          {invited ? (
+            <div className="card border-teal flex flex-col gap-1 border-l-4 p-5">
+              <strong className="text-heading">You&apos;re invited to apply, {invited.prefill.firstName}!</strong>
+              <span className="text-ink-muted text-[15px]">We&apos;ve filled in the details we already have. Please complete the rest of the form.</span>
+            </div>
+          ) : null}
           {referrerName ? (
             <div className="card flex items-center gap-3.5 p-5">
               <Avatar name={referrerName} size={48} />
@@ -60,7 +84,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
             </Link>
           </p>
         </aside>
-        <JoinForm categories={categories} referralCode={referralCode} referrerName={referrerName} today={formatShortDate(new Date(nowMs()))} />
+        <JoinForm categories={categories} referralCode={referralCode} referrerName={referrerName} today={formatShortDate(new Date(nowMs()))} prefill={invited?.prefill} />
       </section>
     </div>
   );

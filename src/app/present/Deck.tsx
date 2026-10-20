@@ -56,11 +56,6 @@ export function Deck({ title, slides, customizeHref, exitHref }: { title: string
             className="bg-band border-line @container relative aspect-video w-[min(100%,calc((100dvh-5rem)*16/9))] overflow-hidden rounded-xl border shadow-sm"
             aria-roledescription="slide"
           >
-            <div className="absolute inset-x-0 top-0 flex h-[0.9cqw]" aria-hidden="true">
-              <span className="bg-brand flex-[2]" />
-              <span className="bg-accent flex-1" />
-              <span className="bg-teal flex-1" />
-            </div>
             {slides.map((s, n) => (
               <div key={s.id} hidden={n !== i} aria-label={`${s.label} (slide ${n + 1} of ${slides.length})`} role="group" className="absolute inset-0">
                 {s.node}
@@ -84,7 +79,7 @@ export function Deck({ title, slides, customizeHref, exitHref }: { title: string
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-on-band-muted hidden md:inline">← → or clicker to move · F for full screen</span>
+            <span className="text-on-band-muted hidden md:inline">← → or clicker to move · F full screen · T timer</span>
             <button
               type="button"
               className="btn btn-ghost-band btn-sm"

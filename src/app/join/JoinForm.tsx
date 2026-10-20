@@ -8,16 +8,24 @@ import { agreementTerms } from '@/lib/content';
 import { fieldErrors, formToObject, idle, joinSchema } from '@/lib/validation';
 import { signUp } from '../actions/auth';
 
-type Props = { categories: { id: number; name: string; open: boolean }[]; referralCode?: string; referrerName?: string; today: string };
+export type JoinPrefill = { firstName: string; lastName: string; email: string; businessName: string };
+type Props = {
+  categories: { id: number; name: string; open: boolean }[];
+  referralCode?: string;
+  referrerName?: string;
+  today: string;
+  prefill?: JoinPrefill;
+};
 
 /** One-page membership application, mirroring the group's paper Member Application Form. */
-export function JoinForm({ categories, referralCode, referrerName, today }: Props) {
+export function JoinForm({ categories, referralCode, referrerName, today, prefill }: Props) {
   const [state, action] = useActionState(signUp, idle);
   const [clientErrors, setClientErrors] = useState<Record<string, string> | null>(null);
   const [categoryId, setCategoryId] = useState<string>(state.values?.categoryId ?? '');
   const formRef = useRef<HTMLFormElement>(null);
   const errors = clientErrors ?? state.errors ?? {};
-  const v = state.values ?? {};
+  const v: Record<string, string | undefined> = state.values ?? (prefill ? { ...prefill } : {});
+  const [printed, setPrinted] = useState(`${v.firstName ?? ''} ${v.lastName ?? ''}`.trim());
   const fullCategory = categories.find((c) => String(c.id) === categoryId && !c.open);
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -72,6 +80,11 @@ export function JoinForm({ categories, referralCode, referrerName, today }: Prop
       ref={formRef}
       action={action}
       onSubmit={onSubmit}
+      onChange={(e) => {
+        const f = e.currentTarget.elements;
+        const get = (n: string) => ((f.namedItem(n) as HTMLInputElement | null)?.value ?? '').trim();
+        setPrinted(`${get('firstName')} ${get('lastName')}`.trim());
+      }}
       noValidate
       className="border-line bg-surface flex min-w-0 flex-[999_1_560px] flex-col gap-6 rounded-[20px] border p-5 sm:p-8"
       aria-labelledby="apply-h"
@@ -86,7 +99,7 @@ export function JoinForm({ categories, referralCode, referrerName, today }: Prop
       {clientErrors ? <Notice tone="error">Please fix the highlighted fields.</Notice> : null}
 
       <fieldset className={section}>
-        <legend className={legend}>About you and your business</legend>
+        <legend className={legend}>Business information</legend>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField name="firstName" label="First name" autoComplete="given-name" required defaultValue={v.firstName} error={errors.firstName} />
           <TextField name="lastName" label="Last name" autoComplete="family-name" required defaultValue={v.lastName} error={errors.lastName} />
@@ -186,7 +199,23 @@ export function JoinForm({ categories, referralCode, referrerName, today }: Prop
           <legend className={legend}>Business reference {n}</legend>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <TextField id={`ref${n}Name`} name={`ref${n}Name`} label="Name" required defaultValue={v[`ref${n}Name`]} error={errors[`ref${n}Name`]} />
-            <TextField id={`ref${n}Business`} name={`ref${n}Business`} label="Business" defaultValue={v[`ref${n}Business`]} error={errors[`ref${n}Business`]} />
+            <TextField
+              id={`ref${n}Business`}
+              name={`ref${n}Business`}
+              label="Business"
+              placeholder="e.g. Accountant"
+              defaultValue={v[`ref${n}Business`]}
+              error={errors[`ref${n}Business`]}
+            />
+            <div className="sm:col-span-2">
+              <TextField
+                id={`ref${n}BusinessName`}
+                name={`ref${n}BusinessName`}
+                label="Business name"
+                defaultValue={v[`ref${n}BusinessName`]}
+                error={errors[`ref${n}BusinessName`]}
+              />
+            </div>
             <TextField
               id={`ref${n}Email`}
               name={`ref${n}Email`}
@@ -252,7 +281,7 @@ export function JoinForm({ categories, referralCode, referrerName, today }: Prop
         </p>
         <Checkbox
           name="agree"
-          label="I agree to the terms above, acknowledge that I have read and understood the Bylaws and Procedures, and confirm that all information is correct to the best of my ability."
+          label="By signing below, I agree to the terms above, acknowledge that I have read and understood the Bylaws and group Procedures, and that all information is correct to the best of my ability."
           defaultChecked={v.agree === 'on'}
           error={errors.agree}
         />
@@ -270,6 +299,12 @@ export function JoinForm({ categories, referralCode, referrerName, today }: Prop
           <div>
             <span className="label">Date</span>
             <p className="field bg-canvas m-0 flex items-center">{today}</p>
+          </div>
+          <div>
+            <span className="label">Name</span>
+            <p className="field bg-canvas m-0 flex items-center" aria-live="polite">
+              {printed || <span className="text-ink-muted">Filled in from your name above</span>}
+            </p>
           </div>
         </div>
       </fieldset>

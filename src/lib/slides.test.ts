@@ -1,32 +1,53 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SLIDES, SLIDE_KEYS, chunk, resolveNotes, resolveSlides, slideLabel } from './slides';
+import { DEFAULT_SLIDES, SLIDE_KEYS, chunk, parseYouTube, resolveNotes, resolveSlides, slideLabel, slideTime } from './slides';
 
 describe('slide settings', () => {
-  it('defaults follow the meeting format: networking, introductions, roundtable, numbers, presentations, events & announcements', () => {
+  it('defaults follow the official agenda (Procedures, effective October 19, 2026)', () => {
     expect(DEFAULT_SLIDES).toEqual([
       'welcome',
+      'agenda',
       'networking',
-      'phones',
-      'introductions',
-      'visitors',
-      'newcomers',
-      'roundtable',
+      'call_to_order',
+      'leadership',
+      'guests',
+      'infomercials',
       'asks',
-      'summary',
+      'statistics',
       'leaderboards',
       'five_minute',
+      'five_qa',
       'ten_minute',
-      'events',
-      'closing',
+      'ten_qa',
+      'announcements',
+      'visitors_thanks',
+      'adjourn',
     ]);
-    expect(slideLabel('networking')).toContain('8:15 – 8:30 AM');
-    expect(slideLabel('summary')).toBe('Activity numbers');
-    expect(slideLabel('events')).toBe('Events & announcements');
+    expect([slideTime('networking'), slideTime('call_to_order'), slideTime('infomercials'), slideTime('five_qa'), slideTime('ten_minute'), slideTime('adjourn')]).toEqual([
+      '8:15',
+      '8:30',
+      '8:33',
+      '9:10',
+      '9:11',
+      '9:30',
+    ]);
+    expect(slideLabel('infomercials')).toBe('60-second infomercials');
     for (const k of SLIDE_KEYS) expect(slideLabel(k)).toMatch(/\w/);
   });
 
+  it('settings saved with the old slide names still work', () => {
+    expect(resolveSlides(['welcome', 'phones', 'roundtable', 'summary', 'events', 'closing'])).toEqual([
+      'welcome',
+      'call_to_order',
+      'infomercials',
+      'statistics',
+      'announcements',
+      'adjourn',
+    ]);
+    expect(resolveNotes({ roundtable: 'Shout-out', events: 'Mixer Friday' })).toEqual({ infomercials: 'Shout-out', announcements: 'Mixer Friday' });
+  });
+
   it('extra slide text keeps only known slides with text', () => {
-    expect(resolveNotes({ welcome: '  Happy holidays!  ', bogus: 'x', events: '', phones: 3 })).toEqual({ welcome: 'Happy holidays!' });
+    expect(resolveNotes({ welcome: '  Happy holidays!  ', bogus: 'x', announcements: '', adjourn: 3 })).toEqual({ welcome: 'Happy holidays!' });
     expect(resolveNotes(null)).toEqual({});
     expect(resolveNotes(['welcome'])).toEqual({});
   });
@@ -46,5 +67,23 @@ describe('chunk', () => {
   it('splits a list into pages of n', () => {
     expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
     expect(chunk([], 3)).toEqual([]);
+  });
+});
+
+describe('parseYouTube', () => {
+  it('reads the video id and start time from the usual link shapes', () => {
+    expect(parseYouTube('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toEqual({ id: 'dQw4w9WgXcQ', start: 0 });
+    expect(parseYouTube('https://youtu.be/dQw4w9WgXcQ?t=90')).toEqual({ id: 'dQw4w9WgXcQ', start: 90 });
+    expect(parseYouTube('youtube.com/watch?v=dQw4w9WgXcQ&t=1m30s')).toEqual({ id: 'dQw4w9WgXcQ', start: 90 });
+    expect(parseYouTube('https://www.youtube.com/shorts/dQw4w9WgXcQ')).toEqual({ id: 'dQw4w9WgXcQ', start: 0 });
+    expect(parseYouTube('https://www.youtube.com/embed/dQw4w9WgXcQ?start=12')).toEqual({ id: 'dQw4w9WgXcQ', start: 12 });
+    expect(parseYouTube('https://m.youtube.com/live/dQw4w9WgXcQ')).toEqual({ id: 'dQw4w9WgXcQ', start: 0 });
+  });
+
+  it('rejects anything that is not a YouTube video link', () => {
+    expect(parseYouTube('https://vimeo.com/123')).toBeNull();
+    expect(parseYouTube('https://www.youtube.com/watch?v=short')).toBeNull();
+    expect(parseYouTube('https://evil.example/watch?v=dQw4w9WgXcQ')).toBeNull();
+    expect(parseYouTube('not a link at all')).toBeNull();
   });
 });

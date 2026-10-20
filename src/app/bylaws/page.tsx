@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import Image from 'next/image';
 import { Avatar, PageHero } from '@/components/ui';
+import { mediaUrl } from '@/lib/env';
+import { groupLeadership } from '@/lib/leadership';
 import { meetingAgenda, site } from '@/lib/content';
 import { getLeadership } from '@/lib/data/public';
 import { bylaws, governanceEffective, procedures, purpose } from '@/lib/governance';
@@ -17,6 +20,19 @@ function Block({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+type Person = { id: string; name: string; photo_path: string | null; profile: { slug: string; avatar_path: string | null } | null };
+
+function Photo({ p, size, index }: { p: Person; size: number; index: number }) {
+  const url = mediaUrl('profile-media', p.photo_path ?? p.profile?.avatar_path ?? null);
+  return (
+    <span className="bg-teal-tint relative flex flex-none items-center justify-center overflow-hidden rounded-2xl" style={{ width: size, height: size }}>
+      {url ? <Image src={url} alt="" fill sizes={`${size}px`} className="object-cover" /> : <Avatar name={p.name} size={size} index={index} />}
+    </span>
+  );
+}
+
+const PersonName = ({ p }: { p: Person }) => (p.profile ? <Link href={`/members/${p.profile.slug}`}>{p.name}</Link> : <>{p.name}</>);
+
 const Bullets = ({ items }: { items: readonly string[] }) => (
   <ul className="m-0 flex flex-col gap-2 pl-5">
     {items.map((t) => (
@@ -27,7 +43,7 @@ const Bullets = ({ items }: { items: readonly string[] }) => (
 
 export default async function BylawsPage() {
   const team = await getLeadership();
-  const committee = team.filter((t) => /membership committee/i.test(t.role));
+  const { leaders, committee, attendance } = groupLeadership(team);
 
   return (
     <>
@@ -71,14 +87,16 @@ export default async function BylawsPage() {
               <h3 id="lead-h" className="font-display text-heading m-0 text-xl font-bold">
                 Leadership &amp; responsibilities
               </h3>
-              {team.length ? (
-                <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3 p-0">
-                  {team.map((t, i) => (
-                    <li key={t.id} className="card flex items-center gap-3 p-3.5">
-                      <Avatar name={t.name} size={44} index={i} />
+              {leaders.length ? (
+                <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3 p-0" aria-label="Leadership team">
+                  {leaders.map((t, i) => (
+                    <li key={t.id} className="card flex items-center gap-4 p-3.5">
+                      <Photo p={t} size={72} index={i} />
                       <div className="min-w-0">
-                        <div className="font-semibold">{t.name}</div>
-                        <div className="text-teal-text text-[15px] font-bold">{t.role}</div>
+                        <div className="text-teal-text font-display text-lg font-bold">
+                          <PersonName p={t} />
+                        </div>
+                        <div className="font-semibold">{t.title}</div>
                       </div>
                     </li>
                   ))}
@@ -86,11 +104,26 @@ export default async function BylawsPage() {
               ) : (
                 <p className="text-ink-muted m-0">The leadership list will appear here.</p>
               )}
-              {committee.length ? (
-                <p className="m-0">
-                  <strong>Membership Committee:</strong> {committee.map((c) => c.name).join(', ')}.
-                </p>
-              ) : null}
+              {[
+                { title: 'Membership Committee', people: committee },
+                { title: 'Attendance Managers', people: attendance },
+              ]
+                .filter((g) => g.people.length)
+                .map((g) => (
+                  <div key={g.title} className="flex flex-col gap-2">
+                    <h4 className="text-teal-text m-0 text-base font-bold">{g.title}</h4>
+                    <ul className="m-0 flex list-none flex-wrap gap-4 p-0" aria-label={g.title}>
+                      {g.people.map((t, i) => (
+                        <li key={t.id} className="flex w-[120px] flex-col items-center gap-1.5 text-center">
+                          <Photo p={t} size={96} index={i} />
+                          <span className="text-[15px] font-semibold">
+                            <PersonName p={t} />
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               <p className="m-0">{bylaws.committeeResponsibilities}</p>
             </section>
             <Block title="Meetings">
@@ -162,7 +195,7 @@ export default async function BylawsPage() {
             <Block title="Meeting etiquette">
               <Bullets items={procedures.etiquette} />
             </Block>
-            <Block title="10-minute presentation">
+            <Block title={procedures.presentationTitle}>
               <Bullets items={procedures.presentation} />
             </Block>
             <div id="definitions">
@@ -171,7 +204,10 @@ export default async function BylawsPage() {
                   {procedures.definitions.map((d) => (
                     <div key={d.term}>
                       <dt className="font-bold">{d.term}</dt>
-                      <dd className="text-ink-soft m-0">{d.text}</dd>
+                      <dd className="text-ink-soft m-0">
+                        {d.text}
+                        {'example' in d && d.example ? <span className="border-teal-tint mt-1.5 block border-l-4 pl-3 italic">{d.example}</span> : null}
+                      </dd>
                     </div>
                   ))}
                 </dl>

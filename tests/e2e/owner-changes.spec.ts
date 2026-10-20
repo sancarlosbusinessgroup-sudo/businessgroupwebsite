@@ -126,32 +126,32 @@ test.describe('cancelled meetings and slides', () => {
     expect(await title.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(0, 128, 128)');
 
     const seen: string[] = [];
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 20; i++) {
       seen.push(((await deck.getByRole('group').filter({ visible: true }).getAttribute('aria-label')) ?? '').replace(/ \(slide.*$/, ''));
       await page.keyboard.press('ArrowRight');
     }
     for (const s of [
-      'Open networking (8:15 – 8:30 AM)',
-      'Introductions & leadership team',
-      'Roundtable check-in (30-second spiel & Win of the Week)',
-      'Activity numbers',
-      '5-Minute Member Education',
-      '10-Minute Presentation',
-      'Events & announcements',
+      'Open networking',
+      'Introduction of the leadership team',
+      '60-second infomercials',
+      'Statistics',
+      '5-minute educational presentation',
+      '10-minute presentation',
+      'Announcements',
     ])
       expect(seen).toContain(s);
 
     await deck.getByRole('link', { name: 'Customize slides' }).click();
-    await page.getByLabel('Extra text for “Roundtable check-in (30-second spiel & Win of the Week)”').fill('Shout-out: welcome back, Jeanie!');
+    await page.getByLabel('Extra text for “8:33 · 60-second infomercials”').fill('Shout-out: welcome back, Jeanie!');
     await page.getByRole('button', { name: 'Save slides' }).click();
     await expect(page.getByText('Slides saved.')).toBeVisible();
     await page.getByRole('link', { name: 'Open the slides' }).click();
-    for (let i = 0; i < 16; i++) {
-      if (await deck.getByRole('heading', { name: 'Your 30-second spiel & Win of the Week' }).isVisible()) break;
+    for (let i = 0; i < 20; i++) {
+      if (await deck.getByRole('heading', { name: '60-second infomercials' }).isVisible()) break;
       await page.keyboard.press('ArrowRight');
     }
     await expect(deck.getByText('Shout-out: welcome back, Jeanie!')).toBeVisible();
-    await expect(deck.getByText(/Everyone gets a moment to share their 30-second spiel/)).toBeVisible();
+    await expect(deck.getByText(/Tells who you are, describes your business/)).toBeVisible();
     await expectAccessible(page);
 
     await deck.getByRole('link', { name: 'Customize slides' }).click();

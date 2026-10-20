@@ -1,50 +1,73 @@
-// Meeting slide deck: which slides exist, their default order (the agreed agenda) and labels.
+// Meeting slide deck: which slides exist, their default order and labels.
+// The standard order follows the official agenda in the Procedures (effective October 19, 2026).
 
-// Standard order follows the meeting format: open networking, introductions, roundtable check-in,
-// activity numbers, the 5- and 10-minute presentations, then events & announcements.
 export const SLIDE_KEYS = [
   'welcome',
+  'agenda',
   'networking',
-  'phones',
-  'introductions',
-  'visitors',
-  'newcomers',
-  'roundtable',
+  'call_to_order',
+  'leadership',
+  'guests',
+  'infomercials',
   'asks',
-  'summary',
+  'statistics',
   'leaderboards',
   'five_minute',
+  'five_qa',
   'ten_minute',
-  'events',
-  'closing',
+  'ten_qa',
+  'announcements',
+  'visitors_thanks',
+  'adjourn',
 ] as const;
 export type SlideKey = (typeof SLIDE_KEYS)[number];
 
 export const DEFAULT_SLIDES: SlideKey[] = [...SLIDE_KEYS];
 
-const labels: Record<SlideKey, string> = {
-  welcome: 'Welcome',
-  networking: 'Open networking (8:15 – 8:30 AM)',
-  phones: 'Please silence your phones',
-  introductions: 'Introductions & leadership team',
-  visitors: 'For visitors: how to visit and join',
-  newcomers: 'New members & today’s visitors',
-  roundtable: 'Roundtable check-in (30-second spiel & Win of the Week)',
-  asks: 'Weekly specific asks',
-  summary: 'Activity numbers',
-  leaderboards: 'Leaderboards',
-  five_minute: '5-Minute Member Education',
-  ten_minute: '10-Minute Presentation',
-  events: 'Events & announcements',
-  closing: 'Thank you & next meeting',
+type SlideInfo = { label: string; time?: string };
+const info: Record<SlideKey, SlideInfo> = {
+  welcome: { label: 'Welcome' },
+  agenda: { label: 'Today’s agenda' },
+  networking: { label: 'Open networking', time: '8:15' },
+  call_to_order: { label: 'Meeting called to order', time: '8:30' },
+  leadership: { label: 'Introduction of the leadership team', time: '8:31' },
+  guests: { label: 'Introduction of guests', time: '8:32' },
+  infomercials: { label: '60-second infomercials', time: '8:33' },
+  asks: { label: 'This week we’re looking for…', time: '8:33' },
+  statistics: { label: 'Statistics', time: '9:00' },
+  leaderboards: { label: 'Leaderboards', time: '9:00' },
+  five_minute: { label: '5-minute educational presentation', time: '9:05' },
+  five_qa: { label: 'Questions for the 5-minute presentation', time: '9:10' },
+  ten_minute: { label: '10-minute presentation', time: '9:11' },
+  ten_qa: { label: 'Questions for the 10-minute presentation', time: '9:21' },
+  announcements: { label: 'Announcements', time: '9:26' },
+  visitors_thanks: { label: 'Thank you, visitors', time: '9:29' },
+  adjourn: { label: 'Adjourn', time: '9:30' },
 };
-export const slideLabel = (k: SlideKey) => labels[k];
+export const slideLabel = (k: SlideKey) => info[k].label;
+export const slideTime = (k: SlideKey) => info[k].time ?? null;
 export const isSlideKey = (v: unknown): v is SlideKey => typeof v === 'string' && (SLIDE_KEYS as readonly string[]).includes(v);
+
+/** Slide names used before the October 2026 agenda, so saved settings keep working. */
+const LEGACY: Record<string, SlideKey> = {
+  phones: 'call_to_order',
+  introductions: 'leadership',
+  newcomers: 'guests',
+  roundtable: 'infomercials',
+  visitors: 'visitors_thanks',
+  summary: 'statistics',
+  events: 'announcements',
+  closing: 'adjourn',
+};
+export const toSlideKey = (v: unknown): SlideKey | null => (isSlideKey(v) ? v : typeof v === 'string' && LEGACY[v] ? LEGACY[v] : null);
 
 /** Saved per-meeting order, cleaned up; falls back to the standard agenda. */
 export function resolveSlides(saved: readonly string[] | null | undefined): SlideKey[] {
   const out: SlideKey[] = [];
-  for (const k of saved ?? []) if (isSlideKey(k) && !out.includes(k)) out.push(k);
+  for (const raw of saved ?? []) {
+    const k = toSlideKey(raw);
+    if (k && !out.includes(k)) out.push(k);
+  }
   return out.length ? out : [...DEFAULT_SLIDES];
 }
 
@@ -60,6 +83,43 @@ export type SlideNotes = Partial<Record<SlideKey, string>>;
 export function resolveNotes(saved: unknown): SlideNotes {
   const out: SlideNotes = {};
   if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return out;
-  for (const [k, v] of Object.entries(saved as Record<string, unknown>)) if (isSlideKey(k) && typeof v === 'string' && v.trim()) out[k] = v.trim();
+  for (const [raw, v] of Object.entries(saved as Record<string, unknown>)) {
+    const k = toSlideKey(raw);
+    if (k && typeof v === 'string' && v.trim() && !out[k]) out[k] = v.trim();
+  }
   return out;
+}
+
+// --- Added slides: uploaded images / PDFs and YouTube videos --------------------------------------
+
+export const MEDIA_MAX_BYTES = 20 * 1024 * 1024;
+export const PDF_MAX_PAGES = 40;
+export const MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'] as const;
+
+/** YouTube video id (and start time) from the usual link shapes, or null. */
+export function parseYouTube(input: string): { id: string; start: number } | null {
+  let url: URL;
+  try {
+    url = new URL(input.trim().match(/^https?:\/\//i) ? input.trim() : `https://${input.trim()}`);
+  } catch {
+    return null;
+  }
+  const host = url.hostname.replace(/^www\.|^m\./, '');
+  let id: string | null = null;
+  if (host === 'youtu.be') id = url.pathname.slice(1).split('/')[0] ?? null;
+  else if (host === 'youtube.com' || host === 'youtube-nocookie.com' || host === 'music.youtube.com') {
+    if (url.pathname === '/watch') id = url.searchParams.get('v');
+    else {
+      const m = url.pathname.match(/^\/(?:embed|shorts|live|v)\/([^/?#]+)/);
+      id = m?.[1] ?? null;
+    }
+  }
+  if (!id || !/^[A-Za-z0-9_-]{11}$/.test(id)) return null;
+  const t = url.searchParams.get('t') ?? url.searchParams.get('start');
+  let start = 0;
+  if (t) {
+    const hms = t.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/);
+    if (hms) start = Number(hms[1] ?? 0) * 3600 + Number(hms[2] ?? 0) * 60 + Number(hms[3] ?? 0);
+  }
+  return { id, start: Number.isFinite(start) && start > 0 ? Math.min(start, 86_400) : 0 };
 }

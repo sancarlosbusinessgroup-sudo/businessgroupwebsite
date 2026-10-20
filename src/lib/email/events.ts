@@ -215,3 +215,18 @@ export async function syncNewsletterList(): Promise<{ synced: number; failed: nu
   }
   return { synced, failed, skipped: false };
 }
+
+/** Admin "Invite to apply": email a guest the link to the membership application form (at most once a day). */
+export async function sendApplyInvite(guestId: string, day: string): Promise<'sent' | 'skipped' | 'failed' | 'duplicate' | 'not_found'> {
+  const db = createAdminClient();
+  if (!db) return 'skipped';
+  const { data: g } = await db.from('guest_requests').select('id, first_name, last_name, email').eq('id', guestId).maybeSingle();
+  if (!g) return 'not_found';
+  const link = `${siteUrl()}/join?invite=${g.id}`;
+  return deliver({
+    kind: 'apply_invite',
+    dedupeKey: `${g.id}:${day}`,
+    to: { email: g.email, name: `${g.first_name} ${g.last_name}` },
+    email: T.applyInviteEmail({ siteUrl: siteUrl(), firstName: g.first_name, link }),
+  });
+}

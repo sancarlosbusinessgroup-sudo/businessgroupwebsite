@@ -11,13 +11,25 @@ import { getCategorySeats, getLeadership, getMeetingBySlug, getUpcomingMeetings,
 
 export type SpeakerCard = Speaker & { avatar_path: string | null };
 
+export type SlideMedia = {
+  id: string;
+  kind: 'image' | 'pdf' | 'youtube';
+  title: string | null;
+  url: string | null;
+  youtubeId: string | null;
+  start: number;
+  pageCount: number;
+  afterSlide: string;
+};
+
 export type DeckData = {
   meeting: MeetingWithSpeakers;
   number: number;
   slides: SlideKey[];
   notes: SlideNotes;
   saved: boolean;
-  leadership: { name: string; role: string }[];
+  leadership: { id: string; name: string; role: string; photo: string | null }[];
+  media: SlideMedia[];
   openCategories: string[];
   newMembers: { first_name: string; last_name: string; business_name: string }[];
   visitors: { display_name: string; business_name: string | null; invited_by: string | null }[];
@@ -40,7 +52,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
   const supabase = await createClient();
   const start = meeting.starts_at;
 
-  const [settingsRes, prevRes, countRes, nextRes] = await Promise.all([
+  const [settingsRes, prevRes, countRes, nextRes, mediaRes] = await Promise.all([
     supabase.from('meeting_slide_settings').select('slides, notes').eq('meeting_id', meeting.id).maybeSingle(),
     supabase
       .from('meetings')
@@ -60,6 +72,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
       .order('starts_at')
       .limit(1)
       .maybeSingle(),
+    supabase.from('meeting_slide_media').select('*').eq('meeting_id', meeting.id).order('sort').order('created_at'),
   ]);
   if (settingsRes.error || prevRes.error || countRes.error || nextRes.error) fail('the slides', settingsRes.error ?? prevRes.error ?? countRes.error);
 
@@ -107,13 +120,33 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     .slice(0, 6);
   const next = nextRes.data as MeetingWithSpeakers | null;
 
+  // Uploaded slide files are private: give the deck short-lived signed links (a meeting fits in 3 hours).
+  const mediaRows = mediaRes.error ? [] : (mediaRes.data ?? []);
+  const paths = mediaRows.map((m) => m.storage_path).filter((p): p is string => !!p);
+  const signed = new Map<string, string>();
+  if (paths.length) {
+    const { data } = await supabase.storage.from('slide-media').createSignedUrls(paths, 3 * 3600);
+    for (const d of data ?? []) if (d.path && d.signedUrl) signed.set(d.path, d.signedUrl);
+  }
+  const media: SlideMedia[] = mediaRows.map((m) => ({
+    id: m.id,
+    kind: m.kind,
+    title: m.title,
+    url: m.storage_path ? (signed.get(m.storage_path) ?? null) : null,
+    youtubeId: m.youtube_id,
+    start: m.start_seconds,
+    pageCount: m.page_count ?? 1,
+    afterSlide: m.after_slide,
+  }));
+
   return {
     meeting,
     number: countRes.count ?? 1,
     slides: resolveSlides(settingsRes.data?.slides),
     notes: resolveNotes(settingsRes.data?.notes),
     saved: !!settingsRes.data,
-    leadership: leadership.map((l) => ({ name: l.name, role: l.role })),
+    leadership: leadership.map((l) => ({ id: l.id, name: l.name, role: l.role, photo: l.photo_path ?? l.profile?.avatar_path ?? null })),
+    media,
     openCategories: seats.filter((c) => c.open && c.name !== 'Other').map((c) => c.name),
     newMembers: newRes.data,
     visitors: visitorsRes.data ?? [],

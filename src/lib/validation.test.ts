@@ -91,8 +91,8 @@ describe('joinSchema', () => {
       credentials: 'BFA, Graphic Design',
       networking_groups: 'Chamber of Commerce',
       references: [
-        { name: 'Lee Client', business: 'Client Co', email: 'lee@example.org', phone: null, website: null },
-        { name: 'Sam Partner', business: 'Partner LLC', email: null, phone: '(650) 555-0199', website: 'https://partner.example.org' },
+        { name: 'Lee Client', business: 'Client Co', business_name: null, email: 'lee@example.org', phone: null, website: null },
+        { name: 'Sam Partner', business: 'Partner LLC', business_name: null, email: null, phone: '(650) 555-0199', website: 'https://partner.example.org' },
       ],
       signature_name: 'Ada Park',
     });
@@ -249,8 +249,8 @@ describe('phase B forms', () => {
     });
   });
   it('slide settings: shown slides in the chosen order, at least one', () => {
-    const r = slideSettingsSchema.safeParse({ show_welcome: 'on', order_welcome: '2', show_closing: 'on', order_closing: '1', order_phones: '3' });
-    expect(r.success && r.data).toEqual(['closing', 'welcome']);
+    const r = slideSettingsSchema.safeParse({ show_welcome: 'on', order_welcome: '2', show_adjourn: 'on', order_adjourn: '1', order_call_to_order: '3' });
+    expect(r.success && r.data).toEqual(['adjourn', 'welcome']);
     expect(slideSettingsSchema.safeParse({ order_welcome: '1' }).success).toBe(false);
   });
 
@@ -268,10 +268,10 @@ describe('phase B forms', () => {
     expect(schema.safeParse({ inviteeId, message: 'x'.repeat(501) }).success).toBe(false);
   });
   it('extra slide text: trimmed per slide, empty ones dropped, 600 characters at most', () => {
-    const r = slideNotesSchema.safeParse({ note_welcome: '  Happy Thanksgiving!  ', note_events: '', note_bogus: 'x', show_welcome: 'on' });
+    const r = slideNotesSchema.safeParse({ note_welcome: '  Happy Thanksgiving!  ', note_announcements: '', note_bogus: 'x', show_welcome: 'on' });
     expect(r.success && r.data).toEqual({ welcome: 'Happy Thanksgiving!' });
-    const long = slideNotesSchema.safeParse({ note_closing: 'x'.repeat(601) });
+    const long = slideNotesSchema.safeParse({ note_adjourn: 'x'.repeat(601) });
     expect(long.success).toBe(false);
-    expect(fieldErrors(long.error!).note_closing).toMatch(/600 characters/);
+    expect(fieldErrors(long.error!).note_adjourn).toMatch(/600 characters/);
   });
 });

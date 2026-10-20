@@ -372,6 +372,50 @@ export type Database = {
           { foreignKeyName: 'member_events_host_id_fkey'; columns: ['host_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
         ];
       };
+      meeting_slide_media: {
+        Row: {
+          id: string;
+          meeting_id: string;
+          kind: 'image' | 'pdf' | 'youtube';
+          title: string | null;
+          storage_path: string | null;
+          youtube_id: string | null;
+          start_seconds: number;
+          page_count: number | null;
+          after_slide: string;
+          sort: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          meeting_id: string;
+          kind: 'image' | 'pdf' | 'youtube';
+          title?: string | null;
+          storage_path?: string | null;
+          youtube_id?: string | null;
+          start_seconds?: number;
+          page_count?: number | null;
+          after_slide: string;
+          sort?: number;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          title?: string | null;
+          after_slide?: string;
+          sort?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'meeting_slide_media_meeting_id_fkey';
+            columns: ['meeting_id'];
+            isOneToOne: false;
+            referencedRelation: 'meetings';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       meeting_slide_settings: {
         Row: { meeting_id: string; slides: string[]; notes: Json; updated_at: string };
         Insert: { meeting_id: string; slides: string[]; notes?: Json; updated_at?: string };

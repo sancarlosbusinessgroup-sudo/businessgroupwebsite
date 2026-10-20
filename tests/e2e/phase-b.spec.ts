@@ -112,7 +112,7 @@ test.describe('meeting slides', () => {
 
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByText(/^Slide 2 of/)).toBeVisible();
-    await expect(deck.getByRole('heading', { name: 'Open Networking' })).toBeVisible();
+    await expect(deck.getByRole('heading', { name: 'Today’s agenda' })).toBeVisible();
     await page.keyboard.press('ArrowLeft');
     await expect(deck.getByText(/^Slide 1 of/)).toBeVisible();
     await page.keyboard.press('PageDown'); // presentation clickers send PageDown / PageUp
@@ -121,12 +121,12 @@ test.describe('meeting slides', () => {
     await page.keyboard.press('End');
     await expect(deck.getByRole('heading', { name: /Thank you/ })).toBeVisible();
     await deck.getByRole('button', { name: 'Previous slide' }).click();
-    await expect(deck.getByRole('heading', { name: /Upcoming events/ })).toBeVisible();
+    await expect(deck.getByRole('heading', { name: /Thank you for visiting/ })).toBeVisible();
 
     // Jump to the 5-minute presentation slide
     await page.keyboard.press('Home');
-    for (let i = 0; i < 16; i++) {
-      if (await deck.getByRole('heading', { name: '5-Minute Member Education' }).isVisible()) break;
+    for (let i = 0; i < 20; i++) {
+      if (await deck.getByRole('heading', { name: 'Member education' }).isVisible()) break;
       await page.keyboard.press('ArrowRight');
     }
     await expect(deck.getByText('Nathan Pryor')).toBeVisible();
@@ -142,8 +142,8 @@ test.describe('meeting slides', () => {
     await deck.getByRole('link', { name: 'Customize slides' }).click();
     await expect(page.getByRole('heading', { level: 1, name: /Slides for/ })).toBeVisible();
     await expectAccessible(page);
-    await page.getByLabel('Show “Please silence your phones”').uncheck();
-    await page.getByLabel('Position of “Thank you & next meeting”').fill('0');
+    await page.getByLabel('Show “8:30 · Meeting called to order”').uncheck();
+    await page.getByLabel('Position of “9:30 · Adjourn”').fill('0');
     await page.getByRole('button', { name: 'Save slides' }).click();
     await expect(page.getByText('Slides saved.')).toBeVisible();
 

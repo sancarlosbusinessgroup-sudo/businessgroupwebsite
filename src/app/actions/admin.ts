@@ -5,7 +5,8 @@ import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { onMemberStatus, syncNewsletterList } from '@/lib/email/events';
+import { onMemberStatus, sendApplyInvite, syncNewsletterList } from '@/lib/email/events';
+import { localDateKey } from '@/lib/dates';
 import { safely } from '@/lib/email/notify';
 import { type ActionState, fieldErrors, formToObject, leadershipSchema, seatLimitSchema } from '@/lib/validation';
 
@@ -142,4 +143,19 @@ export async function syncNewsletter(): Promise<ActionState> {
   } catch {
     return { status: 'error', message: GENERIC };
   }
+}
+
+/** Email a guest the link to the membership application form. */
+export async function inviteToApply(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const id = z.uuid().safeParse(formData.get('id'));
+  if (!id.success) return { status: 'error', message: GENERIC };
+  const supabase = await createClient();
+  const { data: isAdmin } = await supabase.rpc('is_admin');
+  if (!isAdmin) return { status: 'error', message: 'Admins only.' };
+  const r = await sendApplyInvite(id.data, localDateKey(new Date()));
+  revalidatePath('/admin');
+  if (r === 'sent') return { status: 'success', message: 'Invite sent.' };
+  if (r === 'duplicate') return { status: 'success', message: 'Already sent today.' };
+  if (r === 'skipped') return { status: 'error', message: 'Email is not set up yet.' };
+  return { status: 'error', message: 'Could not send. Try again.' };
 }

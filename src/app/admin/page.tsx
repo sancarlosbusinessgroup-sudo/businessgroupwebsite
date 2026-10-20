@@ -8,6 +8,7 @@ import { formatMeetingDate, formatMeetingTime, formatShortDate } from '@/lib/dat
 import { MeetingCancelForm } from './MeetingCancelForm';
 import { createClient } from '@/lib/supabase/server';
 import { resolveCorrection, setGuestStatus, setMemberStatus } from '../actions/admin';
+import { InviteToApplyButton } from './InviteToApplyButton';
 import { NewsletterSyncForm } from './NewsletterSyncForm';
 import { SeatForm } from './SeatForm';
 
@@ -22,7 +23,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { error } = await searchParams;
   await requireAdmin();
   const supabase = await createClient();
-  const [pendingRes, guestsRes, corrRes, seats, downloadsRes, schedule, onboardRes, mailRes] = await Promise.all([
+  const [pendingRes, guestsRes, corrRes, seats, downloadsRes, schedule, onboardRes, mailRes, invitesRes] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -53,7 +54,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       .order('invited_at', { ascending: false })
       .limit(30),
     supabase.from('email_log').select('id, kind, recipient, subject, status, error, created_at').order('created_at', { ascending: false }).limit(25),
+    supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'apply_invite').eq('status', 'sent').order('created_at').limit(500),
   ]);
+  const invitedOn = new Map((invitesRes.data ?? []).map((r) => [r.dedupe_key.split(':')[0], formatShortDate(new Date(r.created_at))]));
   if (pendingRes.error || guestsRes.error || corrRes.error || downloadsRes.error) throw new Error('Could not load admin data');
 
   return (
@@ -78,6 +81,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 const refs = (app?.references ?? []) as {
                   name?: string;
                   business?: string | null;
+                  business_name?: string | null;
                   email?: string | null;
                   phone?: string | null;
                   website?: string | null;
@@ -122,6 +126,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                                   <li key={i}>
                                     <strong>{r.name}</strong>
                                     {r.business ? ` · ${r.business}` : ''}
+                                    {r.business_name ? ` · ${r.business_name}` : ''}
                                     {r.email ? (
                                       <>
                                         {' · '}
@@ -173,6 +178,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <h2 id="gr-h" className="font-display m-0 text-[22px] font-extrabold">
             Guest invite requests
           </h2>
+          <p className="text-ink-muted m-0 text-sm">
+            After a guest has visited and the leadership team agrees, use <strong>Invite to apply</strong> to email them the membership application form,
+            already filled in with their name and email.
+          </p>
           {guestsRes.data.length === 0 ? (
             <EmptyState title="No guest requests yet" />
           ) : (
@@ -186,6 +195,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     <th scope="col">Invited by</th>
                     <th scope="col">Requested</th>
                     <th scope="col">Status</th>
+                    <th scope="col">Application</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -217,6 +227,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                           </form>
                         ) : (
                           <Pill tone={g.status === 'joined' ? 'green' : 'teal'}>{guestStatusLabels[g.status]}</Pill>
+                        )}
+                      </td>
+                      <td>
+                        {g.status === 'requested' || g.status === 'visited' ? (
+                          <InviteToApplyButton id={g.id} name={`${g.first_name} ${g.last_name}`} sentOn={invitedOn.get(g.id) ?? null} />
+                        ) : (
+                          '—'
                         )}
                       </td>
                     </tr>

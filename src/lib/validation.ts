@@ -113,17 +113,19 @@ export const joinSchema = z
     networkingGroups: optionalText(500, 'Networking groups'),
     ref1Name: text(120, 'Reference name'),
     ref1Business: optionalText(120, 'Reference business'),
+    ref1BusinessName: optionalText(120, 'Reference business name'),
     ref1Email: refEmail,
     ref1Phone: phone,
     ref1Website: website,
     ref2Name: text(120, 'Reference name'),
     ref2Business: optionalText(120, 'Reference business'),
+    ref2BusinessName: optionalText(120, 'Reference business name'),
     ref2Email: refEmail,
     ref2Phone: phone,
     ref2Website: website,
     referralCode,
     guestMeetings: z.enum(['0', '1', '2'], { error: 'Choose how many meetings you attended' }),
-    agree: mustCheck('Please agree to the terms'),
+    agree: mustCheck('Please agree to the terms to sign'),
     signature: z
       .string({ error: 'Type your full name as your signature' })
       .trim()
@@ -148,6 +150,7 @@ export const joinSchema = z
       references: ([1, 2] as const).map((n) => ({
         name: v[`ref${n}Name`],
         business: v[`ref${n}Business`] ?? null,
+        business_name: v[`ref${n}BusinessName`] ?? null,
         email: v[`ref${n}Email`] ?? null,
         phone: v[`ref${n}Phone`] ?? null,
         website: v[`ref${n}Website`] ?? null,

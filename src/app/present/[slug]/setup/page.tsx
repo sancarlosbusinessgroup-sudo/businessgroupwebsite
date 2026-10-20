@@ -4,8 +4,9 @@ import { notFound } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth';
 import { getMeetingBySlug } from '@/lib/data/public';
 import { formatMeetingDate } from '@/lib/dates';
-import { DEFAULT_SLIDES, resolveNotes, resolveSlides, slideLabel } from '@/lib/slides';
+import { DEFAULT_SLIDES, resolveNotes, resolveSlides, slideLabel, slideTime } from '@/lib/slides';
 import { createClient } from '@/lib/supabase/server';
+import { SlideMediaManager } from './SlideMediaManager';
 import { SlideSettingsForm } from './SlideSettingsForm';
 
 export const metadata: Metadata = { title: 'Customize slides', robots: { index: false } };
@@ -16,11 +17,16 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
   const meeting = await getMeetingBySlug(slug);
   if (!meeting) notFound();
   const supabase = await createClient();
-  const { data } = await supabase.from('meeting_slide_settings').select('slides, notes').eq('meeting_id', meeting.id).maybeSingle();
+  const [{ data }, mediaRes] = await Promise.all([
+    supabase.from('meeting_slide_settings').select('slides, notes').eq('meeting_id', meeting.id).maybeSingle(),
+    supabase.from('meeting_slide_media').select('id, kind, title, after_slide, page_count').eq('meeting_id', meeting.id).order('sort').order('created_at'),
+  ]);
+  const media = (mediaRes.data ?? []).map((m) => ({ id: m.id, kind: m.kind, title: m.title, afterSlide: m.after_slide, pageCount: m.page_count }));
+  const options = DEFAULT_SLIDES.map((k) => ({ key: k, label: `${slideTime(k) ? `${slideTime(k)} · ` : ''}${slideLabel(k)}` }));
   const shown = resolveSlides(data?.slides);
   const hidden = DEFAULT_SLIDES.filter((k) => !shown.includes(k));
   const notes = resolveNotes(data?.notes);
-  const rows = [...shown, ...hidden].map((k, n) => ({ key: k, label: slideLabel(k), shown: shown.includes(k), position: n + 1, note: notes[k] ?? '' }));
+  const rows = [...shown, ...hidden].map((k, n) => ({ key: k, label: `${slideTime(k) ? `${slideTime(k)} · ` : ''}${slideLabel(k)}`, shown: shown.includes(k), position: n + 1, note: notes[k] ?? '' }));
 
   return (
     <div className="bg-canvas">
@@ -35,6 +41,7 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
           </p>
         </div>
         <SlideSettingsForm meetingId={meeting.id} rows={rows} deckHref={`/present/${slug}`} />
+        <SlideMediaManager meetingId={meeting.id} options={options} media={media} />
       </div>
     </div>
   );

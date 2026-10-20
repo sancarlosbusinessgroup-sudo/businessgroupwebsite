@@ -15,7 +15,7 @@ test.describe('sign up → admin approval → member access', () => {
     await expect(page.getByText('Please agree to the terms')).toBeVisible();
     await expect(page.getByLabel('First name')).toBeFocused();
 
-    const you = page.getByRole('group', { name: 'About you and your business' });
+    const you = page.getByRole('group', { name: 'Business information' });
     await you.getByLabel('First name').fill('Jamie');
     await you.getByLabel('Last name').fill('Applicant');
     await you.getByLabel('Email').fill(email);
@@ -34,8 +34,8 @@ test.describe('sign up → admin approval → member access', () => {
       ['2', 'Sam Partner', 'Partner LLC', { Phone: '(650) 555-0199' }],
     ] as const) {
       const ref = page.getByRole('group', { name: `Business reference ${n}` });
-      await ref.getByLabel('Name').fill(name);
-      await ref.getByLabel('Business').fill(biz);
+      await ref.getByLabel(/^Name/).fill(name);
+      await ref.getByLabel('Business', { exact: true }).fill(biz);
       for (const [label, value] of Object.entries(contact)) await ref.getByLabel(label).fill(value);
     }
     await expect(page.getByLabel('Referral code')).toHaveValue('AVER-001');
@@ -95,7 +95,7 @@ test.describe('sign up → admin approval → member access', () => {
 
   test('the same email cannot sign up twice', async ({ page }) => {
     await page.goto('/join');
-    const you = page.getByRole('group', { name: 'About you and your business' });
+    const you = page.getByRole('group', { name: 'Business information' });
     await you.getByLabel('First name').fill('Dup');
     await you.getByLabel('Last name').fill('Licate');
     await you.getByLabel('Email').fill(users.member);
@@ -107,7 +107,7 @@ test.describe('sign up → admin approval → member access', () => {
     await you.getByLabel('Describe your product or service').fill('Duplicates.');
     for (const n of ['1', '2']) {
       const ref = page.getByRole('group', { name: `Business reference ${n}` });
-      await ref.getByLabel('Name').fill(`Ref ${n}`);
+      await ref.getByLabel(/^Name/).fill(`Ref ${n}`);
       await ref.getByLabel('Email').fill(`ref${n}@example.org`);
     }
     await page.getByLabel('Meetings attended as a guest').selectOption('0');
