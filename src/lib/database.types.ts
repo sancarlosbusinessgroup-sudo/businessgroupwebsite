@@ -92,6 +92,77 @@ export type Database = {
           },
         ];
       };
+      email_log: {
+        Row: {
+          created_at: string;
+          dedupe_key: string;
+          error: string | null;
+          id: number;
+          kind: string;
+          profile_id: string | null;
+          recipient: string;
+          status: 'sent' | 'skipped' | 'failed';
+          subject: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          dedupe_key: string;
+          error?: string | null;
+          id?: never;
+          kind: string;
+          profile_id?: string | null;
+          recipient: string;
+          status?: 'sent' | 'skipped' | 'failed';
+          subject?: string | null;
+        };
+        Update: {
+          error?: string | null;
+          status?: 'sent' | 'skipped' | 'failed';
+          subject?: string | null;
+        };
+        Relationships: [];
+      };
+      email_preferences: {
+        Row: { prefs: Json; profile_id: string; updated_at: string };
+        Insert: { prefs?: Json; profile_id: string; updated_at?: string };
+        Update: { prefs?: Json; profile_id?: string; updated_at?: string };
+        Relationships: [];
+      };
+      member_onboarding: {
+        Row: {
+          agreed_commitments: boolean;
+          completed_at: string | null;
+          invited_at: string;
+          profile_id: string;
+          reminded_at: string | null;
+          share_contacts: boolean;
+        };
+        Insert: {
+          agreed_commitments?: boolean;
+          completed_at?: string | null;
+          invited_at?: string;
+          profile_id: string;
+          reminded_at?: string | null;
+          share_contacts?: boolean;
+        };
+        Update: {
+          agreed_commitments?: boolean;
+          completed_at?: string | null;
+          invited_at?: string;
+          profile_id?: string;
+          reminded_at?: string | null;
+          share_contacts?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'member_onboarding_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: true;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       gallery_photos: {
         Row: {
           album: E['gallery_album'];
@@ -760,6 +831,7 @@ export type Database = {
       respond_one_on_one_request: { Args: { p_id: string; p_status: string }; Returns: undefined };
       admin_member_stats: { Args: { p_from?: string | null; p_to?: string | null }; Returns: MemberPeriodStats[] };
       confirm_one_on_one: { Args: { p_id: string }; Returns: undefined };
+      complete_onboarding: { Args: { p_share_contacts: boolean; p_agreed: boolean }; Returns: undefined };
       group_totals: { Args: { p_from?: string | null; p_to?: string | null }; Returns: Json };
       is_admin: { Args: never; Returns: boolean };
       is_approved_member: { Args: never; Returns: boolean };

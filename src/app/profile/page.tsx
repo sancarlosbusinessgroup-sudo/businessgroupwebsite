@@ -8,6 +8,8 @@ import { formatShortDate } from '@/lib/dates';
 import { getViewer } from '@/lib/auth';
 import { getCategories } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
+import { prefKeys, prefOn } from '@/lib/email/prefs';
+import { EmailPrefsForm } from './EmailPrefsForm';
 import { MediaUpload } from './MediaUpload';
 import { ProfileForm } from './ProfileForm';
 
@@ -23,11 +25,13 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   const editing = tab === 'edit' || !approved;
 
   const supabase = await createClient();
-  const [categories, contactRes, catRes] = await Promise.all([
+  const [categories, contactRes, catRes, prefsRes] = await Promise.all([
     getCategories(),
     supabase.from('member_contacts').select('email, phone').eq('profile_id', p.id).maybeSingle(),
     p.category_id ? supabase.from('categories').select('name').eq('id', p.category_id).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from('email_preferences').select('prefs').eq('profile_id', p.id).maybeSingle(),
   ]);
+  const prefs = Object.fromEntries(prefKeys.map((k) => [k, prefOn(prefsRes.data?.prefs, k)])) as Record<(typeof prefKeys)[number], boolean>;
   const tabCls = (on: boolean) =>
     `flex min-h-11 items-center rounded-full px-5 font-display text-sm font-bold no-underline ${on ? 'bg-surface text-heading' : 'text-ink-muted'}`;
 
@@ -83,6 +87,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
                 showPhonePublic: p.show_phone_public,
               }}
             />
+            {approved ? <EmailPrefsForm on={prefs} isAdmin={p.role === 'admin'} /> : null}
           </>
         ) : (
           <ProfileView

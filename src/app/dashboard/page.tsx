@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { InviteCard } from '@/components/InviteCard';
 import { Leaderboard } from '@/components/Leaderboard';
 import { NextMeetingCard } from '@/components/meetings';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, Notice } from '@/components/ui';
 import { WeeklyAskForm } from '@/components/WeeklyAskForm';
 import { requireMember } from '@/lib/auth';
 import { getNextMeeting } from '@/lib/data/public';
@@ -11,25 +11,29 @@ import { getGroupTotals, getLeaderboard, getMyGuests, getOneOnOnes, getPendingCo
 import { formatLongToday, formatMoney, formatShortDate } from '@/lib/dates';
 import { env } from '@/lib/env';
 import { isPeriod, periodRange, type Period } from '@/lib/periods';
+import { createClient } from '@/lib/supabase/server';
 import { confirmOneOnOne } from '../actions/member';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
 const LB_PERIODS: Period[] = ['month', 'quarter', 'year', 'all'];
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ lb?: string }> }) {
-  const { lb } = await searchParams;
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ lb?: string; welcome?: string }> }) {
+  const { lb, welcome } = await searchParams;
   const viewer = await requireMember('/dashboard');
   const me = viewer.profile;
   const lbPeriod: Period = isPeriod(lb) && LB_PERIODS.includes(lb) ? lb : 'month';
-  const [next, totals, leaders, pending, recent, guests] = await Promise.all([
+  const supabase = await createClient();
+  const [next, totals, leaders, pending, recent, guests, onboarding] = await Promise.all([
     getNextMeeting(),
     getGroupTotals(periodRange({ period: 'month' })),
     getLeaderboard(periodRange({ period: lbPeriod })),
     getPendingConfirmations(me.id),
     getOneOnOnes({ days: 30, limit: 3 }),
     getMyGuests(me.id, 4),
+    supabase.from('member_onboarding').select('completed_at').eq('profile_id', me.id).maybeSingle(),
   ]);
+  const needsOnboarding = !!onboarding.data && !onboarding.data.completed_at;
   const hour = Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Los_Angeles' }).format(new Date()));
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
@@ -52,6 +56,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </Link>
           </div>
         </div>
+
+        {welcome ? <Notice tone="success">Thanks, {me.first_name}! Your onboarding is complete. Welcome to the group.</Notice> : null}
+        {needsOnboarding ? (
+          <Notice tone="info">
+            Welcome aboard! Please <Link href="/onboarding">complete your onboarding</Link> so members know who to refer to you.
+          </Notice>
+        ) : null}
 
         <div className="flex flex-wrap gap-5">
           <div className="min-w-0 flex-[3_1_520px]">

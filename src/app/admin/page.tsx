@@ -8,6 +8,7 @@ import { formatMeetingDate, formatMeetingTime, formatShortDate } from '@/lib/dat
 import { MeetingCancelForm } from './MeetingCancelForm';
 import { createClient } from '@/lib/supabase/server';
 import { resolveCorrection, setGuestStatus, setMemberStatus } from '../actions/admin';
+import { NewsletterSyncForm } from './NewsletterSyncForm';
 import { SeatForm } from './SeatForm';
 
 export const metadata: Metadata = { title: 'Admin' };
@@ -21,7 +22,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { error } = await searchParams;
   await requireAdmin();
   const supabase = await createClient();
-  const [pendingRes, guestsRes, corrRes, seats, downloadsRes, schedule] = await Promise.all([
+  const [pendingRes, guestsRes, corrRes, seats, downloadsRes, schedule, onboardRes, mailRes] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -46,6 +47,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       .order('created_at', { ascending: false })
       .limit(20),
     getUpcomingMeetings(10),
+    supabase
+      .from('member_onboarding')
+      .select('profile_id, invited_at, reminded_at, completed_at, profile:profiles(first_name, last_name)')
+      .order('invited_at', { ascending: false })
+      .limit(30),
+    supabase.from('email_log').select('id, kind, recipient, subject, status, error, created_at').order('created_at', { ascending: false }).limit(25),
   ]);
   if (pendingRes.error || guestsRes.error || corrRes.error || downloadsRes.error) throw new Error('Could not load admin data');
 
@@ -288,6 +295,83 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               </li>
             ))}
           </ul>
+        </section>
+
+        <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="ob-h">
+          <h2 id="ob-h" className="font-display m-0 text-[22px] font-extrabold">
+            Onboarding &amp; email
+          </h2>
+          <p className="text-ink-muted m-0 text-sm">
+            Approved members get a welcome email with the onboarding form, and a reminder after 3 days if they haven&apos;t finished it. The newsletter list in Brevo is
+            updated on approval; use the button to re-sync everyone.
+          </p>
+          <NewsletterSyncForm />
+          <h3 className="h3 mt-2 mb-0">Onboarding</h3>
+          {(onboardRes.data ?? []).length === 0 ? (
+            <EmptyState title="No one is onboarding yet" />
+          ) : (
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Onboarding table">
+              <table className="data-table">
+                <caption className="sr-only">Members approved since email was set up, and whether they finished onboarding</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Member</th>
+                    <th scope="col">Approved</th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(onboardRes.data ?? []).map((o) => (
+                    <tr key={o.profile_id}>
+                      <td>
+                        {o.profile?.first_name} {o.profile?.last_name}
+                      </td>
+                      <td>{formatShortDate(new Date(o.invited_at))}</td>
+                      <td>
+                        {o.completed_at ? (
+                          <Pill tone="green">Done {formatShortDate(new Date(o.completed_at))}</Pill>
+                        ) : o.reminded_at ? (
+                          <Pill tone="amber">Reminded</Pill>
+                        ) : (
+                          <Pill tone="gray">Not yet</Pill>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <h3 className="h3 mt-2 mb-0">Recent emails</h3>
+          {(mailRes.data ?? []).length === 0 ? (
+            <EmptyState title="No emails sent yet" />
+          ) : (
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Recent emails table">
+              <table className="data-table">
+                <caption className="sr-only">The last 25 emails the site sent</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">When</th>
+                    <th scope="col">To</th>
+                    <th scope="col">Subject</th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(mailRes.data ?? []).map((m) => (
+                    <tr key={m.id}>
+                      <td>{formatShortDate(new Date(m.created_at))}</td>
+                      <td>{m.recipient}</td>
+                      <td>{m.subject}</td>
+                      <td title={m.error ?? undefined}>
+                        <Pill tone={m.status === 'sent' ? 'green' : m.status === 'failed' ? 'red' : 'gray'}>{m.status === 'sent' ? 'Sent' : m.status === 'failed' ? 'Failed' : 'Not sent'}</Pill>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="dl-h">

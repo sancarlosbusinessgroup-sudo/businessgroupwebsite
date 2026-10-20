@@ -58,6 +58,8 @@ fi
 # Mail sink and auth server
 pkill -f "scripts/local-stack/smtp-sink.mjs" 2>/dev/null || true
 setsid nohup node "$ROOT/scripts/local-stack/smtp-sink.mjs" >"$LOGS/smtp.log" 2>&1 </dev/null &
+pkill -f "scripts/local-stack/brevo-mock.mjs" 2>/dev/null || true
+setsid nohup node "$ROOT/scripts/local-stack/brevo-mock.mjs" >"$LOGS/brevo.log" 2>&1 </dev/null &
 
 export GOTRUE_API_HOST=127.0.0.1 PORT=54323 API_EXTERNAL_URL="http://127.0.0.1:54321/auth/v1"
 export GOTRUE_DB_DRIVER=postgres DB_NAMESPACE=auth
@@ -66,7 +68,7 @@ export GOTRUE_SITE_URL="${SITE_URL:-http://localhost:3000}" GOTRUE_URI_ALLOW_LIS
 export GOTRUE_JWT_SECRET="$JWT_SECRET" GOTRUE_JWT_EXP=3600 GOTRUE_JWT_AUD=authenticated
 export GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated GOTRUE_JWT_ADMIN_ROLES=service_role
 export GOTRUE_DISABLE_SIGNUP=false GOTRUE_EXTERNAL_EMAIL_ENABLED=true GOTRUE_MAILER_AUTOCONFIRM=false
-export GOTRUE_SMTP_HOST=127.0.0.1 GOTRUE_SMTP_PORT=54325 GOTRUE_SMTP_ADMIN_EMAIL=no-reply@localhost GOTRUE_SMTP_SENDER_NAME="New Name"
+export GOTRUE_SMTP_HOST=127.0.0.1 GOTRUE_SMTP_PORT=54325 GOTRUE_SMTP_ADMIN_EMAIL=no-reply@localhost GOTRUE_SMTP_SENDER_NAME="Bay Area Referral Partners"
 export GOTRUE_SMTP_MAX_FREQUENCY=1s GOTRUE_RATE_LIMIT_EMAIL_SENT=10000 GOTRUE_RATE_LIMIT_OTP=10000 GOTRUE_RATE_LIMIT_VERIFY=10000 GOTRUE_RATE_LIMIT_TOKEN_REFRESH=10000
 export GOTRUE_MAILER_URLPATHS_INVITE=/auth/v1/verify GOTRUE_MAILER_URLPATHS_CONFIRMATION=/auth/v1/verify
 export GOTRUE_MAILER_URLPATHS_RECOVERY=/auth/v1/verify GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE=/auth/v1/verify

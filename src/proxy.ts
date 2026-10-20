@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from './lib/database.types';
 
-const MEMBER_PATHS = ['/dashboard', '/meetings', '/referrals', '/one-on-ones', '/profile', '/admin', '/pending', '/present', '/events/new'];
+const MEMBER_PATHS = ['/dashboard', '/meetings', '/referrals', '/one-on-ones', '/profile', '/admin', '/pending', '/present', '/events/new', '/onboarding'];
 
 /**
  * Refreshes the Supabase session cookie on every request and sends signed-out
@@ -43,5 +43,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|images/|seed/|.*\\.(?:png|jpg|jpeg|webp|svg|ico)$).*)'],
+  matcher: ['/((?!api/|_next/static|_next/image|favicon.ico|images/|seed/|.*\\.(?:png|jpg|jpeg|webp|svg|ico)$).*)'],
 };

@@ -63,7 +63,15 @@ export function UpdateReferralForm({ id, status, amount, label }: { id: string; 
     <form action={action} onSubmit={onSubmit} noValidate className="flex flex-wrap items-end gap-2" aria-label={`Update referral: ${label}`}>
       <input type="hidden" name="id" value={id} />
       <div className="w-44">
-        <SelectField name="status" id={`st-${id}`} label="Status" defaultValue={state.values?.status ?? status} error={errors.status}>
+        {/* key: a <select> keeps its first default when React resets the form after saving, so remount it with the saved value. */}
+        <SelectField
+          key={state.values?.status ?? status}
+          name="status"
+          id={`st-${id}`}
+          label="Status"
+          defaultValue={state.values?.status ?? status}
+          error={errors.status}
+        >
           {referralStatuses.map((s) => (
             <option key={s} value={s}>
               {referralStatusLabels[s]}

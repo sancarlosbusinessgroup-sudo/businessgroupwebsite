@@ -1,9 +1,13 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { onOneOnOneAnswered, onOneOnOneReported, onOneOnOneRequested, onReferralSent, onReferralUpdated } from '@/lib/email/events';
+import { safely } from '@/lib/email/notify';
+import { prefKeys } from '@/lib/email/prefs';
 import {
   type ActionState,
   correctionSchema,
@@ -119,7 +123,9 @@ export async function sendReferral(_prev: ActionState, formData: FormData): Prom
   if (!user) return { status: 'error', message: 'Please log in again.' };
   if (parsed.data.toId === user.id) return { status: 'error', errors: { toId: 'Choose another member' }, values };
   const d = parsed.data;
+  const referralId = crypto.randomUUID();
   const { error } = await supabase.from('referrals').insert({
+    id: referralId,
     from_id: user.id,
     to_id: d.toId,
     contact_name: d.contactName,
@@ -129,6 +135,7 @@ export async function sendReferral(_prev: ActionState, formData: FormData): Prom
     notes: d.notes ?? null,
   });
   if (error) return { status: 'error', message: GENERIC, values };
+  after(() => safely('referral sent', () => onReferralSent(referralId)));
   revalidatePath('/referrals');
   revalidatePath('/dashboard');
   return { status: 'success', message: 'Referral slip sent.' };
@@ -147,9 +154,12 @@ export async function updateReferral(_prev: ActionState, formData: FormData): Pr
     .eq('to_id', user.id)
     .select('id');
   if (error || !data?.length) return { status: 'error', message: 'Only the member who received a referral can update it.' };
+  const refId = parsed.data.id;
+  after(() => safely('referral updated', () => onReferralUpdated(refId)));
   revalidatePath('/referrals');
   revalidatePath('/dashboard');
-  return { status: 'success', message: 'Saved.' };
+  // Keep the saved values in the form (React resets forms after an action).
+  return { status: 'success', message: 'Saved.', values };
 }
 
 // --- One-on-ones ------------------------------------------------------------
@@ -167,6 +177,8 @@ export async function reportOneOnOne(_prev: ActionState, formData: FormData): Pr
     .select('id')
     .single();
   if (error || !data) return { status: 'error', message: GENERIC, values };
+  const oneId = data.id;
+  after(() => safely('one-on-one reported', () => onOneOnOneReported(oneId)));
   if (parsed.data.note) {
     await supabase.from('one_on_one_feedback').insert({ one_on_one_id: data.id, author_id: user.id, note: parsed.data.note });
   }
@@ -290,7 +302,9 @@ export async function requestOneOnOne(_prev: ActionState, formData: FormData): P
   const { supabase, user } = await session();
   if (!user) return { status: 'error', message: 'Please log in again.' };
   if (parsed.data.inviteeId === user.id) return { status: 'error', errors: { inviteeId: 'Choose another member' }, values };
+  const requestId = crypto.randomUUID();
   const { error } = await supabase.from('one_on_one_requests').insert({
+    id: requestId,
     requester_id: user.id,
     invitee_id: parsed.data.inviteeId,
     proposed_on: parsed.data.proposedOn ?? null,
@@ -304,6 +318,7 @@ export async function requestOneOnOne(_prev: ActionState, formData: FormData): P
         : GENERIC;
     return { status: 'error', message, values };
   }
+  after(() => safely('one-on-one request', () => onOneOnOneRequested(requestId)));
   revalidatePath('/one-on-ones');
   return { status: 'success', message: 'Request sent. They will see it on their One-on-ones page.' };
 }
@@ -314,6 +329,36 @@ export async function respondOneOnOneRequest(formData: FormData): Promise<void> 
   if (!id.success || !status.success) return;
   const { supabase, user } = await session();
   if (!user) return;
-  await supabase.rpc('respond_one_on_one_request', { p_id: id.data, p_status: status.data });
+  const { error } = await supabase.rpc('respond_one_on_one_request', { p_id: id.data, p_status: status.data });
+  const reqId = id.data;
+  if (!error) after(() => safely('one-on-one answer', () => onOneOnOneAnswered(reqId)));
   revalidatePath('/one-on-ones');
+}
+
+// --- Onboarding & email preferences -------------------------------------------
+
+export async function completeOnboarding(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const share = formData.get('shareContacts') === 'on';
+  const agreed = formData.get('agreed') === 'on';
+  const errors: Record<string, string> = {};
+  if (!share) errors.shareContacts = 'Please agree so members can reach you with referrals';
+  if (!agreed) errors.agreed = 'Please agree to the member commitments';
+  if (Object.keys(errors).length) return { status: 'error', message: 'Please tick both boxes to finish.', errors };
+  const { supabase, user } = await session();
+  if (!user) return { status: 'error', message: 'Please log in again.' };
+  const { error } = await supabase.rpc('complete_onboarding', { p_share_contacts: share, p_agreed: agreed });
+  if (error) return { status: 'error', message: GENERIC };
+  revalidatePath('/dashboard');
+  redirect('/dashboard?welcome=1');
+}
+
+export async function saveEmailPrefs(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { supabase, user } = await session();
+  if (!user) return { status: 'error', message: 'Please log in again.' };
+  const prefs: Record<string, boolean> = {};
+  for (const k of prefKeys) prefs[k] = formData.get(k) === 'on';
+  const { error } = await supabase.from('email_preferences').upsert({ profile_id: user.id, prefs }, { onConflict: 'profile_id' });
+  if (error) return { status: 'error', message: GENERIC };
+  revalidatePath('/profile');
+  return { status: 'success', message: 'Email settings saved.' };
 }

@@ -1,9 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { onMemberStatus, syncNewsletterList } from '@/lib/email/events';
+import { safely } from '@/lib/email/notify';
 import { type ActionState, fieldErrors, formToObject, leadershipSchema, seatLimitSchema } from '@/lib/validation';
 
 // Every write here is also restricted to admins by RLS (is_admin()).
@@ -20,6 +23,8 @@ export async function setMemberStatus(formData: FormData): Promise<void> {
   revalidatePath('/members');
   if (error && /category is full/.test(error.message)) redirect('/admin?error=category_full');
   if (error) redirect('/admin?error=save');
+  const [pid, st] = [id.data, status.data];
+  after(() => safely('member status', () => onMemberStatus(pid, st)));
 }
 
 export async function setGuestStatus(formData: FormData): Promise<void> {
@@ -123,4 +128,18 @@ export async function setMeetingCancelled(_prev: ActionState, formData: FormData
   if (error || !data?.length) return { status: 'error', message: GENERIC, values };
   for (const p of ['/admin', '/', '/group-meetings', '/meetings', '/dashboard']) revalidatePath(p);
   return { status: 'success', message: restoring ? 'Meeting restored.' : 'Meeting marked cancelled.' };
+}
+
+/** Push every approved member into the Brevo "Members" newsletter list. */
+export async function syncNewsletter(): Promise<ActionState> {
+  const supabase = await createClient();
+  const { data: isAdmin } = await supabase.rpc('is_admin');
+  if (!isAdmin) return { status: 'error', message: 'Admins only.' };
+  try {
+    const r = await syncNewsletterList();
+    if (r.skipped) return { status: 'error', message: 'Newsletter sync is not set up yet (Brevo key or list ID missing).' };
+    return { status: r.failed ? 'error' : 'success', message: `${r.synced} member${r.synced === 1 ? '' : 's'} synced to the Brevo list${r.failed ? `, ${r.failed} failed` : ''}.` };
+  } catch {
+    return { status: 'error', message: GENERIC };
+  }
 }

@@ -1,6 +1,9 @@
 'use server';
 
+import { after } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { onGuestRequest } from '@/lib/email/events';
+import { safely } from '@/lib/email/notify';
 import { type ActionState, fieldErrors, formToObject, guestRequestSchema } from '@/lib/validation';
 
 export async function submitGuestRequest(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -11,7 +14,9 @@ export async function submitGuestRequest(_prev: ActionState, formData: FormData)
   }
   const d = parsed.data;
   const supabase = await createClient();
+  const guestId = crypto.randomUUID();
   const { error } = await supabase.from('guest_requests').insert({
+    id: guestId,
     first_name: d.firstName,
     last_name: d.lastName,
     email: d.email,
@@ -28,5 +33,6 @@ export async function submitGuestRequest(_prev: ActionState, formData: FormData)
       values,
     };
   }
+  after(() => safely('guest request', () => onGuestRequest(guestId)));
   return { status: 'success', message: d.firstName };
 }
