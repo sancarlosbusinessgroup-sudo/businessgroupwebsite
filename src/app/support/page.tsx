@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import { Avatar, PageHero } from '@/components/ui';
 import { site, supportFaq, supportTeam, supportTopics } from '@/lib/content';
+import { tawkConfigFromEnv } from '@/lib/chat';
 import { SupportChatButton } from './SupportChatButton';
 
 export const metadata: Metadata = { title: 'Support' };
 
 export default function SupportPage() {
+  const chatEnabled = tawkConfigFromEnv() !== null;
   return (
     <>
       <PageHero
@@ -16,8 +18,13 @@ export default function SupportPage() {
         <div className="card flex min-w-0 flex-[1_1_320px] flex-col gap-3 p-6">
           <h2 className="font-display m-0 text-xl font-extrabold">Need a hand?</h2>
           <p className="text-ink-soft m-0 text-[15px]">Start a chat with the support team. We&apos;ll get back to you as soon as we can.</p>
+          {chatEnabled ? (
+            <p className="text-ink-muted m-0 text-sm">
+              You can also use the chat bubble in the corner of any page. If nobody is online, leave a message and we&apos;ll reply by email.
+            </p>
+          ) : null}
           <div>
-            <SupportChatButton />
+            <SupportChatButton chatEnabled={chatEnabled} />
           </div>
         </div>
       </PageHero>
@@ -78,7 +85,7 @@ export default function SupportPage() {
         </div>
         <div className="bg-teal-tint flex flex-wrap items-center justify-between gap-4 rounded-2xl p-6">
           <p className="text-heading m-0 font-semibold">Still stuck? Chat with the support team.</p>
-          <SupportChatButton />
+          <SupportChatButton chatEnabled={chatEnabled} />
         </div>
       </section>
     </>
