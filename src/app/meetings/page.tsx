@@ -8,10 +8,11 @@ import { getUpcomingMeetings } from '@/lib/data/public';
 import { formatDayMonth, formatMeetingDate, formatMeetingTime, formatShortDate, inCheckInWindow, nowMs } from '@/lib/dates';
 import { attendancePct } from '@/lib/stats';
 import { createClient } from '@/lib/supabase/server';
-import { joinMeeting, releaseSpeakerSlot, toggleRsvp } from '../actions/member';
+import { joinMeeting, releaseSpeakerSlot } from '../actions/member';
 import { ClaimSlotForm } from './ClaimSlotForm';
 import { slotDescriptions, slotShort, slotTitles } from '@/lib/content';
 import { CorrectionForm } from './CorrectionForm';
+import { RsvpSelect } from './RsvpSelect';
 
 export const metadata: Metadata = { title: 'Meetings & attendance' };
 
@@ -24,7 +25,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
 
   const [upcoming, rsvpRes, pastRes, attRes, spokeRes] = await Promise.all([
     getUpcomingMeetings(6),
-    supabase.from('rsvps').select('meeting_id').eq('profile_id', me.id),
+    supabase.from('rsvps').select('meeting_id, attending').eq('profile_id', me.id),
     supabase
       .from('meetings')
       .select('id, starts_at')
@@ -43,7 +44,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   ]);
   if (pastRes.error || attRes.error || rsvpRes.error) throw new Error('Could not load your meetings');
 
-  const going = new Set((rsvpRes.data ?? []).map((r) => r.meeting_id));
+  const rsvp = new Map((rsvpRes.data ?? []).map((r) => [r.meeting_id, r.attending ? ('yes' as const) : ('no' as const)]));
   const history = attendanceHistory(pastRes.data ?? [], attRes.data ?? []);
   const yearStart = `${new Date().getFullYear()}-01-01`;
   const thisYear = history.items.filter((i) => i.meeting.starts_at >= yearStart && i.status === 'present').length;
@@ -101,7 +102,6 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
               {upcoming.map((m) => {
                 const start = new Date(m.starts_at);
                 const d = formatDayMonth(start);
-                const isGoing = going.has(m.id);
                 const live = inCheckInWindow(start, new Date(m.ends_at), now);
                 const edu = speakerFor(m, 'education');
                 const main = speakerFor(m, 'presentation');
@@ -130,17 +130,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                       ) : null}
                     </div>
                     <div className={`flex flex-wrap items-center gap-2 ${cancelled ? 'hidden' : ''}`}>
-                      <form action={toggleRsvp}>
-                        <input type="hidden" name="meetingId" value={m.id} />
-                        <input type="hidden" name="going" value={String(isGoing)} />
-                        <button
-                          type="submit"
-                          aria-pressed={isGoing}
-                          className={`btn btn-sm ${isGoing ? 'border-green bg-green-tint text-green-ink' : 'border-line-strong text-heading'}`}
-                        >
-                          {isGoing ? '✓ Going' : 'RSVP'}
-                        </button>
-                      </form>
+                      <RsvpSelect meetingId={m.id} meetingLabel={`${m.title}, ${formatMeetingDate(start)}`} value={rsvp.get(m.id) ?? ''} />
                       {m.category === 'Networking'
                         ? (['education', 'presentation'] as const).map((slot) => {
                             const s = speakerFor(m, slot);

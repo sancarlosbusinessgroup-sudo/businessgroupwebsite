@@ -50,14 +50,18 @@ export async function joinMeeting(formData: FormData): Promise<void> {
   redirect(data);
 }
 
-export async function toggleRsvp(formData: FormData): Promise<void> {
+/** RSVP dropdown: "yes" = can attend, "no" = can't attend, "" = clear the answer. */
+export async function setRsvp(formData: FormData): Promise<void> {
   const id = uuid.safeParse(formData.get('meetingId'));
-  const going = formData.get('going') === 'true';
-  if (!id.success) return;
+  const answer = z.enum(['yes', 'no', '']).safeParse(formData.get('answer') ?? '');
+  if (!id.success || !answer.success) return;
   const { supabase, user } = await session();
   if (!user) return;
-  if (going) await supabase.from('rsvps').delete().eq('meeting_id', id.data).eq('profile_id', user.id);
-  else await supabase.from('rsvps').insert({ meeting_id: id.data, profile_id: user.id });
+  if (answer.data === '') await supabase.from('rsvps').delete().eq('meeting_id', id.data).eq('profile_id', user.id);
+  else
+    await supabase
+      .from('rsvps')
+      .upsert({ meeting_id: id.data, profile_id: user.id, attending: answer.data === 'yes' }, { onConflict: 'meeting_id,profile_id' });
   revalidatePath('/meetings');
   revalidatePath('/dashboard');
 }

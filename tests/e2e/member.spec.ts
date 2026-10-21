@@ -31,14 +31,24 @@ test.describe('member area', () => {
     await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Dashboard' })).toBeVisible();
   });
 
-  test('RSVP toggles and is saved', async ({ page }) => {
+  test("RSVP dropdown: can attend, can't attend, and back to no answer, saved each time", async ({ page }) => {
     await page.goto('/meetings');
-    const first = page.getByRole('button', { name: 'RSVP' }).first();
-    await first.click();
-    await expect(page.getByRole('button', { name: '✓ Going' }).first()).toBeVisible();
-    expect((await db('rsvps?select=meeting_id')).length).toBeGreaterThan(0);
-    await page.getByRole('button', { name: '✓ Going' }).first().click();
-    await expect(page.getByRole('button', { name: '✓ Going' })).toHaveCount(0);
+    const first = page.getByRole('combobox', { name: /^RSVP for / }).first();
+    await expect(first.locator('option')).toHaveText(['RSVP', 'Can attend', 'Can’t attend']);
+    await first.selectOption('yes');
+    await expect.poll(async () => (await db('rsvps?select=attending')).map((r) => r.attending)).toEqual([true]);
+    await page.reload();
+    await expect(page.getByRole('combobox', { name: /^RSVP for / }).first()).toHaveValue('yes');
+    await page
+      .getByRole('combobox', { name: /^RSVP for / })
+      .first()
+      .selectOption('no');
+    await expect.poll(async () => (await db('rsvps?select=attending')).map((r) => r.attending)).toEqual([false]);
+    await page
+      .getByRole('combobox', { name: /^RSVP for / })
+      .first()
+      .selectOption('');
+    await expect.poll(async () => (await db('rsvps?select=attending')).length).toBe(0);
   });
 
   test('claim a speaker slot with a topic, then release it', async ({ page }) => {

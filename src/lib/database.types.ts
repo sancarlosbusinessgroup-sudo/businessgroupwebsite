@@ -857,9 +857,9 @@ export type Database = {
         ];
       };
       rsvps: {
-        Row: { created_at: string; meeting_id: string; profile_id: string };
-        Insert: { created_at?: string; meeting_id: string; profile_id: string };
-        Update: { created_at?: string; meeting_id?: string; profile_id?: string };
+        Row: { attending: boolean; created_at: string; meeting_id: string; profile_id: string };
+        Insert: { attending?: boolean; created_at?: string; meeting_id: string; profile_id: string };
+        Update: { attending?: boolean; created_at?: string; meeting_id?: string; profile_id?: string };
         Relationships: [
           { foreignKeyName: 'rsvps_meeting_id_fkey'; columns: ['meeting_id']; isOneToOne: false; referencedRelation: 'meetings'; referencedColumns: ['id'] },
           { foreignKeyName: 'rsvps_profile_id_fkey'; columns: ['profile_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },

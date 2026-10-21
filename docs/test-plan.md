@@ -114,7 +114,7 @@ Tests tagged **@responsive** also run at 768px and 375px.
 | expired/invalid email link → login message                                                                                                  | R4 R6      | passing              |
 | 8 member pages render, no console errors, axe clean @responsive                                                                             | R1 R6 A11y | passing ×3           |
 | members see contact details + member nav                                                                                                    | R4         | passing              |
-| RSVP toggle saved                                                                                                                           | R2 R3      | passing              |
+| RSVP dropdown (Can attend / Can't attend / no answer) saved                                                                                 | R2 R3      | passing              |
 | claim (with topic)/release speaker slot                                                                                                     | R2 R3      | passing              |
 | Zoom link opens stored URL                                                                                                                  | R2 R3      | passing              |
 | attendance correction: validation + saved                                                                                                   | R5         | passing              |
@@ -127,23 +127,24 @@ Tests tagged **@responsive** also run at 768px and 375px.
 
 ### Phase A end-to-end tests (`tests/e2e/phase-a.spec.ts`)
 
-| Test                                                                                              | Status               |
-| ------------------------------------------------------------------------------------------------- | -------------------- |
-| footer has no "Proud supporter" / San Carlos Life credit                                          | passing              |
-| About shows the Management list from the database                                                 | passing              |
-| visitors: directory shows businesses only; no contacts, no downloads; export URL → login          | passing              |
-| public profiles show no per-member activity stats                                                 | passing              |
-| Visit lists open professions; Join marks full categories and warns                                | passing              |
-| dashboard: leaderboard (4 metrics, period switch), group totals, invite card; no personal tiles/$ | passing              |
-| weekly ask: save on dashboard → shown in directory                                                | passing              |
-| directory cards show contacts; CSV + vCard downloads with expected content; both logged           | passing              |
-| one-on-one form has no star rating                                                                | passing              |
-| members cannot open admin stats or its CSV export                                                 | passing              |
-| admin pages render, no console errors, axe clean @responsive                                      | passing ×3 viewports |
-| admin stats: period, custom range, sort (aria-sort), CSV export                                   | passing              |
-| Management: validation → add → shown on About → edit → remove                                     | passing              |
-| category seats: raise limit → profession opens on Visit → reset                                   | passing              |
-| admin sees the directory download log                                                             | passing              |
+| Test                                                                                                        | Status               |
+| ----------------------------------------------------------------------------------------------------------- | -------------------- |
+| footer has no "Proud supporter" / San Carlos Life credit                                                    | passing              |
+| footer has no "Artwork and images contributed by…" credit line (added 2026-10-21, owner asked to remove it) | passing              |
+| About shows the Management list from the database                                                           | passing              |
+| visitors: directory shows businesses only; no contacts, no downloads; export URL → login                    | passing              |
+| public profiles show no per-member activity stats                                                           | passing              |
+| Visit lists open professions; Join marks full categories and warns                                          | passing              |
+| dashboard: leaderboard (4 metrics, period switch), group totals, invite card; no personal tiles/$           | passing              |
+| weekly ask: save on dashboard → shown in directory                                                          | passing              |
+| directory cards show contacts; CSV + vCard downloads with expected content; both logged                     | passing              |
+| one-on-one form has no star rating                                                                          | passing              |
+| members cannot open admin stats or its CSV export                                                           | passing              |
+| admin pages render, no console errors, axe clean @responsive                                                | passing ×3 viewports |
+| admin stats: period, custom range, sort (aria-sort), CSV export                                             | passing              |
+| Management: validation → add → shown on About → edit → remove                                               | passing              |
+| category seats: raise limit → profession opens on Visit → reset                                             | passing              |
+| admin sees the directory download log                                                                       | passing              |
 
 ### Not covered by automated tests (and why)
 
@@ -274,7 +275,7 @@ All changes fixed test mistakes, not app behaviour. None weakened an assertion.
 ### New agenda slides, added slides, application form (2026-10-21, owner request)
 
 31. Requirement change (agenda, Procedures effective October 19, 2026): slide names and order follow the new agenda (welcome, agenda, networking, call to order, leadership, guests, 60-second infomercials, asks, statistics, leaderboards, 5-minute + questions, 10-minute + questions, announcements, thank you visitors, adjourn). Updated: `slides › defaults follow…` (new list and agenda times) plus a new test that settings saved with the old names still work; `validation › slide settings / extra slide text` use the new names (`adjourn`, `call_to_order`, `announcements`); `phase-b › members open the next meeting deck` (slide 2 is now "Today's agenda", the slide before the last is "Thank you for visiting", the 5-minute slide heading is "Member education"); `phase-b › admins turn slides off and reorder` uses the new labels (now shown with their times, e.g. "8:30 · Meeting called to order"); `owner-changes › slides…` expects the new slide names and the "60-second infomercials" slide text; `governance › the Visit page shows the official meeting agenda` expects "60-second infomercials" instead of "30-second infomercial".
-32. Requirement change (database check): `db/phase-b › slide names are checked` now uses an invalid *shape* (`Bad-Name!`) instead of an unknown name (`bogus`). The database now checks only the shape of slide names; the list of valid names lives in the app (so old names keep working and new slides need no constraint change), and unknown names are dropped by `resolveSlides` (unit-tested). This is the one constraint the owner was asked to approve.
+32. Requirement change (database check): `db/phase-b › slide names are checked` now uses an invalid _shape_ (`Bad-Name!`) instead of an unknown name (`bogus`). The database now checks only the shape of slide names; the list of valid names lives in the app (so old names keep working and new slides need no constraint change), and unknown names are dropped by `resolveSlides` (unit-tested). This is the one constraint the owner was asked to approve.
 33. Requirement change (application form matches the paper form): sections are "Business information", "Business reference 1/2", "Agreement terms"; references have a Business name; the agreement uses the paper wording ("By signing below…"); Name is shown next to Signature and Date. `auth.spec.ts` uses the new section name and exact/regex labels for reference Name and Business (the new "Business name" field would otherwise match too); `validation › joinSchema packs the application answers` expects `business_name: null` on each reference.
 34. Updated `governance.spec.ts`: Bylaws effective October 19, 2026; new checks for the 9:10 questions row, the "15-Minute Presentation" heading, the infomercial example and the 60-second tardiness rule.
 35. New tests: `src/lib/leadership.test.ts` (Leadership / Membership Committee / Attendance Managers grouping); `slides.test.ts › parseYouTube`; `db/slides-media.test.ts` (new slide names accepted, added-slide permissions and per-kind rules, private bucket limits, reference business name stored); `e2e/slides-application.spec.ts` (agenda order, logo and bridge photo on every slide, the 60-second timer, admins add an image / 2-page PDF / YouTube video then move and remove them, Invite to apply email → prefilled form, paper-form fields saved). The local stack's gateway now emulates file storage for these tests.
@@ -285,3 +286,8 @@ All changes fixed test mistakes, not app behaviour. None weakened an assertion.
 37. Requirement change (2026-10-21, third request): slide titles and text are centred vertically; "Introduction of Guests" is centred on the slide; the "60-second infomercials" title is back. `slides-application` deck test now checks the title is visible, that the Welcome title is not at the top, and that the guests title is centred.
 38. Requirement change (2026-10-21): the Welcome slide shows the Golden Gate photo on the right, fading to white beneath the text. The deck test checks the photo is visible on that slide.
 39. Requirement change (2026-10-21): the logo slide shows the Golden Gate photo at full strength (no white wash), with a soft white glow radiating from the logo letters (no box). Existing logo-only and logo-size checks still apply; no test changes.
+
+### Footer credit and RSVP dropdown (2026-10-21, owner request)
+
+40. New test: the footer no longer shows "Artwork and images contributed by Vabrato Real Estate & Upendo Ventures" (`phase-a.spec.ts`).
+41. Requirement change: RSVP on the Meetings page is a dropdown with "Can attend" and "Can't attend" instead of an RSVP / ✓ Going button. `member › RSVP toggles and is saved` replaced by `member › RSVP dropdown…` (picks Can attend, checks it is saved and shown after reload, switches to Can't attend, then clears it). New `db/rsvp.test.ts` for migration `20261021000002_rsvp_attending.sql` (answers default to attending, members change only their own answer).
