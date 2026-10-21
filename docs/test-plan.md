@@ -304,3 +304,8 @@ All changes fixed test mistakes, not app behaviour. None weakened an assertion.
 ### Live chat with tawk.to (2026-10-21, owner request)
 
 45. New tests: `src/lib/chat.test.ts` (chat is off unless both tawk.to IDs are set and well-formed, spaces trimmed, embed address, bubble hidden on the meeting slides only, member name/email passed to the chat); `src/components/site/LiveChat.test.tsx` (widget script loaded once with the configured IDs, member details filled in, not loaded on the slides, hidden when moving to the slides and shown again after); `src/app/support/SupportChatButton.test.tsx` (coming-soon window while chat is off, opens the chat window when it is on, waits for a slow load, explains what to do when the chat is blocked). The existing E2E test `owner-changes › support page … coming-soon window` is unchanged and still applies, because the local test stack has no tawk.to IDs (chat off). No E2E test loads the real tawk.to widget, since that would depend on an outside service.
+
+### Timer switches (2026-10-22, owner request)
+
+45. New tests: `slides.test.ts › resolveTimers` (every timer on unless saved off); `db/slides-media.test.ts › timer switches` (new column `meeting_slide_settings.timers`, migration 20261022000001, additive, applied live: admins only, JSON object only); `slides-application › admins switch timers off per slide and on the presenter's added slides` (turning off the 5-minute questions timer and the timer on the 5-minute presenter's slides hides them, the other timers stay; reset restores them).
+46. Note: `phase-b › a member posts an event…` failed once in a full run and passed 3/3 alone, then the whole suite passed (146/146) on a second full run. Not changed; watching it.

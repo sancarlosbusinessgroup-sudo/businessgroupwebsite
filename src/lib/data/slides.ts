@@ -2,7 +2,7 @@ import 'server-only';
 import { createClient } from '../supabase/server';
 import { localDateKey } from '../dates';
 import { periodRange } from '../periods';
-import { resolveNotes, resolveSlides, type SlideKey, type SlideNotes } from '../slides';
+import { resolveNotes, resolveSlides, resolveTimers, type SlideKey, type SlideNotes, type TimerSettings } from '../slides';
 import { getUpcomingMemberEvents, type CalendarItem, fromMeeting } from './events';
 import { getGroupTotals, getLeaderboard, type GroupTotals, type LeaderRow } from './member';
 import { getCategorySeats, getLeadership, getMeetingBySlug, getUpcomingMeetings, type MeetingWithSpeakers, type Speaker } from './public';
@@ -28,6 +28,7 @@ export type DeckData = {
   number: number;
   slides: SlideKey[];
   notes: SlideNotes;
+  timers: TimerSettings;
   saved: boolean;
   leadership: { id: string; name: string; role: string; photo: string | null }[];
   media: SlideMedia[];
@@ -54,7 +55,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
   const start = meeting.starts_at;
 
   const [settingsRes, prevRes, countRes, nextRes, mediaRes, linksRes] = await Promise.all([
-    supabase.from('meeting_slide_settings').select('slides, notes').eq('meeting_id', meeting.id).maybeSingle(),
+    supabase.from('meeting_slide_settings').select('slides, notes, timers').eq('meeting_id', meeting.id).maybeSingle(),
     supabase
       .from('meetings')
       .select('starts_at')
@@ -160,6 +161,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     number: countRes.count ?? 1,
     slides: resolveSlides(settingsRes.data?.slides),
     notes: resolveNotes(settingsRes.data?.notes),
+    timers: resolveTimers(settingsRes.data?.timers),
     saved: !!settingsRes.data,
     leadership: leadership.map((l) => ({ id: l.id, name: l.name, role: l.role, photo: l.photo_path ?? l.profile?.avatar_path ?? null })),
     media,

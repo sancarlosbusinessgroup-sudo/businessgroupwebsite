@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SLIDES, SLIDE_KEYS, chunk, parseWebsite, parseYouTube, resolveNotes, resolveSlides, slideLabel, slideTime } from './slides';
+import { DEFAULT_SLIDES, SLIDE_KEYS, chunk, parseWebsite, parseYouTube, resolveNotes, resolveSlides, resolveTimers, slideLabel, slideTime } from './slides';
 
 describe('slide settings', () => {
   it('defaults: the owner’s standard deck, in agenda order (Procedures, effective October 19, 2026)', () => {
@@ -105,5 +105,23 @@ describe('parseWebsite', () => {
     expect(parseWebsite('https://localhost/x')).toBeNull();
     expect(parseWebsite('not a link')).toBeNull();
     expect(parseWebsite(`https://example.com/${'a'.repeat(2001)}`)).toBeNull();
+  });
+});
+
+describe('resolveTimers', () => {
+  it('every timer is on unless saved as false', () => {
+    expect(resolveTimers(null)).toEqual({
+      infomercials: true,
+      five_minute: true,
+      five_materials: true,
+      five_qa: true,
+      ten_minute: true,
+      ten_materials: true,
+      ten_qa: true,
+    });
+    const t = resolveTimers({ five_qa: false, ten_materials: false, bogus: false, ten_qa: 'no' });
+    expect(t.five_qa).toBe(false);
+    expect(t.ten_materials).toBe(false);
+    expect(t.ten_qa).toBe(true);
   });
 });

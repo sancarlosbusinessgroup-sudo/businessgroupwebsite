@@ -154,3 +154,26 @@ export function parseWebsite(input: string): string | null {
   if (url.protocol !== 'https:' || !url.hostname.includes('.') || url.username || url.password) return null;
   return url.toString();
 }
+
+// --- Timers that can be switched off per meeting -------------------------------------------------
+
+/** Where timers appear: the timed slides, plus the presenters' own added slides (after the 5 / 10-minute slide). */
+export const TIMER_KEYS = ['infomercials', 'five_minute', 'five_materials', 'five_qa', 'ten_minute', 'ten_materials', 'ten_qa'] as const;
+export type TimerKey = (typeof TIMER_KEYS)[number];
+export type TimerSettings = Record<TimerKey, boolean>;
+
+export const timerLabels: Record<TimerKey, string> = {
+  infomercials: '60-second infomercials',
+  five_minute: '5-minute presentation slide',
+  five_materials: 'Slides added for the 5-minute presentation',
+  five_qa: 'Questions for the 5-minute presentation',
+  ten_minute: '10-minute presentation slide',
+  ten_materials: 'Slides added for the 10-minute presentation',
+  ten_qa: 'Questions for the 10-minute presentation',
+};
+
+/** Saved timer switches; anything not saved as false is on. */
+export function resolveTimers(saved: unknown): TimerSettings {
+  const obj = saved && typeof saved === 'object' && !Array.isArray(saved) ? (saved as Record<string, unknown>) : {};
+  return Object.fromEntries(TIMER_KEYS.map((k) => [k, obj[k] !== false])) as TimerSettings;
+}

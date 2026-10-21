@@ -197,13 +197,13 @@ const Chip = ({ children }: { children: ReactNode }) => (
   <li className="rounded-full border border-[#c9eef0] bg-[#effbfc] px-[1.5cqw] py-[0.5cqw] text-[1.8cqw] font-semibold text-[#0c5f5a]">{children}</li>
 );
 
-function MediaPage({ ctx, m, page }: { ctx: Ctx; m: SlideMedia; page?: number }) {
+function MediaPage({ ctx, m, page, timers }: { ctx: Ctx; m: SlideMedia; page?: number; timers: DeckData['timers'] }) {
   const title = m.title || (m.kind === 'youtube' ? 'Video' : m.kind === 'pdf' ? 'Presentation' : m.kind === 'link' ? 'Website' : 'Slide');
   // A presenter's own slides keep that presentation's timer on top (same countdown as the presentation slide).
   const timer =
-    m.afterSlide === 'five_minute' ? (
+    m.afterSlide === 'five_minute' && timers.five_materials ? (
       <SlideTimer id="five_minute" seconds={300} label="5-minute presentation" compact />
-    ) : m.afterSlide === 'ten_minute' ? (
+    ) : m.afterSlide === 'ten_minute' && timers.ten_materials ? (
       <SlideTimer id="ten_minute" seconds={600} label="10-minute presentation" compact />
     ) : null;
   return (
@@ -256,8 +256,8 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       const label = m.title || (m.kind === 'youtube' ? 'Video' : m.kind === 'pdf' ? 'Presentation' : m.kind === 'link' ? 'Website' : 'Added slide');
       if (m.kind === 'pdf')
         for (let p = 1; p <= m.pageCount; p++)
-          specs.push({ id: `media-${m.id}-${p}`, label: `${label}, page ${p}`, render: (ctx) => <MediaPage ctx={ctx} m={m} page={p} /> });
-      else specs.push({ id: `media-${m.id}`, label, render: (ctx) => <MediaPage ctx={ctx} m={m} /> });
+          specs.push({ id: `media-${m.id}-${p}`, label: `${label}, page ${p}`, render: (ctx) => <MediaPage ctx={ctx} m={m} page={p} timers={d.timers} /> });
+      else specs.push({ id: `media-${m.id}`, label, render: (ctx) => <MediaPage ctx={ctx} m={m} timers={d.timers} /> });
     }
   };
 
@@ -381,7 +381,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'infomercials':
         page(key, {
           title: '60-second infomercials',
-          aside: <SlideTimer seconds={60} label="60-second infomercial" />,
+          aside: d.timers.infomercials ? <SlideTimer seconds={60} label="60-second infomercial" /> : undefined,
           body: (
             <>
               <Lead>{procedures.definitions.find((x) => x.term === 'Infomercial')?.text}</Lead>
@@ -508,7 +508,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'five_minute':
         page(key, {
           title: '5-Minute Educational Presentation',
-          aside: <SlideTimer id="five_minute" seconds={300} label="5-minute presentation" />,
+          aside: d.timers.five_minute ? <SlideTimer id="five_minute" seconds={300} label="5-minute presentation" /> : undefined,
           body: (
             <>
               <TopicTitle s={d.five} />
@@ -520,14 +520,14 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'five_qa':
         page(key, {
           title: d.five ? `Questions for ${d.five.display_name.split(' ')[0]}` : 'Questions',
-          aside: <SlideTimer seconds={60} label="1 minute of questions" />,
+          aside: d.timers.five_qa ? <SlideTimer seconds={60} label="1 minute of questions" /> : undefined,
           body: <Lead>One minute of questions for the 5-minute presentation. Keep them short so everyone gets a turn.</Lead>,
         });
         break;
       case 'ten_minute':
         page(key, {
           title: '10-Minute Presentation',
-          aside: <SlideTimer id="ten_minute" seconds={600} label="10-minute presentation" />,
+          aside: d.timers.ten_minute ? <SlideTimer id="ten_minute" seconds={600} label="10-minute presentation" /> : undefined,
           body: (
             <>
               <TopicTitle s={d.ten} />
@@ -539,7 +539,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'ten_qa':
         page(key, {
           title: d.ten ? `Questions for ${d.ten.display_name.split(' ')[0]}` : 'Questions',
-          aside: <SlideTimer seconds={300} label="5 minutes of questions" />,
+          aside: d.timers.ten_qa ? <SlideTimer seconds={300} label="5 minutes of questions" /> : undefined,
           body: (
             <>
               <Lead>Five minutes of questions for the 10-minute presentation.</Lead>

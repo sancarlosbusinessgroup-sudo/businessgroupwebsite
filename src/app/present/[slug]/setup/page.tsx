@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth';
 import { getMeetingBySlug } from '@/lib/data/public';
 import { formatMeetingDate } from '@/lib/dates';
-import { SLIDE_KEYS, resolveNotes, resolveSlides, slideLabel, slideTime } from '@/lib/slides';
+import { SLIDE_KEYS, resolveNotes, resolveSlides, resolveTimers, slideLabel, slideTime } from '@/lib/slides';
 import { createClient } from '@/lib/supabase/server';
 import { PresentationMaterials, SlideMediaManager } from './SlideMediaManager';
 import { SlideSettingsForm } from './SlideSettingsForm';
@@ -18,7 +18,7 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
   if (!meeting) notFound();
   const supabase = await createClient();
   const [{ data }, mediaRes, linksRes] = await Promise.all([
-    supabase.from('meeting_slide_settings').select('slides, notes').eq('meeting_id', meeting.id).maybeSingle(),
+    supabase.from('meeting_slide_settings').select('slides, notes, timers').eq('meeting_id', meeting.id).maybeSingle(),
     supabase.from('meeting_slide_media').select('id, kind, title, after_slide, page_count, created_at').eq('meeting_id', meeting.id).order('sort').order('created_at'),
     supabase.from('meeting_slide_links').select('id, title, url, after_slide, created_at').eq('meeting_id', meeting.id).order('created_at'),
   ]);
@@ -45,7 +45,7 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
           </p>
         </div>
         <PresentationMaterials meetingId={meeting.id} options={options} media={media} />
-        <SlideSettingsForm meetingId={meeting.id} rows={rows} deckHref={`/present/${slug}`} />
+        <SlideSettingsForm meetingId={meeting.id} rows={rows} deckHref={`/present/${slug}`} timers={resolveTimers(data?.timers)} />
         <SlideMediaManager meetingId={meeting.id} options={options} media={media.filter((m) => m.afterSlide !== 'five_minute' && m.afterSlide !== 'ten_minute')} />
       </div>
     </div>

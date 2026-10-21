@@ -131,3 +131,19 @@ describe('website links on slides', () => {
     await expect(as(anon, (q) => q(`select * from meeting_slide_links`))).rejects.toThrow(/permission denied/);
   });
 });
+
+describe('timer switches', () => {
+  it('admins save which timers are off for a meeting; only a small JSON object is accepted', async () => {
+    const m = await aMeeting();
+    await as(user(ids.admin), async (q) => {
+      const [row] = await q(`insert into meeting_slide_settings (meeting_id, slides, timers) values ($1, array['welcome'], '{"five_qa": false}') returning timers`, [m]);
+      expect(row?.timers).toEqual({ five_qa: false });
+    });
+    await expect(
+      as(user(ids.admin), (q) => q(`insert into meeting_slide_settings (meeting_id, slides, timers) values ($1, array['welcome'], '[false]')`, [m])),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      as(user(ids.member), (q) => q(`insert into meeting_slide_settings (meeting_id, slides, timers) values ($1, array['welcome'], '{}')`, [m])),
+    ).rejects.toThrow(/row-level security/);
+  });
+});

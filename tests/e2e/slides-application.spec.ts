@@ -182,6 +182,45 @@ test.describe('meeting slides follow the new agenda', () => {
     }
   });
 
+  test('admins switch timers off per slide and on the presenter’s added slides, for one meeting', async ({ page }) => {
+    await login(page, users.admin, undefined, '/present/next');
+    const deck = page.getByRole('region', { name: 'Meeting slides' });
+    await deck.getByRole('link', { name: 'Customize slides' }).click();
+    const five = page.getByRole('form', { name: 'Video or website for the 5-minute presentation' });
+    await five.getByLabel('YouTube or website link').fill('https://example.com/demo');
+    await five.getByLabel('Title (optional)').fill('Demo page');
+    await five.getByRole('button', { name: 'Add link' }).click();
+    await expect(page.getByText('Website added.')).toBeVisible();
+    const form = page.getByRole('form', { name: 'Slides to show' });
+    await expect(form.getByLabel('Show timer: Questions for the 5-minute presentation')).toBeChecked();
+    await form.getByLabel('Show timer: Questions for the 5-minute presentation').uncheck();
+    await form.getByLabel('Show timer: Slides added for the 5-minute presentation').uncheck();
+    await form.getByRole('button', { name: 'Save slides' }).click();
+    await expect(page.getByText('Slides saved.')).toBeVisible();
+    await expect(page.getByRole('form', { name: 'Slides to show' }).getByLabel('Show timer: Questions for the 5-minute presentation')).not.toBeChecked();
+    await expectAccessible(page);
+
+    await page.getByRole('link', { name: 'Open the slides' }).click();
+    await goToSlide(deck, page, '5-Minute Educational Presentation');
+    await expect(deck.getByRole('timer', { name: /5-minute presentation/ })).toBeVisible();
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('heading', { name: 'Demo page' })).toBeVisible();
+    await expect(deck.getByRole('timer')).toHaveCount(0);
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('heading', { name: /^Questions/ })).toBeVisible();
+    await expect(deck.getByRole('timer')).toHaveCount(0);
+    await goToSlide(deck, page, '10-Minute Presentation');
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('timer', { name: /5 minutes of questions/ })).toBeVisible();
+
+    await deck.getByRole('link', { name: 'Customize slides' }).click();
+    await page.getByRole('button', { name: 'Remove Demo page' }).click();
+    await expect(page.getByRole('button', { name: 'Remove Demo page' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Reset to the standard agenda' }).click();
+    await expect(page.getByText('Back to the standard agenda.')).toBeVisible();
+    await expect(page.getByRole('form', { name: 'Slides to show' }).getByLabel('Show timer: Questions for the 5-minute presentation')).toBeChecked();
+  });
+
   test('admins add an image, a PDF (one slide per page) and a YouTube video, move and remove them', async ({ page }) => {
     await login(page, users.admin, undefined, '/present/next');
     const deck = page.getByRole('region', { name: 'Meeting slides' });

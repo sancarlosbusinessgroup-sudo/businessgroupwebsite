@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { PDF_MAX_PAGES, isSlideKey, parseWebsite, parseYouTube } from '@/lib/slides';
+import { PDF_MAX_PAGES, TIMER_KEYS, isSlideKey, parseWebsite, parseYouTube } from '@/lib/slides';
 import { type ActionState, fieldErrors, formToObject, slideNotesSchema, slideSettingsSchema } from '@/lib/validation';
 
 // Per-meeting slide order and extra slide text. Admins only (RLS).
@@ -16,8 +16,10 @@ export async function saveSlideSettings(_prev: ActionState, formData: FormData):
   if (!slides.success) return { status: 'error', message: 'Show at least one slide.', values };
   const notes = slideNotesSchema.safeParse(values);
   if (!notes.success) return { status: 'error', message: 'Please shorten the highlighted slide text.', errors: fieldErrors(notes.error), values };
+  // Timer switches (checkboxes timer_<key>): only the ones turned off are stored.
+  const timers = Object.fromEntries(TIMER_KEYS.filter((k) => values[`timer_${k}`] !== 'on').map((k) => [k, false]));
   const supabase = await createClient();
-  const { error } = await supabase.from('meeting_slide_settings').upsert({ meeting_id: meeting.data, slides: slides.data, notes: notes.data });
+  const { error } = await supabase.from('meeting_slide_settings').upsert({ meeting_id: meeting.data, slides: slides.data, notes: notes.data, timers });
   if (error) return { status: 'error', message: 'Only admins can change the slides.', values };
   revalidatePath('/present', 'layout');
   return { status: 'success', message: 'Slides saved.' };

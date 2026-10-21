@@ -431,9 +431,9 @@ export type Database = {
         ];
       };
       meeting_slide_settings: {
-        Row: { meeting_id: string; slides: string[]; notes: Json; updated_at: string };
-        Insert: { meeting_id: string; slides: string[]; notes?: Json; updated_at?: string };
-        Update: { meeting_id?: string; slides?: string[]; notes?: Json; updated_at?: string };
+        Row: { meeting_id: string; slides: string[]; notes: Json; timers: Json; updated_at: string };
+        Insert: { meeting_id: string; slides: string[]; notes?: Json; timers?: Json; updated_at?: string };
+        Update: { meeting_id?: string; slides?: string[]; notes?: Json; timers?: Json; updated_at?: string };
         Relationships: [
           {
             foreignKeyName: 'meeting_slide_settings_meeting_id_fkey';

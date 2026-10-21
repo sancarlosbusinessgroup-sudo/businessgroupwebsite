@@ -5,11 +5,12 @@ import { useActionState } from 'react';
 import { SubmitButton } from '@/components/forms';
 import { Notice } from '@/components/ui';
 import { resetSlideSettings, saveSlideSettings } from '@/app/actions/slides';
+import { TIMER_KEYS, timerLabels, type TimerSettings } from '@/lib/slides';
 import { idle, SLIDE_NOTE_MAX } from '@/lib/validation';
 
 type Row = { key: string; label: string; shown: boolean; position: number; note: string };
 
-export function SlideSettingsForm({ meetingId, rows, deckHref }: { meetingId: string; rows: Row[]; deckHref: string }) {
+export function SlideSettingsForm({ meetingId, rows, deckHref, timers }: { meetingId: string; rows: Row[]; deckHref: string; timers: TimerSettings }) {
   const [state, action] = useActionState(saveSlideSettings, idle);
   const [resetState, reset] = useActionState(resetSlideSettings, idle);
   const formKey = `${state.status}-${resetState.status}-${resetState.message ?? ''}`;
@@ -74,6 +75,21 @@ export function SlideSettingsForm({ meetingId, rows, deckHref }: { meetingId: st
             </li>
           ))}
         </ul>
+        <fieldset className="border-line-soft m-0 flex flex-col gap-1 border-t p-0 pt-4">
+          <legend className="font-display text-heading float-left mb-1 w-full p-0 text-lg font-bold">Timers</legend>
+          <p className="text-ink-muted m-0 mb-1 text-sm">Untick to hide the timer on that slide (or on the presenter’s added slides) for this meeting.</p>
+          {TIMER_KEYS.map((k) => (
+            <label key={k} className="flex min-h-9 items-center gap-2.5">
+              <input
+                type="checkbox"
+                name={`timer_${k}`}
+                defaultChecked={state.status === 'error' && state.values ? state.values[`timer_${k}`] === 'on' : timers[k]}
+                className="h-5 w-5 flex-none accent-[var(--teal)]"
+              />
+              <span>Show timer: {timerLabels[k]}</span>
+            </label>
+          ))}
+        </fieldset>
         <div className="flex flex-wrap gap-2">
           <SubmitButton pendingText="Saving…">Save slides</SubmitButton>
           <Link className="btn btn-outline" href={deckHref}>
