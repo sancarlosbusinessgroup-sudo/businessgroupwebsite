@@ -271,14 +271,16 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'welcome':
         add(key, (ctx) => (
           <div className="relative h-full overflow-hidden bg-white">
-            <Image src={BRIDGE} alt="" fill sizes="100vw" priority className="object-cover object-[60%_55%] opacity-35" />
-            <span className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-white/40" aria-hidden="true" />
+            {/* Full-strength photo (no white wash); the logo sits on its own white card so it stands out. */}
+            <Image src={BRIDGE} alt="" fill sizes="100vw" priority className="object-cover object-[60%_55%]" />
             <span className="absolute inset-x-0 bottom-0 h-[0.9cqw] bg-gradient-to-r from-[#0e7c74] via-[#12a89d] to-[#00c2cb]" aria-hidden="true" />
             <div className="relative flex h-full items-center justify-center">
               <h2 className="sr-only">Welcome to {site.name}</h2>
-              <Lockup size={2.9} />
+              <div className="rounded-[2.4cqw] bg-white px-[4.5cqw] py-[3.2cqw] shadow-[0_1.2cqw_3.5cqw_rgba(6,40,48,0.35)]">
+                <Lockup size={2.6} />
+              </div>
             </div>
-            <p className="absolute right-[3cqw] bottom-[2cqw] m-0 text-[1.25cqw] font-semibold text-[#0e5a55]">
+            <p className="absolute right-[3cqw] bottom-[2cqw] m-0 text-[1.25cqw] font-semibold text-white [text-shadow:0_0.1cqw_0.4cqw_rgba(0,0,0,0.6)]">
               {ctx.n} / {ctx.total}
             </p>
           </div>
