@@ -61,6 +61,10 @@ test.describe('meeting slides follow the new agenda', () => {
 
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('heading', { name: 'Welcome', exact: true })).toBeVisible();
+    // Title and text sit in the vertical middle of the slide, not at the top.
+    const stageBox = (await deck.locator('[aria-roledescription="slide"]').boundingBox())!;
+    const welcomeBox = (await deck.getByRole('heading', { name: 'Welcome', exact: true }).boundingBox())!;
+    expect(welcomeBox.y - stageBox.y).toBeGreaterThan(stageBox.height * 0.22);
     await expect(deck.getByText(/A chance to chat/)).toHaveCount(0);
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('heading', { name: 'Let’s begin.' })).toBeVisible();
@@ -69,14 +73,19 @@ test.describe('meeting slides follow the new agenda', () => {
     await expect(deck.getByRole('heading', { name: 'Meet the Management Team' })).toBeVisible();
     await page.keyboard.press('ArrowRight');
     const guests = deck.getByRole('group').filter({ visible: true });
-    await expect(guests.getByRole('heading', { name: 'Introduction of Guests' })).toBeVisible();
+    const guestsTitle = guests.getByRole('heading', { name: 'Introduction of Guests' });
+    await expect(guestsTitle).toBeVisible();
+    const g = (await guestsTitle.boundingBox())!;
+    // Centred on the slide, left to right and top to bottom.
+    expect(Math.abs(g.x + g.width / 2 - (stageBox.x + stageBox.width / 2))).toBeLessThan(stageBox.width * 0.03);
+    expect(Math.abs(g.y + g.height / 2 - (stageBox.y + stageBox.height / 2))).toBeLessThan(stageBox.height * 0.12);
     await expect(guests.getByRole('listitem')).toHaveCount(0);
 
     await page.keyboard.press('ArrowRight');
     const info = deck.getByRole('group').filter({ visible: true });
     for (const b of ['Referrals', 'One-to-ones', 'Closed business', 'Thank-yous', 'Testimonials', 'Leads', 'Announcements'])
       await expect(info.getByRole('listitem').filter({ hasText: new RegExp(`^${b}$`) })).toBeVisible();
-    await expect(info.getByText('60-second infomercials', { exact: true })).not.toBeInViewport();
+    await expect(info.getByRole('heading', { name: '60-second infomercials' })).toBeVisible();
     const timer = deck.getByRole('timer', { name: /60-second infomercial/ });
     await expect(timer).toHaveText('1:00');
     await deck.getByRole('button', { name: /Start timer \(60-second infomercial\)/ }).click();

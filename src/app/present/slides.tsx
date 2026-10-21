@@ -62,14 +62,14 @@ function Page({
   ctx,
   time,
   title,
-  hideTitle,
+  center,
   children,
   aside,
 }: {
   ctx: Ctx;
   time: string | null;
   title: string;
-  hideTitle?: boolean;
+  center?: boolean;
   children?: ReactNode;
   aside?: ReactNode;
 }) {
@@ -88,8 +88,9 @@ function Page({
         </div>
       </header>
       <div className="relative flex min-h-0 flex-1 gap-[3.5cqw] px-[4.5cqw] pt-[2.2cqw] pb-[7cqw]">
-        <div className="flex min-w-0 flex-1 flex-col gap-[1.8cqw]">
-          <h2 className={hideTitle ? 'sr-only' : 'font-display text-on-band m-0 text-[4.2cqw] leading-[1.05] font-extrabold tracking-[-0.01em]'}>{title}</h2>
+        {/* Title and text sit in the vertical middle of the slide (owner, 2026-10-21). */}
+        <div className={`flex min-w-0 flex-1 flex-col justify-center gap-[1.8cqw] ${center ? 'items-center text-center' : ''}`}>
+          <h2 className="font-display text-on-band m-0 text-[4.2cqw] leading-[1.05] font-extrabold tracking-[-0.01em]">{title}</h2>
           {children}
         </div>
         {aside ? <div className="flex flex-none flex-col items-center justify-center">{aside}</div> : null}
@@ -235,11 +236,11 @@ export function buildSlides(d: DeckData): DeckSlide[] {
     specs.push({ id: key + (suffix ? `-${suffix}` : ''), label: slideLabel(key) + (suffix ? ` (${suffix})` : ''), render });
 
   /** Standard page with the slide's agenda time and any extra text the admins added. */
-  const page = (key: SlideKey, o: { title?: string; hideTitle?: boolean; body: ReactNode; aside?: ReactNode }, suffix = '') =>
+  const page = (key: SlideKey, o: { title?: string; center?: boolean; body: ReactNode; aside?: ReactNode }, suffix = '') =>
     add(
       key,
       (ctx) => (
-        <Page ctx={ctx} time={slideTime(key)} title={o.title ?? slideLabel(key)} hideTitle={o.hideTitle} aside={o.aside}>
+        <Page ctx={ctx} time={slideTime(key)} title={o.title ?? slideLabel(key)} center={o.center} aside={o.aside}>
           {o.body}
           {d.notes[key] ? <Note text={d.notes[key]} /> : null}
         </Page>
@@ -334,12 +335,11 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       }
       case 'guests':
-        page(key, { title: 'Introduction of Guests', body: null });
+        page(key, { title: 'Introduction of Guests', center: true, body: null });
         break;
       case 'infomercials':
         page(key, {
           title: '60-second infomercials',
-          hideTitle: true,
           aside: <SlideTimer seconds={60} label="60-second infomercial" />,
           body: (
             <>
