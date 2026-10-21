@@ -63,6 +63,7 @@ function Page({
   time,
   title,
   center,
+  photo,
   children,
   aside,
 }: {
@@ -70,16 +71,32 @@ function Page({
   time: string | null;
   title: string;
   center?: boolean;
+  /** Show the Golden Gate photo across the right side, fading to white beneath the text. */
+  photo?: boolean;
   children?: ReactNode;
   aside?: ReactNode;
 }) {
   return (
     <div className="relative flex h-full flex-col bg-white">
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[12cqw]" aria-hidden="true">
-        <Image src={BRIDGE} alt="" fill sizes="100vw" className="object-cover object-[50%_62%] opacity-55" />
-        <span className="absolute inset-0 bg-gradient-to-b from-white via-white/70 to-white/10" />
-        <span className="absolute inset-x-0 bottom-0 h-[0.8cqw] bg-gradient-to-r from-[#0e7c74] via-[#12a89d] to-[#00c2cb]" />
-      </div>
+      {photo ? (
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          <Image src={BRIDGE} alt="" fill sizes="100vw" className="object-cover object-[72%_55%]" />
+          <span
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(to right, #fff 0%, #fff 38%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0.6) 62%, rgba(255,255,255,0.2) 76%, rgba(255,255,255,0) 90%)',
+            }}
+          />
+          <span className="absolute inset-x-0 bottom-0 h-[0.8cqw] bg-gradient-to-r from-[#0e7c74] via-[#12a89d] to-[#00c2cb]" />
+        </div>
+      ) : (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[12cqw]" aria-hidden="true">
+          <Image src={BRIDGE} alt="" fill sizes="100vw" className="object-cover object-[50%_62%] opacity-55" />
+          <span className="absolute inset-0 bg-gradient-to-b from-white via-white/70 to-white/10" />
+          <span className="absolute inset-x-0 bottom-0 h-[0.8cqw] bg-gradient-to-r from-[#0e7c74] via-[#12a89d] to-[#00c2cb]" />
+        </div>
+      )}
       <header className="relative flex items-center justify-between px-[4.5cqw] pt-[3cqw]">
         <Lockup size={0.85} />
         <div className="rounded-[1.4cqw] bg-gradient-to-br from-[#eef0f4] to-[#f8f9fb] px-[2cqw] py-[0.9cqw] text-right shadow-[0_0.2cqw_0.8cqw_rgba(0,0,0,0.06)]">
@@ -99,7 +116,7 @@ function Page({
         <span>
           {site.name} · Meeting #{ctx.meetingNo}
         </span>
-        <span className="tabular-nums">
+        <span className={`tabular-nums ${photo ? 'text-white [text-shadow:0_0.1cqw_0.4cqw_rgba(0,0,0,0.6)]' : ''}`}>
           {ctx.n} / {ctx.total}
         </span>
       </footer>
@@ -236,11 +253,11 @@ export function buildSlides(d: DeckData): DeckSlide[] {
     specs.push({ id: key + (suffix ? `-${suffix}` : ''), label: slideLabel(key) + (suffix ? ` (${suffix})` : ''), render });
 
   /** Standard page with the slide's agenda time and any extra text the admins added. */
-  const page = (key: SlideKey, o: { title?: string; center?: boolean; body: ReactNode; aside?: ReactNode }, suffix = '') =>
+  const page = (key: SlideKey, o: { title?: string; center?: boolean; photo?: boolean; body: ReactNode; aside?: ReactNode }, suffix = '') =>
     add(
       key,
       (ctx) => (
-        <Page ctx={ctx} time={slideTime(key)} title={o.title ?? slideLabel(key)} center={o.center} aside={o.aside}>
+        <Page ctx={ctx} time={slideTime(key)} title={o.title ?? slideLabel(key)} center={o.center} photo={o.photo} aside={o.aside}>
           {o.body}
           {d.notes[key] ? <Note text={d.notes[key]} /> : null}
         </Page>
@@ -289,6 +306,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'networking':
         page(key, {
           title: 'Welcome',
+          photo: true,
           body: (
             <>
               <Bullets items={['Say hello to someone you haven’t met yet.', 'Camera on, name and business in your Zoom name.', 'We call the meeting to order at 8:30 AM sharp.']} />

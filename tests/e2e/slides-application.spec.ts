@@ -65,6 +65,8 @@ test.describe('meeting slides follow the new agenda', () => {
     const stageBox = (await deck.locator('[aria-roledescription="slide"]').boundingBox())!;
     const welcomeBox = (await deck.getByRole('heading', { name: 'Welcome', exact: true }).boundingBox())!;
     expect(welcomeBox.y - stageBox.y).toBeGreaterThan(stageBox.height * 0.22);
+    // The Golden Gate photo shows on the right and fades to white beneath the text.
+    await expect(deck.getByRole('group').filter({ visible: true }).locator('img[src*="hero-bridge"]')).toBeVisible();
     await expect(deck.getByText(/A chance to chat/)).toHaveCount(0);
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('heading', { name: 'Let’s begin.' })).toBeVisible();
