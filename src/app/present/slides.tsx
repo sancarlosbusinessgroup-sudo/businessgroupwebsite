@@ -271,12 +271,21 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'welcome':
         add(key, (ctx) => (
           <div className="relative h-full overflow-hidden bg-white">
-            {/* Full-strength photo (no white wash); the logo sits on its own white card so it stands out. */}
+            {/* Full-strength photo (no white wash); a white glow around the letters makes the logo stand out. */}
             <Image src={BRIDGE} alt="" fill sizes="100vw" priority className="object-cover object-[60%_55%]" />
             <span className="absolute inset-x-0 bottom-0 h-[0.9cqw] bg-gradient-to-r from-[#0e7c74] via-[#12a89d] to-[#00c2cb]" aria-hidden="true" />
             <div className="relative flex h-full items-center justify-center">
               <h2 className="sr-only">Welcome to {site.name}</h2>
-              <div className="rounded-[2.4cqw] bg-white px-[4.5cqw] py-[3.2cqw] shadow-[0_1.2cqw_3.5cqw_rgba(6,40,48,0.35)]">
+              {/* Soft white glow that radiates from the letters and fades into the photo (no box). */}
+              <span
+                className="absolute top-1/2 left-1/2 h-[46cqw] w-[96cqw] -translate-x-1/2 -translate-y-1/2"
+                style={{ background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.82) 30%, rgba(255,255,255,0.45) 52%, rgba(255,255,255,0) 72%)' }}
+                aria-hidden="true"
+              />
+              <div
+                className="relative"
+                style={{ filter: 'drop-shadow(0 0 0.6cqw #fff) drop-shadow(0 0 1.4cqw rgba(255,255,255,0.9)) drop-shadow(0 0 3cqw rgba(255,255,255,0.7))' }}
+              >
                 <Lockup size={2.6} />
               </div>
             </div>
