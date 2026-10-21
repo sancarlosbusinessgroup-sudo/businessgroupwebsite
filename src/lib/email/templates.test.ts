@@ -27,7 +27,18 @@ describe('email templates', () => {
       t.meetingReminderEmail({ siteUrl, firstName: 'Ana', when: 'Mon 8:15 AM', title: 'Regular meeting', joinUrl: 'https://zoom.example/j/1' }),
       t.visitorFollowupEmail({ siteUrl, firstName: 'Gus' }),
       t.memberFollowupEmail({ siteUrl, toFirstName: 'Ana', guests: ['Gus G'] }),
-      t.adminDigestEmail({ siteUrl, firstName: 'Ana', week: 'Oct 13–19', pending: 1, guests: 2, referrals: 3, oneOnOnes: 4, closedDeals: 1, closedAmount: '$500' }),
+      t.meetingRecapEmail({ siteUrl, firstName: 'Ana', meetingTitle: 'Regular meeting', slidesHref: `${siteUrl}/present/m1`, events: [] }),
+      t.adminDigestEmail({
+        siteUrl,
+        firstName: 'Ana',
+        week: 'Oct 13–19',
+        pending: 1,
+        guests: 2,
+        referrals: 3,
+        oneOnOnes: 4,
+        closedDeals: 1,
+        closedAmount: '$500',
+      }),
     ];
     for (const e of all) {
       expect(e.subject.length).toBeGreaterThan(5);
@@ -61,5 +72,35 @@ describe('email templates', () => {
   it('member emails carry the preferences footer; guest emails do not', () => {
     expect(t.referralReceivedEmail({ siteUrl, toFirstName: 'A', fromName: 'B', prospect: 'P' }).text).toContain('/profile?tab=edit#email');
     expect(t.guestThanksEmail({ siteUrl, firstName: 'G' }).text).not.toContain('/profile?tab=edit#email');
+  });
+
+  it('meeting recap: slides link, presenters with topic and video, member events, next meeting with open slots', () => {
+    const e = t.meetingRecapEmail({
+      siteUrl,
+      firstName: 'Ana',
+      meetingTitle: 'Regular meeting',
+      slidesHref: `${siteUrl}/present/m1`,
+      five: { name: 'Ranger Kielak', business: 'Within Range Coaching', topic: 'Communication <Styles>', description: 'How you communicate.' },
+      ten: { name: 'Will Strohl', business: 'Upendo Ventures', topic: 'What is runsonUpendo?', video: 'https://www.youtube.com/watch?v=abc' },
+      events: [{ when: 'Wed, Oct 28 · 4:00 PM', title: 'Networking mixer', href: `${siteUrl}/events/mixer`, where: 'San Carlos' }],
+      next: { when: 'Mon, Nov 2 at 8:15 AM', five: 'David Flaig', ten: null },
+    });
+    expect(e.subject).toBe('Meeting recap: Regular meeting');
+    expect(e.html).toContain(`href="${siteUrl}/present/m1"`);
+    expect(e.html).toContain('Communication &lt;Styles&gt;');
+    expect(e.html).toContain('href="https://www.youtube.com/watch?v=abc"');
+    expect(e.html).toContain(`href="${siteUrl}/events/mixer"`);
+    expect(e.html).toContain(`href="${siteUrl}/dashboard"`);
+    expect(e.text).toContain('Ranger Kielak, Within Range Coaching');
+    expect(e.text).toContain('10-Minute Presentation: Open');
+    expect(e.text).toContain(`Claim a presentation slot: ${siteUrl}/meetings`);
+    expect(e.text).toContain('/profile?tab=edit#email');
+    expect(e.text).toContain('Communication <Styles>');
+  });
+
+  it('meeting recap without presenters or events still reads well', () => {
+    const e = t.meetingRecapEmail({ siteUrl, firstName: 'Ana', meetingTitle: 'M', slidesHref: `${siteUrl}/present/m`, events: [] });
+    expect(e.text).toContain('No member events are on the calendar');
+    expect(e.text).not.toContain('Next meeting'.toUpperCase());
   });
 });

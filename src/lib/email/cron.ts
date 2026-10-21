@@ -15,6 +15,7 @@ export type DailyReport = {
   memberFollowups: number;
   onboardingReminders: number;
   digests: number;
+  meetingRecaps: number;
 };
 
 function pacificWeekday(now: Date): number {
@@ -23,7 +24,7 @@ function pacificWeekday(now: Date): number {
 }
 
 export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
-  const report: DailyReport = { meetingReminders: 0, visitorFollowups: 0, memberFollowups: 0, onboardingReminders: 0, digests: 0 };
+  const report: DailyReport = { meetingReminders: 0, visitorFollowups: 0, memberFollowups: 0, onboardingReminders: 0, digests: 0, meetingRecaps: 0 };
   const db = createAdminClient();
   if (!db) return report;
   const url = siteUrl();
@@ -82,8 +83,22 @@ export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
   const guestFields = 'id, first_name, last_name, email, referrer_id, meeting_id, created_at';
   const [atMeeting, noMeeting] = await Promise.all([
     recentIds.size
-      ? db.from('guest_requests').select(guestFields).eq('status', 'visited').in('meeting_id', [...recentIds])
-      : Promise.resolve({ data: [] as { id: string; first_name: string; last_name: string; email: string; referrer_id: string | null; meeting_id: string | null; created_at: string }[] }),
+      ? db
+          .from('guest_requests')
+          .select(guestFields)
+          .eq('status', 'visited')
+          .in('meeting_id', [...recentIds])
+      : Promise.resolve({
+          data: [] as {
+            id: string;
+            first_name: string;
+            last_name: string;
+            email: string;
+            referrer_id: string | null;
+            meeting_id: string | null;
+            created_at: string;
+          }[],
+        }),
     db
       .from('guest_requests')
       .select(guestFields)
@@ -199,5 +214,106 @@ export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
     }
   }
 
+  // 5. Meeting recap, as a fallback for one the after-meeting job missed.
+  report.meetingRecaps = await runRecaps(now);
+
   return report;
+}
+
+/**
+ * Meeting recap to every approved member after a regular meeting ends (Vercel Cron → /api/cron/after-meeting,
+ * around noon Pacific; the daily job repeats it next morning in case that run was missed). Only meetings that
+ * ended in the past 36 hours, once per member per meeting.
+ */
+export async function runRecaps(now: Date = new Date()): Promise<number> {
+  const db = createAdminClient();
+  if (!db) return 0;
+  const url = siteUrl();
+  const nowIso = now.toISOString();
+  const { data: ended } = await db
+    .from('meetings')
+    .select('id, slug, title, meeting_speakers(slot, display_name, business, topic, topic_description)')
+    .eq('category', 'Networking')
+    .is('cancelled_reason', null)
+    .lte('ends_at', nowIso)
+    .gte('ends_at', new Date(now.getTime() - 36 * 3_600_000).toISOString())
+    .order('starts_at');
+  if (!ended?.length) return 0;
+
+  const [{ data: events }, { data: next }, { data: members }] = await Promise.all([
+    db
+      .from('member_events')
+      .select('slug, title, starts_at, location')
+      .gte('starts_at', nowIso)
+      .lt('starts_at', new Date(now.getTime() + 14 * DAY).toISOString())
+      .order('starts_at')
+      .limit(3),
+    db
+      .from('meetings')
+      .select('starts_at, meeting_speakers(slot, display_name)')
+      .eq('category', 'Networking')
+      .is('cancelled_reason', null)
+      .gt('starts_at', nowIso)
+      .order('starts_at')
+      .limit(1)
+      .maybeSingle(),
+    db.from('profiles').select('id').eq('status', 'approved'),
+  ]);
+  const ids = (members ?? []).map((m) => m.id);
+  const people = await loadRecipients(ids);
+  const off = await loadOptOuts(ids, 'meeting_recaps');
+  const recapEvents: T.RecapEvent[] = (events ?? []).map((e) => {
+    const d = new Date(e.starts_at);
+    return { when: `${formatMeetingDate(d)} · ${formatMeetingTime(d)}`, title: e.title, href: `${url}/events/${e.slug}`, where: e.location };
+  });
+  const nextSpeakers = (next?.meeting_speakers ?? []) as { slot: string; display_name: string }[];
+  const nextInfo = next
+    ? {
+        when: `${formatMeetingDate(new Date(next.starts_at))} at ${formatMeetingTime(new Date(next.starts_at))}`,
+        five: nextSpeakers.find((x) => x.slot === 'education')?.display_name ?? null,
+        ten: nextSpeakers.find((x) => x.slot === 'presentation')?.display_name ?? null,
+      }
+    : null;
+
+  let sent = 0;
+  for (const m of ended) {
+    type Sp = { slot: string; display_name: string; business: string | null; topic: string | null; topic_description: string | null };
+    const speakers = (m.meeting_speakers ?? []) as Sp[];
+    const { data: videos } = await db
+      .from('meeting_slide_media')
+      .select('youtube_id, start_seconds, after_slide')
+      .eq('meeting_id', m.id)
+      .eq('kind', 'youtube')
+      .order('sort');
+    const videoFor = (prefix: string) => {
+      const v = (videos ?? []).find((x) => x.youtube_id && x.after_slide.startsWith(prefix));
+      return v ? `https://www.youtube.com/watch?v=${v.youtube_id}${v.start_seconds ? `&t=${v.start_seconds}s` : ''}` : null;
+    };
+    const talk = (slot: string, prefix: string): T.RecapTalk | null => {
+      const sp = speakers.find((x) => x.slot === slot);
+      return sp ? { name: sp.display_name, business: sp.business, topic: sp.topic, description: sp.topic_description, video: videoFor(prefix) } : null;
+    };
+    const five = talk('education', 'five');
+    const ten = talk('presentation', 'ten');
+    for (const r of people.values()) {
+      if (off.has(r.id)) continue;
+      const s = await deliver({
+        kind: 'meeting_recap',
+        dedupeKey: m.id,
+        to: { email: r.email, name: `${r.firstName} ${r.lastName}`, profileId: r.id },
+        email: T.meetingRecapEmail({
+          siteUrl: url,
+          firstName: r.firstName,
+          meetingTitle: m.title,
+          slidesHref: `${url}/present/${m.slug}`,
+          five,
+          ten,
+          events: recapEvents,
+          next: nextInfo,
+        }),
+      });
+      if (s === 'sent') sent += 1;
+    }
+  }
+  return sent;
 }

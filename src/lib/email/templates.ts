@@ -7,22 +7,32 @@ export type Email = { subject: string; html: string; text: string };
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-type Block = { p: string } | { list: [string, string][] } | { quote: string };
+type Link = [label: string, href: string];
+type Item = { eyebrow: string; title: string; lines: string[]; links?: Link[] };
+type Block = { p: string } | { list: [string, string][] } | { quote: string } | { h: string } | { links: Link[] } | { item: Item } | { button: Link };
+
+const linkHtml = ([label, href]: Link) => `<a href="${esc(href)}" style="color:#0c7b74;font-weight:700">${esc(label)}</a>`;
+const linksHtml = (ls: Link[]) => ls.map(linkHtml).join(' &nbsp;·&nbsp; ');
+const linksText = (ls: Link[]) => ls.map(([l, h]) => `${l}: ${h}`).join('\n');
 
 /** Shared layout: logo header, white card, one call-to-action button, footer with the "why you got this" line. */
-export function layout(o: {
-  siteUrl: string;
-  preheader: string;
-  heading: string;
-  blocks: Block[];
-  cta?: { label: string; href: string };
-  footer: string;
-}): { html: string; text: string } {
+export function layout(o: { siteUrl: string; preheader: string; heading: string; blocks: Block[]; cta?: { label: string; href: string }; footer: string }): {
+  html: string;
+  text: string;
+} {
   const body = o.blocks
     .map((b) => {
       if ('p' in b) return `<p style="margin:0 0 14px;font-size:16px;line-height:1.55;color:#1c2e2e">${esc(b.p)}</p>`;
       if ('quote' in b)
         return `<p style="margin:0 0 14px;padding:12px 14px;border-left:4px solid #12a89d;background:#effbfc;font-size:15px;line-height:1.5;color:#1c2e2e">${esc(b.quote)}</p>`;
+      if ('h' in b) return `<h2 style="margin:24px 0 10px;font-size:19px;line-height:1.3;color:#0c7b74">${esc(b.h)}</h2>`;
+      if ('links' in b) return `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1c2e2e">${linksHtml(b.links)}</p>`;
+      if ('button' in b)
+        return `<p style="margin:4px 0 16px"><a href="${esc(b.button[1])}" style="display:inline-block;background:#0c7b74;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:10px 20px;border-radius:999px">${esc(b.button[0])}</a></p>`;
+      if ('item' in b)
+        return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;width:100%;border-collapse:collapse"><tr><td style="border-left:4px solid #12a89d;padding:4px 0 4px 14px;font-size:15px;line-height:1.55;color:#1c2e2e"><p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#4f6464">${esc(b.item.eyebrow)}</p><p style="margin:2px 0 4px;font-size:17px;font-weight:700;color:#0b3b3b">${esc(b.item.title)}</p>${b.item.lines
+          .map((l) => `<p style="margin:0 0 4px">${esc(l)}</p>`)
+          .join('')}${b.item.links?.length ? `<p style="margin:4px 0 0">${linksHtml(b.item.links)}</p>` : ''}</td></tr></table>`;
       return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;width:100%;border-collapse:collapse">${b.list
         .map(
           ([k, v]) =>
@@ -48,7 +58,21 @@ export function layout(o: {
   const text = [
     o.heading,
     '',
-    ...o.blocks.map((b) => ('p' in b ? b.p : 'quote' in b ? `"${b.quote}"` : b.list.map(([k, v]) => `${k}: ${v}`).join('\n'))),
+    ...o.blocks.map((b) =>
+      'p' in b
+        ? b.p
+        : 'quote' in b
+          ? `"${b.quote}"`
+          : 'h' in b
+            ? `\n${b.h.toUpperCase()}`
+            : 'links' in b
+              ? linksText(b.links)
+              : 'button' in b
+                ? linksText([b.button])
+                : 'item' in b
+                  ? [`${b.item.eyebrow}: ${b.item.title}`, ...b.item.lines, ...(b.item.links ? [linksText(b.item.links)] : [])].join('\n')
+                  : b.list.map(([k, v]) => `${k}: ${v}`).join('\n'),
+    ),
     ...(o.cta ? ['', `${o.cta.label}: ${o.cta.href}`] : []),
     '',
     '—',
@@ -114,14 +138,26 @@ export function referralReceivedEmail(o: {
       siteUrl: o.siteUrl,
       preheader: `${o.fromName} passed you a referral.`,
       heading: `You have a new referral, ${o.toFirstName}`,
-      blocks: [{ p: `${o.fromName} filed a referral slip for you.` }, { list }, ...(o.notes ? [{ quote: o.notes }] : []), { p: 'Reach out soon, then update the status so they know how it went.' }],
+      blocks: [
+        { p: `${o.fromName} filed a referral slip for you.` },
+        { list },
+        ...(o.notes ? [{ quote: o.notes }] : []),
+        { p: 'Reach out soon, then update the status so they know how it went.' },
+      ],
       cta: { label: 'Open my referrals', href: `${o.siteUrl}/referrals` },
       footer: prefsFooter(o.siteUrl),
     }),
   };
 }
 
-export function referralStatusEmail(o: { siteUrl: string; toFirstName: string; receiverName: string; prospect: string; status: string; amount?: string | null }): Email {
+export function referralStatusEmail(o: {
+  siteUrl: string;
+  toFirstName: string;
+  receiverName: string;
+  prospect: string;
+  status: string;
+  amount?: string | null;
+}): Email {
   return {
     subject: `Referral update: ${o.prospect} is now “${o.status}”`,
     ...layout({
@@ -153,7 +189,14 @@ export function oneOnOneConfirmEmail(o: { siteUrl: string; toFirstName: string; 
   };
 }
 
-export function oneOnOneRequestEmail(o: { siteUrl: string; toFirstName: string; requesterName: string; business: string; date?: string | null; message?: string | null }): Email {
+export function oneOnOneRequestEmail(o: {
+  siteUrl: string;
+  toFirstName: string;
+  requesterName: string;
+  business: string;
+  date?: string | null;
+  message?: string | null;
+}): Email {
   return {
     subject: `${o.requesterName} would like a one-on-one`,
     ...layout({
@@ -198,8 +241,12 @@ export function guestThanksEmail(o: { siteUrl: string; firstName: string; meetin
       preheader: 'We’ve got your request.',
       heading: `Thanks, ${o.firstName}!`,
       blocks: [
-        { p: `We’ve received your request to visit ${site.name}${o.meeting ? ` on ${o.meeting}` : ''}. A member of our team will send you the Zoom link before the meeting.` },
-        { p: `We meet ${site.meetingCadence.toLowerCase()} at ${site.meetingTime} PT. Come ready with a 60-second introduction: your name, your business and who you help.` },
+        {
+          p: `We’ve received your request to visit ${site.name}${o.meeting ? ` on ${o.meeting}` : ''}. A member of our team will send you the Zoom link before the meeting.`,
+        },
+        {
+          p: `We meet ${site.meetingCadence.toLowerCase()} at ${site.meetingTime} PT. Come ready with a 60-second introduction: your name, your business and who you help.`,
+        },
       ],
       cta: { label: 'What to expect', href: `${o.siteUrl}/visit` },
       footer: `You get this email because you asked to visit ${site.name}.`,
@@ -264,7 +311,9 @@ export function meetingReminderEmail(o: {
       heading: `See you this morning, ${o.firstName}`,
       blocks: [
         { list },
-        { p: 'Have your 60-second infomercial ready: referrals, one-to-ones, closed business, thank-yous, testimonials and leads. Open networking starts at 8:15 AM; we call the meeting to order at 8:30 AM sharp.' },
+        {
+          p: 'Have your 60-second infomercial ready: referrals, one-to-ones, closed business, thank-yous, testimonials and leads. Open networking starts at 8:15 AM; we call the meeting to order at 8:30 AM sharp.',
+        },
         ...(o.joinUrl ? [{ p: `Zoom link: ${o.joinUrl}` }] : []),
       ],
       cta: o.joinUrl ? { label: 'Join on Zoom', href: o.joinUrl } : { label: 'Open Meetings', href: `${o.siteUrl}/meetings` },
@@ -361,6 +410,89 @@ export function applyInviteEmail(o: { siteUrl: string; firstName: string; link: 
       ],
       cta: { label: 'Open the membership form', href: o.link },
       footer: `You get this email because you visited ${site.name}.`,
+    }),
+  };
+}
+
+export type RecapTalk = { name: string; business?: string | null; topic?: string | null; description?: string | null; video?: string | null };
+export type RecapEvent = { when: string; title: string; href: string; where?: string | null };
+
+/** Sent to every member after a meeting ends: slides, presenters, member events and who's up next. */
+export function meetingRecapEmail(o: {
+  siteUrl: string;
+  firstName: string;
+  meetingTitle: string;
+  slidesHref: string;
+  five?: RecapTalk | null;
+  ten?: RecapTalk | null;
+  events: RecapEvent[];
+  next?: { when: string; five?: string | null; ten?: string | null } | null;
+}): Email {
+  const talk = (eyebrow: string, t: RecapTalk): Block => ({
+    item: {
+      eyebrow,
+      title: t.topic || `Presented by ${t.name}`,
+      lines: [[t.name, t.business].filter(Boolean).join(', '), ...(t.description ? [t.description] : [])],
+      links: t.video ? [['Watch the video', t.video]] : undefined,
+    },
+  });
+  const blocks: Block[] = [
+    {
+      p: 'Thanks for showing up this morning. Every introduction, one-on-one and referral you passed today is the engine behind this group: when one of us grows, we all get more to work with.',
+    },
+    { h: 'Log today’s activity while it’s fresh' },
+    {
+      p: 'Passed a referral or had a one-on-one? Record it on the site. It takes under a minute, and it feeds the leaderboard and group totals we show at each meeting.',
+    },
+    { button: ['Open my dashboard', `${o.siteUrl}/dashboard`] },
+    {
+      links: [
+        ['Report a referral', `${o.siteUrl}/referrals`],
+        ['Report a one-on-one', `${o.siteUrl}/one-on-ones`],
+        ['Help & how-to', `${o.siteUrl}/support`],
+      ],
+    },
+    { h: 'Today’s meeting' },
+    { p: 'Missed something or want another look? The slides are on the site. Presenters’ materials often include extra links and offers.' },
+    { links: [['View today’s slides', o.slidesHref]] },
+  ];
+  if (o.five) blocks.push(talk(slotTitles.education, o.five));
+  if (o.ten) blocks.push(talk(slotTitles.presentation, o.ten));
+  blocks.push({ h: 'Show up for each other' });
+  blocks.push({ p: 'Member events are one of the easiest ways to give back to the group. Pop in, bring a guest, or put your own event on the calendar.' });
+  for (const e of o.events) blocks.push({ item: { eyebrow: e.when, title: e.title, lines: e.where ? [e.where] : [], links: [['Details', e.href]] } });
+  if (!o.events.length) blocks.push({ p: 'No member events are on the calendar for the next two weeks yet.' });
+  blocks.push({
+    links: [
+      ['See all member events', `${o.siteUrl}/events`],
+      ['Post your own event', `${o.siteUrl}/events/new`],
+    ],
+  });
+  blocks.push({ h: 'Is your profile pulling its weight?' });
+  blocks.push({ p: 'Your profile is how members know who to send your way. Keep your services, ideal client, photo and this week’s ask up to date.' });
+  blocks.push({ links: [['Update my profile', `${o.siteUrl}/profile?tab=edit`]] });
+  if (o.next) {
+    blocks.push({ h: 'Next meeting' });
+    blocks.push({
+      list: [
+        ['When', `${o.next.when} PT, on Zoom`],
+        [slotTitles.education, o.next.five ?? 'Open'],
+        [slotTitles.presentation, o.next.ten ?? 'Open'],
+      ],
+    });
+    blocks.push({ p: 'Your Zoom link comes in the meeting-day reminder that morning.' });
+  }
+  blocks.push({ p: 'Go make it a great week. See you next meeting!' });
+  const open = o.next && (!o.next.five || !o.next.ten);
+  return {
+    subject: `Meeting recap: ${o.meetingTitle}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: 'Slides, presenters, member events and who’s up next. Plus: log your referrals while they’re fresh.',
+      heading: `Thanks for coming, ${o.firstName}!`,
+      blocks,
+      cta: open ? { label: 'Claim a presentation slot', href: `${o.siteUrl}/meetings` } : { label: 'Open Meetings', href: `${o.siteUrl}/meetings` },
+      footer: prefsFooter(o.siteUrl),
     }),
   };
 }

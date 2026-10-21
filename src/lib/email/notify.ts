@@ -20,10 +20,7 @@ export async function loadRecipients(ids: string[]): Promise<Map<string, Recipie
   const out = new Map<string, Recipient>();
   const db = createAdminClient();
   if (!db || ids.length === 0) return out;
-  const { data } = await db
-    .from('profiles')
-    .select('id, first_name, last_name, role, status, member_contacts(email)')
-    .in('id', ids);
+  const { data } = await db.from('profiles').select('id, first_name, last_name, role, status, member_contacts(email)').in('id', ids);
   for (const p of data ?? []) {
     const c = p.member_contacts as unknown as { email: string } | { email: string }[] | null;
     const email = Array.isArray(c) ? c[0]?.email : c?.email;
@@ -82,7 +79,10 @@ export async function deliver(o: {
       .single();
     if (error || !claim) return 'duplicate';
     const r = await sendEmail({ to: { email: o.to.email, name: o.to.name }, subject: o.email.subject, html: o.email.html, text: o.email.text, tag: o.kind });
-    await db.from('email_log').update({ status: r.status, error: r.error?.slice(0, 500) ?? null }).eq('id', claim.id);
+    await db
+      .from('email_log')
+      .update({ status: r.status, error: r.error?.slice(0, 500) ?? null })
+      .eq('id', claim.id);
     return r.status;
   } catch (e) {
     console.error('[email] deliver failed', o.kind, e instanceof Error ? e.message : e);

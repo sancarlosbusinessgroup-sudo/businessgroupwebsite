@@ -41,7 +41,13 @@ test.describe('email notifications', () => {
         email,
         password: PASSWORD,
         email_confirm: true,
-        user_metadata: { first_name: 'Olive', last_name: 'Onboard', business_name: 'Onboard Test Co', guest_meetings_attended: '2', agreed_commitments: 'true' },
+        user_metadata: {
+          first_name: 'Olive',
+          last_name: 'Onboard',
+          business_name: 'Onboard Test Co',
+          guest_meetings_attended: '2',
+          agreed_commitments: 'true',
+        },
       }),
     });
     expect(res.ok).toBe(true);
@@ -203,6 +209,56 @@ test.describe('email notifications', () => {
     } finally {
       await rest(`guest_requests?id=eq.${g?.id}`, 'DELETE');
       await rest(`meetings?id=eq.${meetingId}`, 'DELETE');
+    }
+  });
+
+  test('after-meeting job: sends the meeting recap to members once, with presenters and slides; respects the opt-out', async ({ request, page }) => {
+    expect((await request.get('/api/cron/after-meeting')).status()).toBe(401);
+    // A regular meeting on Monday 8 March 2027 (8:15–9:30 AM PST), job run "as of" noon that day.
+    const slug = `recap-test-${Date.now()}`;
+    const [m] = await rest('meetings', 'POST', {
+      slug,
+      title: 'Recap test meeting',
+      category: 'Networking',
+      starts_at: '2027-03-08T16:15:00Z',
+      ends_at: '2027-03-08T17:30:00Z',
+    });
+    const meetingId = m?.id as string;
+    await rest('meeting_speakers', 'POST', {
+      meeting_id: meetingId,
+      slot: 'presentation',
+      display_name: 'Pia Presenter',
+      business: 'Pia Co',
+      topic: 'Growing referrals',
+    });
+    try {
+      // Riley turns the recap off.
+      await login(page, users.member2, undefined, '/profile?tab=edit');
+      const prefs = page.getByRole('form', { name: 'Email notifications' });
+      await prefs.getByLabel(/^Meeting recap after each meeting/).uncheck();
+      await prefs.getByRole('button', { name: 'Save email settings' }).click();
+      await expect(prefs.getByRole('status')).toBeVisible();
+
+      const auth = { authorization: 'Bearer local-cron-secret' };
+      const before = await (await request.get('/api/cron/after-meeting?now=2027-03-08T16:30:00Z', { headers: auth })).json();
+      expect(before.meetingRecaps).toBe(0);
+      const run = await request.get('/api/cron/after-meeting?now=2027-03-08T20:00:00Z', { headers: auth });
+      expect(run.status()).toBe(200);
+      expect((await run.json()).meetingRecaps).toBeGreaterThan(0);
+      const [recap] = await emailsTo(users.member, /^Meeting recap: Recap test meeting/);
+      expect(recap?.htmlContent).toContain(`/present/${slug}"`);
+      expect(recap?.textContent).toContain('Growing referrals');
+      expect(recap?.textContent).toContain('Pia Presenter, Pia Co');
+      expect(await emailsTo(users.member2, /^Meeting recap: Recap test meeting/, 1500)).toHaveLength(0);
+
+      // The next morning's daily job does not send it again.
+      const daily = await (await request.get('/api/cron/daily?now=2027-03-09T15:00:00Z', { headers: auth })).json();
+      expect(daily.meetingRecaps).toBe(0);
+      expect(await emailsTo(users.member, /^Meeting recap: Recap test meeting/)).toHaveLength(1);
+    } finally {
+      await rest(`meetings?id=eq.${meetingId}`, 'DELETE');
+      const [riley] = await rest(`profiles?select=id&first_name=eq.Riley&last_name=eq.Second`, 'GET');
+      if (riley) await rest(`email_preferences?profile_id=eq.${riley.id}`, 'DELETE');
     }
   });
 });

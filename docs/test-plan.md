@@ -291,3 +291,7 @@ All changes fixed test mistakes, not app behaviour. None weakened an assertion.
 
 40. New test: the footer no longer shows "Artwork and images contributed by Vabrato Real Estate & Upendo Ventures" (`phase-a.spec.ts`).
 41. Requirement change: RSVP on the Meetings page is a dropdown with "Can attend" and "Can't attend" instead of an RSVP / ✓ Going button. `member › RSVP toggles and is saved` replaced by `member › RSVP dropdown…` (picks Can attend, checks it is saved and shown after reload, switches to Can't attend, then clears it). New `db/rsvp.test.ts` for migration `20261021000002_rsvp_attending.sql` (answers default to attending, members change only their own answer).
+
+### Meeting recap email (2026-10-21, owner request)
+
+42. New tests: `templates.test.ts` (recap has the slides link, presenters with topic, business and video, member events, next meeting with open slots and the claim button, preferences footer; also reads well with no presenters or events; added to the every-template check); `e2e/phase-c-email.spec.ts › after-meeting job` (refuses callers without the secret, sends nothing before the meeting ends, sends the recap after it ends with slides link and presenter, skips a member who switched it off, and the next morning's daily job does not send it again).

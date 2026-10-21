@@ -172,11 +172,22 @@ export async function onGuestRequest(guestId: string): Promise<void> {
       dedupeKey: g.id,
       pref: 'visitors',
       build: (r) =>
-        T.guestNoticeEmail({ siteUrl: siteUrl(), toFirstName: r.firstName, forAdmins: false, guestName, guestEmail: g.email, business: g.business_name, meeting }),
+        T.guestNoticeEmail({
+          siteUrl: siteUrl(),
+          toFirstName: r.firstName,
+          forAdmins: false,
+          guestName,
+          guestEmail: g.email,
+          business: g.business_name,
+          meeting,
+        }),
     });
   }
   const admins = await loadAdmins();
-  const off = await loadOptOuts(admins.map((a) => a.id), 'visitors');
+  const off = await loadOptOuts(
+    admins.map((a) => a.id),
+    'visitors',
+  );
   for (const a of admins) {
     if (off.has(a.id)) continue;
     await deliver({
