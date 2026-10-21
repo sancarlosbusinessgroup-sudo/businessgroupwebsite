@@ -53,7 +53,7 @@ export function Footer() {
         </div>
         <div className="border-band-line flex flex-wrap justify-between gap-3 border-t pt-5 text-sm">
           <p className="m-0">
-            © {year} {site.shortName} · {site.credit}
+            © {year} {site.shortName}
           </p>
           <div className="flex gap-[18px]">
             <Link href="/bylaws" className="text-on-band-muted">

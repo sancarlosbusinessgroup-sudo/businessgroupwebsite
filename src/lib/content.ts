@@ -9,7 +9,6 @@ export const site = {
   meetingTime: '8:15 AM',
   serviceArea:
     'San Carlos, Redwood City, Belmont, San Mateo, Foster City, Burlingame, Millbrae, Hillsborough, Menlo Park, Atherton, Palo Alto and surrounding communities',
-  credit: 'Artwork and images contributed by Vabrato Real Estate & Upendo Ventures',
 };
 
 export const publicNav = [

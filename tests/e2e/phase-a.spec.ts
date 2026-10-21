@@ -18,6 +18,11 @@ test.describe('public site', () => {
     await expect(page.getByRole('contentinfo')).not.toContainText(/San ?Carlos ?Life/i);
   });
 
+  test('footer has no artwork credit line', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('contentinfo')).not.toContainText('Artwork and images contributed');
+  });
+
   test('About shows the Management list from the database', async ({ page }) => {
     await page.goto('/about');
     const section = page.getByRole('region', { name: 'Management' });
