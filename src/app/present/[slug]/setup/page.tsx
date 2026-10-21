@@ -17,11 +17,15 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
   const meeting = await getMeetingBySlug(slug);
   if (!meeting) notFound();
   const supabase = await createClient();
-  const [{ data }, mediaRes] = await Promise.all([
+  const [{ data }, mediaRes, linksRes] = await Promise.all([
     supabase.from('meeting_slide_settings').select('slides, notes').eq('meeting_id', meeting.id).maybeSingle(),
-    supabase.from('meeting_slide_media').select('id, kind, title, after_slide, page_count').eq('meeting_id', meeting.id).order('sort').order('created_at'),
+    supabase.from('meeting_slide_media').select('id, kind, title, after_slide, page_count, created_at').eq('meeting_id', meeting.id).order('sort').order('created_at'),
+    supabase.from('meeting_slide_links').select('id, title, url, after_slide, created_at').eq('meeting_id', meeting.id).order('created_at'),
   ]);
-  const media = (mediaRes.data ?? []).map((m) => ({ id: m.id, kind: m.kind, title: m.title, afterSlide: m.after_slide, pageCount: m.page_count }));
+  const media = [
+    ...(mediaRes.data ?? []).map((m) => ({ id: m.id, kind: m.kind, title: m.title, afterSlide: m.after_slide, pageCount: m.page_count, at: m.created_at })),
+    ...(linksRes.data ?? []).map((l) => ({ id: l.id, kind: 'link' as const, title: l.title, afterSlide: l.after_slide, pageCount: null, url: l.url, at: l.created_at })),
+  ].sort((a, b) => a.at.localeCompare(b.at));
   const options = SLIDE_KEYS.map((k) => ({ key: k, label: `${slideTime(k) ? `${slideTime(k)} · ` : ''}${slideLabel(k)}` }));
   const shown = resolveSlides(data?.slides);
   const hidden = SLIDE_KEYS.filter((k) => !shown.includes(k));

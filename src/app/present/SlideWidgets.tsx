@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
-// Interactive pieces used inside slides: a speaking timer, a YouTube player and a PDF page.
+// Interactive pieces used inside slides: a speaking timer, a YouTube player, a website and a PDF page.
 // Slides that are not on screen are `hidden`, so each widget only does work once it is visible.
 
 function useVisible<T extends HTMLElement>() {
@@ -20,24 +20,72 @@ function useVisible<T extends HTMLElement>() {
 
 const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-/** Countdown for timed agenda items (infomercials, presentations, questions). "T" starts or pauses the timer on screen. */
-export function SlideTimer({ seconds, label }: { seconds: number; label: string }) {
-  const { ref, visible } = useVisible<HTMLDivElement>();
-  const [left, setLeft] = useState(seconds);
-  const [on, setOn] = useState(false);
-  const running = on && left > 0;
-  const toggle = useCallback(() => {
-    if (left === 0) {
-      setLeft(seconds);
-      setOn(true);
-    } else setOn(!running);
-  }, [left, running, seconds]);
+// --- Shared timers --------------------------------------------------------------------------------
+// Timers are kept per name (e.g. the 5-minute presentation), so the same countdown shows on the
+// presentation slide and on every slide the presenter added after it, and keeps running between them.
 
-  useEffect(() => {
-    if (!running) return;
-    const t = setInterval(() => setLeft((l) => Math.max(0, l - 1)), 1000);
-    return () => clearInterval(t);
-  }, [running]);
+type TimerState = { seconds: number; left: number; on: boolean };
+const timers = new Map<string, TimerState>();
+const listeners = new Set<() => void>();
+let ticker: ReturnType<typeof setInterval> | null = null;
+const emit = () => listeners.forEach((l) => l());
+
+function ensureTicker() {
+  if (ticker) return;
+  ticker = setInterval(() => {
+    let any = false;
+    for (const [id, t] of timers)
+      if (t.on && t.left > 0) {
+        any = true;
+        const left = t.left - 1;
+        timers.set(id, { ...t, left, on: left > 0 });
+      }
+    if (any) emit();
+    else if (ticker && ![...timers.values()].some((t) => t.on)) {
+      clearInterval(ticker);
+      ticker = null;
+    }
+  }, 1000);
+}
+
+function getTimer(id: string, seconds: number): TimerState {
+  let t = timers.get(id);
+  if (!t) {
+    t = { seconds, left: seconds, on: false };
+    timers.set(id, t);
+  }
+  return t;
+}
+
+function useTimer(id: string, seconds: number) {
+  const initial = useMemo(() => ({ seconds, left: seconds, on: false }), [seconds]);
+  const state = useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
+    },
+    () => getTimer(id, seconds),
+    () => initial,
+  );
+  const toggle = useCallback(() => {
+    const t = getTimer(id, seconds);
+    timers.set(id, t.left === 0 ? { ...t, left: t.seconds, on: true } : { ...t, on: !t.on });
+    ensureTicker();
+    emit();
+  }, [id, seconds]);
+  const reset = useCallback(() => {
+    const t = getTimer(id, seconds);
+    timers.set(id, { ...t, left: t.seconds, on: false });
+    emit();
+  }, [id, seconds]);
+  return { left: state.left, running: state.on && state.left > 0, toggle, reset };
+}
+
+/** Countdown for timed agenda items (infomercials, presentations, questions). "T" starts or pauses the timer on screen.
+ *  `id` shares one countdown between slides; `compact` is the small version shown above an added slide. */
+export function SlideTimer({ seconds, label, id, compact = false }: { seconds: number; label: string; id?: string; compact?: boolean }) {
+  const { ref, visible } = useVisible<HTMLDivElement>();
+  const { left, running, toggle, reset } = useTimer(id ?? label, seconds);
 
   useEffect(() => {
     if (!visible) return;
@@ -54,50 +102,104 @@ export function SlideTimer({ seconds, label }: { seconds: number; label: string 
   const done = left === 0;
   const r = 44;
   const c = 2 * Math.PI * r;
+  const ring = (
+    <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden="true">
+      <circle cx="50" cy="50" r={r} fill="none" stroke="#e0f4f4" strokeWidth={compact ? 11 : 7} />
+      <circle
+        cx="50"
+        cy="50"
+        r={r}
+        fill="none"
+        stroke={done ? '#b42318' : '#0c7b74'}
+        strokeWidth={compact ? 11 : 7}
+        strokeLinecap="round"
+        strokeDasharray={c}
+        strokeDashoffset={c * (1 - left / seconds)}
+        style={{ transition: 'stroke-dashoffset 1s linear' }}
+      />
+    </svg>
+  );
+  const time = (
+    <span
+      className={`font-display font-extrabold tabular-nums ${done ? 'text-[#b42318]' : 'text-on-band'} ${compact ? 'text-[1.9cqw]' : 'absolute inset-0 flex items-center justify-center text-[4cqw]'}`}
+      role="timer"
+      aria-live={done ? 'assertive' : 'off'}
+      aria-label={`${label}: ${done ? 'time is up' : `${fmt(left)} left`}`}
+    >
+      {done ? 'Time!' : fmt(left)}
+    </span>
+  );
+  const btn = compact ? 'btn min-h-0 px-[1cqw] py-[0.35cqw] text-[1.1cqw]' : 'btn min-h-0 px-[1.6cqw] py-[0.6cqw] text-[1.35cqw]';
+  const buttons = (
+    <div className="flex gap-[0.6cqw]">
+      <button type="button" onClick={toggle} className={`${btn} btn-primary`}>
+        {running ? 'Pause' : done ? 'Restart' : left === seconds ? (compact ? 'Start' : 'Start timer') : 'Resume'}
+        <span className="sr-only"> ({label})</span>
+      </button>
+      <button type="button" onClick={reset} className={`${btn} btn-outline`} disabled={left === seconds && !running}>
+        Reset<span className="sr-only"> {label}</span>
+      </button>
+    </div>
+  );
+  if (compact)
+    return (
+      <div ref={ref} className="flex items-center gap-[0.9cqw] rounded-full bg-white/95 py-[0.4cqw] pr-[0.6cqw] pl-[0.5cqw] shadow-[0_0.2cqw_0.8cqw_rgba(0,0,0,0.12)]">
+        <span className="relative h-[3.2cqw] w-[3.2cqw]">{ring}</span>
+        {time}
+        {buttons}
+      </div>
+    );
   return (
     <div ref={ref} className="flex flex-col items-center gap-[0.8cqw]">
       <div className="relative h-[15cqw] w-[15cqw]">
-        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden="true">
-          <circle cx="50" cy="50" r={r} fill="none" stroke="#e0f4f4" strokeWidth="7" />
-          <circle
-            cx="50"
-            cy="50"
-            r={r}
-            fill="none"
-            stroke={done ? '#b42318' : '#0c7b74'}
-            strokeWidth="7"
-            strokeLinecap="round"
-            strokeDasharray={c}
-            strokeDashoffset={c * (1 - left / seconds)}
-            style={{ transition: 'stroke-dashoffset 1s linear' }}
+        {ring}
+        {time}
+      </div>
+      {buttons}
+    </div>
+  );
+}
+
+/** A website shown inside the slide. Many sites refuse to be shown inside another page, so it loads only
+ *  when asked, and "Open in a new window" is always there as the fallback. */
+export function WebsiteSlide({ url, title }: { url: string; title: string }) {
+  const [show, setShow] = useState(false);
+  let host = url;
+  try {
+    host = new URL(url).hostname.replace(/^www\./, '');
+  } catch {}
+  const open = () => window.open(url, '_blank', 'noopener,noreferrer');
+  return (
+    <div className="relative h-full w-full overflow-hidden rounded-[1cqw] border border-[#c9eef0] bg-[#f7fdfd]">
+      {show ? (
+        <>
+          <iframe
+            src={url}
+            title={title}
+            className="absolute inset-0 h-full w-full border-0 bg-white"
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
           />
-        </svg>
-        <span
-          className={`font-display absolute inset-0 flex items-center justify-center text-[4cqw] font-extrabold tabular-nums ${done ? 'text-[#b42318]' : 'text-on-band'}`}
-          role="timer"
-          aria-live={done ? 'assertive' : 'off'}
-          aria-label={`${label}: ${done ? 'time is up' : `${fmt(left)} left`}`}
-        >
-          {done ? 'Time!' : fmt(left)}
-        </span>
-      </div>
-      <div className="flex gap-[0.6cqw]">
-        <button type="button" onClick={toggle} className="btn btn-primary min-h-0 px-[1.6cqw] py-[0.6cqw] text-[1.35cqw]">
-          {running ? 'Pause' : done ? 'Restart' : left === seconds ? 'Start timer' : 'Resume'}
-          <span className="sr-only"> ({label})</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setOn(false);
-            setLeft(seconds);
-          }}
-          className="btn btn-outline min-h-0 px-[1.6cqw] py-[0.6cqw] text-[1.35cqw]"
-          disabled={left === seconds && !running}
-        >
-          Reset<span className="sr-only"> {label}</span>
-        </button>
-      </div>
+          <button type="button" onClick={open} className="btn btn-light absolute right-[1cqw] bottom-[1cqw] min-h-0 px-[1.2cqw] py-[0.5cqw] text-[1.2cqw] shadow">
+            Open in a new window<span className="sr-only"> ({title})</span>
+          </button>
+        </>
+      ) : (
+        <div className="flex h-full flex-col items-center justify-center gap-[1.6cqw] p-[3cqw] text-center">
+          <p className="font-display m-0 text-[2.6cqw] font-extrabold text-[#0e7c74]">{title}</p>
+          <p className="m-0 text-[1.6cqw] text-[#355856]">{host}</p>
+          <div className="flex gap-[1.2cqw]">
+            <button type="button" onClick={() => setShow(true)} className="btn btn-primary min-h-0 px-[2cqw] py-[0.8cqw] text-[1.6cqw]">
+              Show the website here<span className="sr-only"> ({title})</span>
+            </button>
+            <button type="button" onClick={open} className="btn btn-outline min-h-0 px-[2cqw] py-[0.8cqw] text-[1.6cqw]">
+              Open in a new window<span className="sr-only"> ({title})</span>
+            </button>
+          </div>
+          <p className="m-0 max-w-[60cqw] text-[1.3cqw] text-[#4f6464]">If the page stays blank, the website doesn’t allow being shown inside other pages. Use “Open in a new window” instead.</p>
+        </div>
+      )}
     </div>
   );
 }

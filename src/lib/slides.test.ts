@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SLIDES, SLIDE_KEYS, chunk, parseYouTube, resolveNotes, resolveSlides, slideLabel, slideTime } from './slides';
+import { DEFAULT_SLIDES, SLIDE_KEYS, chunk, parseWebsite, parseYouTube, resolveNotes, resolveSlides, slideLabel, slideTime } from './slides';
 
 describe('slide settings', () => {
   it('defaults: the owner’s standard deck, in agenda order (Procedures, effective October 19, 2026)', () => {
@@ -87,5 +87,23 @@ describe('parseYouTube', () => {
     expect(parseYouTube('https://www.youtube.com/watch?v=short')).toBeNull();
     expect(parseYouTube('https://evil.example/watch?v=dQw4w9WgXcQ')).toBeNull();
     expect(parseYouTube('not a link at all')).toBeNull();
+  });
+});
+
+describe('parseWebsite', () => {
+  it('accepts https website links (adding https:// when left out) and keeps long tracking links whole', () => {
+    const long =
+      'https://bbemaildelivery.com/bbext/?p=video_land&id=a09a5bf9-a634-4eea-ad4c-2c1d7bf630e0&beid=gm%3A2046e282-0926-44f0-a8a7-1b66fdbd851f&beaddr=viv%40example.com';
+    expect(parseWebsite(long)).toBe(long);
+    expect(parseWebsite('example.com/page')).toBe('https://example.com/page');
+  });
+
+  it('refuses insecure, odd or malformed links', () => {
+    expect(parseWebsite('http://example.com')).toBeNull();
+    expect(parseWebsite('javascript:alert(1)')).toBeNull();
+    expect(parseWebsite('https://user:pass@example.com')).toBeNull();
+    expect(parseWebsite('https://localhost/x')).toBeNull();
+    expect(parseWebsite('not a link')).toBeNull();
+    expect(parseWebsite(`https://example.com/${'a'.repeat(2001)}`)).toBeNull();
   });
 });

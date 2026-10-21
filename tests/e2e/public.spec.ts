@@ -143,6 +143,10 @@ test.describe('data-backed public views', () => {
     await page.getByRole('button', { name: 'Search' }).click();
     await expect(page.getByText('No members match your search')).toBeVisible();
     await page.getByRole('link', { name: 'Clear', exact: true }).click();
+    // Wait for "Clear" to finish loading: the search form is rebuilt then, which would undo a choice made earlier.
+    await expect(page).toHaveURL(/\/members$/);
+    await expect(page.getByText('No members match your search')).toHaveCount(0);
+    await expect(page.getByLabel('Keyword')).toHaveValue('');
     await page.getByLabel('Category').selectOption('Real Estate');
     await page.getByRole('button', { name: 'Search' }).click();
     await expect(page.getByRole('link', { name: 'Avery Lindqvist', exact: true })).toBeVisible();

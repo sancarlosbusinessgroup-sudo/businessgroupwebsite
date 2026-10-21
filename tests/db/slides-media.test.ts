@@ -100,3 +100,34 @@ describe('application form', () => {
     });
   });
 });
+
+describe('website links on slides', () => {
+  it('admins add https links; members read them; members cannot add; visitors see nothing; only https is stored', async () => {
+    const m = await aMeeting();
+    await as(user(ids.admin), async (q) => {
+      await q(`insert into meeting_slide_links (meeting_id, url, after_slide) values ($1, 'https://example.com/video?id=1', 'five_minute')`, [m]);
+    });
+    await expect(
+      as(user(ids.admin), (q) => q(`insert into meeting_slide_links (meeting_id, url, after_slide) values ($1, 'http://example.com', 'five_minute')`, [m])),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      as(user(ids.admin), (q) => q(`insert into meeting_slide_links (meeting_id, url, after_slide) values ($1, 'javascript:alert(1)', 'five_minute')`, [m])),
+    ).rejects.toThrow(/check constraint/);
+    await expect(
+      as(user(ids.member), (q) => q(`insert into meeting_slide_links (meeting_id, url, after_slide) values ($1, 'https://example.com', 'welcome')`, [m])),
+    ).rejects.toThrow(/row-level security/);
+    await withClient(async (c) => {
+      await c.query('begin');
+      try {
+        await c.query(`insert into meeting_slide_links (meeting_id, url, after_slide) values ($1, 'https://example.com', 'welcome')`, [m]);
+        await c.query(`set local role authenticated`);
+        await c.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: ids.member, role: 'authenticated' })]);
+        expect((await c.query(`select * from meeting_slide_links`)).rows.length).toBeGreaterThan(0);
+        expect((await c.query(`delete from meeting_slide_links returning id`)).rows).toHaveLength(0);
+      } finally {
+        await c.query('rollback');
+      }
+    });
+    await expect(as(anon, (q) => q(`select * from meeting_slide_links`))).rejects.toThrow(/permission denied/);
+  });
+});

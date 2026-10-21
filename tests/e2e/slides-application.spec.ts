@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { PASSWORD, db, expectAccessible, login, trackConsole, users } from './support';
 
 // Owner request 2026-10-21: slides follow the new agenda (Procedures effective October 19, 2026), with the logo and
-// the Golden Gate photo, speaking timers, and added slides (image / PDF upload, YouTube); application form updates
+// the Golden Gate photo, speaking timers, and added slides (image / PDF upload, YouTube, websites); application form updates
 // and the "Invite to apply" email.
 
 const BREVO = 'http://127.0.0.1:54327';
@@ -109,7 +109,7 @@ test.describe('meeting slides follow the new agenda', () => {
     expect(errors).toEqual([]);
   });
 
-  test('admins add materials for the 5- and 10-minute presentations; they show right after that presentation', async ({ page }) => {
+  test('admins add materials (PDF, website, YouTube) for the 5- and 10-minute presentations; the presentation timer carries on over them', async ({ page }) => {
     await login(page, users.admin, undefined, '/present/next');
     const deck = page.getByRole('region', { name: 'Meeting slides' });
     await deck.getByRole('link', { name: 'Customize slides' }).click();
@@ -118,34 +118,68 @@ test.describe('meeting slides follow the new agenda', () => {
     await five.getByLabel('Title (optional)').fill('Umbrella insurance deck');
     await five.getByRole('button', { name: 'Add to slides' }).click();
     await expect(five.getByText('PDF added (2 pages).')).toBeVisible();
-    const ten = page.getByRole('form', { name: 'YouTube video for the 10-minute presentation' });
-    await ten.getByLabel('YouTube link').fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    const fiveLink = page.getByRole('form', { name: 'Video or website for the 5-minute presentation' });
+    await fiveLink.getByLabel('YouTube or website link').fill('http://insecure.example.com');
+    await fiveLink.getByRole('button', { name: 'Add link' }).click();
+    await expect(fiveLink.getByText(/Paste a YouTube or website link/)).toBeVisible();
+    const site = 'https://example.com/bbext/?p=video_land&id=a09a5bf9-a634-4eea-ad4c-2c1d7bf630e0&beid=gm%3A2046e282';
+    await fiveLink.getByLabel('YouTube or website link').fill(site);
+    await fiveLink.getByLabel('Title (optional)').fill('Client video page');
+    await fiveLink.getByRole('button', { name: 'Add link' }).click();
+    await expect(page.getByText('Website added.')).toBeVisible();
+    const ten = page.getByRole('form', { name: 'Video or website for the 10-minute presentation' });
+    await ten.getByLabel('YouTube or website link').fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
     await ten.getByLabel('Title (optional)').fill('Client story');
-    await ten.getByRole('button', { name: 'Add video' }).click();
+    await ten.getByRole('button', { name: 'Add link' }).click();
     await expect(page.getByText('Video added.')).toBeVisible();
     await expect(page.getByRole('list', { name: 'Materials for the 5-minute presentation' })).toContainText('Umbrella insurance deck');
+    await expect(page.getByRole('list', { name: 'Materials for the 5-minute presentation' })).toContainText('Client video page');
     await expect(page.getByRole('list', { name: 'Materials for the 10-minute presentation' })).toContainText('Client story');
     await expectAccessible(page);
 
     await page.getByRole('link', { name: 'Open the slides' }).click();
     await goToSlide(deck, page, '5-Minute Educational Presentation');
+    await deck.getByRole('button', { name: /Start timer \(5-minute presentation\)/ }).click();
+    await expect(deck.getByRole('timer', { name: /5-minute presentation/ })).not.toHaveText('5:00', { timeout: 3000 });
+
+    // The same countdown keeps running on top of the presenter's own slides.
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('img', { name: 'Umbrella insurance deck, page 1' })).toBeVisible();
+    const small = deck.getByRole('timer', { name: /5-minute presentation/ });
+    await expect(small).toBeVisible();
+    await expect(small).not.toHaveText('5:00');
+    await deck.getByRole('button', { name: /Pause \(5-minute presentation\)/ }).click();
+    const paused = await small.textContent();
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('img', { name: 'Umbrella insurance deck, page 2' })).toBeVisible();
     await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('heading', { name: 'Client video page' })).toBeVisible();
+    await expect(deck.getByRole('timer', { name: /5-minute presentation/ })).toHaveText(paused ?? '');
+    await expect(deck.locator('iframe')).toHaveCount(0);
+    await expect(deck.getByRole('button', { name: /Open in a new window/ })).toBeVisible();
+    await deck.getByRole('button', { name: /Show the website here/ }).click();
+    await expect(deck.locator(`iframe[src="${site}"]`)).toBeAttached();
+    await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('timer', { name: /1 minute of questions/ })).toBeVisible();
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await expect(deck.getByRole('heading', { name: '5-Minute Educational Presentation' })).toBeVisible();
+    await expect(deck.getByRole('timer', { name: /5-minute presentation/ })).toHaveText(paused ?? '');
+
     await goToSlide(deck, page, '10-Minute Presentation');
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('button', { name: 'Play video: Client story' })).toBeVisible();
+    await expect(deck.getByRole('timer', { name: /10-minute presentation/ })).toHaveText('10:00');
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('timer', { name: /5 minutes of questions/ })).toBeVisible();
 
     await deck.getByRole('link', { name: 'Customize slides' }).click();
-    await page.getByRole('button', { name: 'Remove Umbrella insurance deck' }).click();
-    await expect(page.getByRole('button', { name: 'Remove Umbrella insurance deck' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Remove Client story' }).click();
-    await expect(page.getByRole('button', { name: 'Remove Client story' })).toHaveCount(0);
+    for (const name of ['Umbrella insurance deck', 'Client video page', 'Client story']) {
+      await page.getByRole('button', { name: `Remove ${name}` }).click();
+      await expect(page.getByRole('button', { name: `Remove ${name}` })).toHaveCount(0);
+    }
   });
 
   test('admins add an image, a PDF (one slide per page) and a YouTube video, move and remove them', async ({ page }) => {
@@ -167,13 +201,13 @@ test.describe('meeting slides follow the new agenda', () => {
     await upload.getByRole('button', { name: 'Add to slides' }).click();
     await expect(upload.getByText('PDF added (2 pages).')).toBeVisible();
 
-    const yt = page.getByRole('form', { name: 'Add a YouTube video' });
-    await yt.getByLabel('YouTube link').fill('https://vimeo.com/123');
-    await yt.getByRole('button', { name: 'Add video' }).click();
-    await expect(yt.getByText(/Paste a YouTube video link/)).toBeVisible();
-    await yt.getByLabel('YouTube link').fill('https://youtu.be/dQw4w9WgXcQ?t=30');
+    const yt = page.getByRole('form', { name: 'Add a YouTube video or website' });
+    await yt.getByLabel('YouTube or website link').fill('not a link');
+    await yt.getByRole('button', { name: 'Add link' }).click();
+    await expect(yt.getByText(/Paste a YouTube or website link/)).toBeVisible();
+    await yt.getByLabel('YouTube or website link').fill('https://youtu.be/dQw4w9WgXcQ?t=30');
     await yt.getByLabel('Title (optional)').fill('Member testimonial');
-    await page.getByRole('form', { name: 'Add a YouTube video' }).getByRole('button', { name: 'Add video' }).click();
+    await page.getByRole('form', { name: 'Add a YouTube video or website' }).getByRole('button', { name: 'Add link' }).click();
     await expect(page.getByText('Video added.')).toBeVisible();
     const list = page.getByRole('list', { name: 'Added slides list' });
     await expect(list.getByRole('listitem')).toHaveCount(3);

@@ -372,6 +372,20 @@ export type Database = {
           { foreignKeyName: 'member_events_host_id_fkey'; columns: ['host_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
         ];
       };
+      meeting_slide_links: {
+        Row: { id: string; meeting_id: string; url: string; title: string | null; after_slide: string; sort: number; created_by: string | null; created_at: string };
+        Insert: { id?: string; meeting_id: string; url: string; title?: string | null; after_slide: string; sort?: number; created_by?: string | null; created_at?: string };
+        Update: { title?: string | null; after_slide?: string; sort?: number };
+        Relationships: [
+          {
+            foreignKeyName: 'meeting_slide_links_meeting_id_fkey';
+            columns: ['meeting_id'];
+            isOneToOne: false;
+            referencedRelation: 'meetings';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       meeting_slide_media: {
         Row: {
           id: string;

@@ -140,3 +140,17 @@ export function parseYouTube(input: string): { id: string; start: number } | nul
   }
   return { id, start: Number.isFinite(start) && start > 0 ? Math.min(start, 86_400) : 0 };
 }
+
+/** A website link that can be shown inside a slide: https only, no spaces, at most 2000 characters. */
+export function parseWebsite(input: string): string | null {
+  const v = input.trim();
+  if (!v || v.length > 2000 || /\s/.test(v)) return null;
+  let url: URL;
+  try {
+    url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(v) ? v : `https://${v}`);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'https:' || !url.hostname.includes('.') || url.username || url.password) return null;
+  return url.toString();
+}

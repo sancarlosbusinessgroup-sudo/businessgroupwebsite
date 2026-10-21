@@ -8,7 +8,7 @@ import { env, mediaUrl } from '@/lib/env';
 import { procedures } from '@/lib/governance';
 import { chunk, slideLabel, slideTime, type SlideKey } from '@/lib/slides';
 import type { DeckSlide } from './Deck';
-import { PdfPageSlide, SlideTimer, YouTubeSlide } from './SlideWidgets';
+import { PdfPageSlide, SlideTimer, WebsiteSlide, YouTubeSlide } from './SlideWidgets';
 
 // Meeting slides in the style of the group's printed Bylaws: white pages, the logo lockup top left, a grey
 // "card" for the agenda time, chevron bullets and the Golden Gate photo along the foot.
@@ -198,7 +198,14 @@ const Chip = ({ children }: { children: ReactNode }) => (
 );
 
 function MediaPage({ ctx, m, page }: { ctx: Ctx; m: SlideMedia; page?: number }) {
-  const title = m.title || (m.kind === 'youtube' ? 'Video' : m.kind === 'pdf' ? 'Presentation' : 'Slide');
+  const title = m.title || (m.kind === 'youtube' ? 'Video' : m.kind === 'pdf' ? 'Presentation' : m.kind === 'link' ? 'Website' : 'Slide');
+  // A presenter's own slides keep that presentation's timer on top (same countdown as the presentation slide).
+  const timer =
+    m.afterSlide === 'five_minute' ? (
+      <SlideTimer id="five_minute" seconds={300} label="5-minute presentation" compact />
+    ) : m.afterSlide === 'ten_minute' ? (
+      <SlideTimer id="ten_minute" seconds={600} label="10-minute presentation" compact />
+    ) : null;
   return (
     <div className="relative flex h-full flex-col bg-white">
       <header className="flex items-center justify-between gap-[2cqw] px-[3cqw] pt-[1.8cqw] pb-[1.2cqw]">
@@ -207,12 +214,17 @@ function MediaPage({ ctx, m, page }: { ctx: Ctx; m: SlideMedia; page?: number })
           {title}
           {m.kind === 'pdf' && m.pageCount > 1 ? <span className="text-on-band-muted font-semibold"> · page {page} of {m.pageCount}</span> : null}
         </h2>
-        <span className="text-[1.2cqw] font-semibold text-[#0e5a55] tabular-nums">
-          {ctx.n} / {ctx.total}
+        <span className="flex flex-none items-center gap-[1.4cqw]">
+          {timer}
+          <span className="text-[1.2cqw] font-semibold text-[#0e5a55] tabular-nums">
+            {ctx.n} / {ctx.total}
+          </span>
         </span>
       </header>
       <div className="relative min-h-0 flex-1 px-[3cqw] pb-[2.4cqw]">
-        {m.kind === 'youtube' && m.youtubeId ? (
+        {m.kind === 'link' && m.url ? (
+          <WebsiteSlide url={m.url} title={title} />
+        ) : m.kind === 'youtube' && m.youtubeId ? (
           <YouTubeSlide id={m.youtubeId} start={m.start} title={title} />
         ) : !m.url ? (
           <div className="flex h-full items-center justify-center">
@@ -241,7 +253,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
 
   const addMedia = (after: string) => {
     for (const m of d.media.filter((x) => x.afterSlide === after)) {
-      const label = m.title || (m.kind === 'youtube' ? 'Video' : m.kind === 'pdf' ? 'Presentation' : 'Added slide');
+      const label = m.title || (m.kind === 'youtube' ? 'Video' : m.kind === 'pdf' ? 'Presentation' : m.kind === 'link' ? 'Website' : 'Added slide');
       if (m.kind === 'pdf')
         for (let p = 1; p <= m.pageCount; p++)
           specs.push({ id: `media-${m.id}-${p}`, label: `${label}, page ${p}`, render: (ctx) => <MediaPage ctx={ctx} m={m} page={p} /> });
@@ -496,7 +508,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'five_minute':
         page(key, {
           title: '5-Minute Educational Presentation',
-          aside: <SlideTimer seconds={300} label="5-minute presentation" />,
+          aside: <SlideTimer id="five_minute" seconds={300} label="5-minute presentation" />,
           body: (
             <>
               <TopicTitle s={d.five} />
@@ -515,7 +527,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'ten_minute':
         page(key, {
           title: '10-Minute Presentation',
-          aside: <SlideTimer seconds={600} label="10-minute presentation" />,
+          aside: <SlideTimer id="ten_minute" seconds={600} label="10-minute presentation" />,
           body: (
             <>
               <TopicTitle s={d.ten} />

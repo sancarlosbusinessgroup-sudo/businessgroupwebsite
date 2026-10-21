@@ -13,13 +13,14 @@ export type SpeakerCard = Speaker & { avatar_path: string | null };
 
 export type SlideMedia = {
   id: string;
-  kind: 'image' | 'pdf' | 'youtube';
+  kind: 'image' | 'pdf' | 'youtube' | 'link';
   title: string | null;
   url: string | null;
   youtubeId: string | null;
   start: number;
   pageCount: number;
   afterSlide: string;
+  createdAt: string;
 };
 
 export type DeckData = {
@@ -52,7 +53,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
   const supabase = await createClient();
   const start = meeting.starts_at;
 
-  const [settingsRes, prevRes, countRes, nextRes, mediaRes] = await Promise.all([
+  const [settingsRes, prevRes, countRes, nextRes, mediaRes, linksRes] = await Promise.all([
     supabase.from('meeting_slide_settings').select('slides, notes').eq('meeting_id', meeting.id).maybeSingle(),
     supabase
       .from('meetings')
@@ -73,6 +74,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
       .limit(1)
       .maybeSingle(),
     supabase.from('meeting_slide_media').select('*').eq('meeting_id', meeting.id).order('sort').order('created_at'),
+    supabase.from('meeting_slide_links').select('*').eq('meeting_id', meeting.id).order('sort').order('created_at'),
   ]);
   if (settingsRes.error || prevRes.error || countRes.error || nextRes.error) fail('the slides', settingsRes.error ?? prevRes.error ?? countRes.error);
 
@@ -128,7 +130,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     const { data } = await supabase.storage.from('slide-media').createSignedUrls(paths, 3 * 3600);
     for (const d of data ?? []) if (d.path && d.signedUrl) signed.set(d.path, d.signedUrl);
   }
-  const media: SlideMedia[] = mediaRows.map((m) => ({
+  const fileMedia: SlideMedia[] = mediaRows.map((m) => ({
     id: m.id,
     kind: m.kind,
     title: m.title,
@@ -137,7 +139,21 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     start: m.start_seconds,
     pageCount: m.page_count ?? 1,
     afterSlide: m.after_slide,
+    createdAt: m.created_at,
   }));
+  const linkMedia: SlideMedia[] = (linksRes.error ? [] : (linksRes.data ?? [])).map((l) => ({
+    id: l.id,
+    kind: 'link' as const,
+    title: l.title,
+    url: l.url,
+    youtubeId: null,
+    start: 0,
+    pageCount: 1,
+    afterSlide: l.after_slide,
+    createdAt: l.created_at,
+  }));
+  // Files, videos and links in the order they were added.
+  const media = [...fileMedia, ...linkMedia].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
   return {
     meeting,
