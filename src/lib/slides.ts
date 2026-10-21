@@ -22,15 +22,32 @@ export const SLIDE_KEYS = [
 ] as const;
 export type SlideKey = (typeof SLIDE_KEYS)[number];
 
-export const DEFAULT_SLIDES: SlideKey[] = [...SLIDE_KEYS];
+/** Standard deck (owner's order, 2026-10-21). "Today's agenda", "This week we're looking for…" and
+ *  "Thank you, visitors" stay available: tick them on the Customize slides page to add them to a meeting. */
+export const DEFAULT_SLIDES: SlideKey[] = [
+  'welcome',
+  'networking',
+  'call_to_order',
+  'leadership',
+  'guests',
+  'infomercials',
+  'statistics',
+  'leaderboards',
+  'five_minute',
+  'five_qa',
+  'ten_minute',
+  'ten_qa',
+  'announcements',
+  'adjourn',
+];
 
 type SlideInfo = { label: string; time?: string };
 const info: Record<SlideKey, SlideInfo> = {
-  welcome: { label: 'Welcome' },
+  welcome: { label: 'Logo' },
   agenda: { label: 'Today’s agenda' },
-  networking: { label: 'Open networking', time: '8:15' },
-  call_to_order: { label: 'Meeting called to order', time: '8:30' },
-  leadership: { label: 'Introduction of the leadership team', time: '8:31' },
+  networking: { label: 'Welcome (open networking)', time: '8:15' },
+  call_to_order: { label: 'Let’s begin (meeting called to order)', time: '8:30' },
+  leadership: { label: 'Meet the Management Team', time: '8:31' },
   guests: { label: 'Introduction of guests', time: '8:32' },
   infomercials: { label: '60-second infomercials', time: '8:33' },
   asks: { label: 'This week we’re looking for…', time: '8:33' },

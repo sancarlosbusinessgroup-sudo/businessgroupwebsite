@@ -2,16 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_SLIDES, SLIDE_KEYS, chunk, parseYouTube, resolveNotes, resolveSlides, slideLabel, slideTime } from './slides';
 
 describe('slide settings', () => {
-  it('defaults follow the official agenda (Procedures, effective October 19, 2026)', () => {
+  it('defaults: the owner’s standard deck, in agenda order (Procedures, effective October 19, 2026)', () => {
     expect(DEFAULT_SLIDES).toEqual([
       'welcome',
-      'agenda',
       'networking',
       'call_to_order',
       'leadership',
       'guests',
       'infomercials',
-      'asks',
       'statistics',
       'leaderboards',
       'five_minute',
@@ -19,9 +17,13 @@ describe('slide settings', () => {
       'ten_minute',
       'ten_qa',
       'announcements',
-      'visitors_thanks',
       'adjourn',
     ]);
+    // Still available to add per meeting, but not in the standard deck (owner, 2026-10-21).
+    for (const k of ['agenda', 'asks', 'visitors_thanks'] as const) {
+      expect(SLIDE_KEYS).toContain(k);
+      expect(DEFAULT_SLIDES).not.toContain(k);
+    }
     expect([slideTime('networking'), slideTime('call_to_order'), slideTime('infomercials'), slideTime('five_qa'), slideTime('ten_minute'), slideTime('adjourn')]).toEqual([
       '8:15',
       '8:30',

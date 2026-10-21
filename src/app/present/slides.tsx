@@ -1,18 +1,17 @@
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { initials } from '@/components/ui';
-import { leaderboardMetrics, site, slotDescriptions } from '@/lib/content';
+import { leaderboardMetrics, site } from '@/lib/content';
 import type { DeckData, SlideMedia, SpeakerCard } from '@/lib/data/slides';
 import { formatMeetingDate, formatMeetingTime, formatMoney } from '@/lib/dates';
 import { env, mediaUrl } from '@/lib/env';
-import { procedures, purpose } from '@/lib/governance';
-import { groupLeadership } from '@/lib/leadership';
+import { procedures } from '@/lib/governance';
 import { chunk, slideLabel, slideTime, type SlideKey } from '@/lib/slides';
 import type { DeckSlide } from './Deck';
 import { PdfPageSlide, SlideTimer, YouTubeSlide } from './SlideWidgets';
 
 // Meeting slides in the style of the group's printed Bylaws: white pages, the logo lockup top left, a grey
-// "card" for the agenda time, teal section bands, chevron bullets and the Golden Gate photo along the foot.
+// "card" for the agenda time, chevron bullets and the Golden Gate photo along the foot.
 // Sizes use container units (cqw) so everything scales with the 16:9 stage on a shared screen.
 
 const BRIDGE = '/images/hero-bridge.jpg';
@@ -54,14 +53,6 @@ const Bullets = ({ items, size = 2.3 }: { items: ReactNode[]; size?: number }) =
   </ul>
 );
 
-/** Teal band with spaced capitals, as in the printed forms. */
-const Band = ({ children }: { children: ReactNode }) => (
-  <p className="m-0 flex self-start overflow-hidden rounded-r-[0.5cqw] text-[1.45cqw] font-bold tracking-[0.3em] text-white uppercase">
-    <span className="w-[0.8cqw] bg-[#455a64]" aria-hidden="true" />
-    <span className="bg-[#0e7c74] py-[0.7cqw] pr-[2.4cqw] pl-[1.6cqw]">{children}</span>
-  </p>
-);
-
 const Lead = ({ children }: { children: ReactNode }) => <p className="text-on-band-muted m-0 max-w-[70cqw] text-[2.3cqw] leading-snug">{children}</p>;
 
 type Ctx = { n: number; total: number; date: string; meetingNo: number };
@@ -70,15 +61,15 @@ type Ctx = { n: number; total: number; date: string; meetingNo: number };
 function Page({
   ctx,
   time,
-  band,
   title,
+  hideTitle,
   children,
   aside,
 }: {
   ctx: Ctx;
   time: string | null;
-  band?: string;
   title: string;
+  hideTitle?: boolean;
   children?: ReactNode;
   aside?: ReactNode;
 }) {
@@ -98,8 +89,7 @@ function Page({
       </header>
       <div className="relative flex min-h-0 flex-1 gap-[3.5cqw] px-[4.5cqw] pt-[2.2cqw] pb-[7cqw]">
         <div className="flex min-w-0 flex-1 flex-col gap-[1.8cqw]">
-          {band ? <Band>{band}</Band> : null}
-          <h2 className="font-display text-on-band m-0 text-[4.2cqw] leading-[1.05] font-extrabold tracking-[-0.01em]">{title}</h2>
+          <h2 className={hideTitle ? 'sr-only' : 'font-display text-on-band m-0 text-[4.2cqw] leading-[1.05] font-extrabold tracking-[-0.01em]'}>{title}</h2>
           {children}
         </div>
         {aside ? <div className="flex flex-none flex-col items-center justify-center">{aside}</div> : null}
@@ -164,7 +154,6 @@ function Speaker({ s, fallback }: { s: SpeakerCard | null; fallback: string }) {
       <div className="flex min-w-0 flex-col gap-[0.8cqw]">
         <p className="font-display text-on-band m-0 text-[3.4cqw] leading-tight font-extrabold">{s.display_name}</p>
         {s.business ? <p className="m-0 text-[2.1cqw] font-semibold text-[#0c7b74]">{s.business}</p> : null}
-        {s.topic ? <p className="m-0 mt-[1cqw] text-[2.6cqw] leading-tight text-[#1c3b3a] italic">“{s.topic}”</p> : null}
         {s.topic_description ? <p className="text-on-band-muted m-0 text-[1.8cqw] leading-snug">{s.topic_description}</p> : null}
       </div>
     </div>
@@ -178,6 +167,13 @@ function Note({ text }: { text: string }) {
     </p>
   );
 }
+
+/** The presentation's title, large, in place of the slot description. */
+const TopicTitle = ({ s }: { s: SpeakerCard | null }) => (
+  <p className="font-display m-0 max-w-[68cqw] text-[3cqw] leading-tight font-bold text-[#1c3b3a]">
+    {s?.topic ? `“${s.topic}”` : s ? 'Presentation title to be announced' : ''}
+  </p>
+);
 
 const Chip = ({ children }: { children: ReactNode }) => (
   <li className="rounded-full border border-[#c9eef0] bg-[#effbfc] px-[1.5cqw] py-[0.5cqw] text-[1.8cqw] font-semibold text-[#0c5f5a]">{children}</li>
@@ -239,11 +235,11 @@ export function buildSlides(d: DeckData): DeckSlide[] {
     specs.push({ id: key + (suffix ? `-${suffix}` : ''), label: slideLabel(key) + (suffix ? ` (${suffix})` : ''), render });
 
   /** Standard page with the slide's agenda time and any extra text the admins added. */
-  const page = (key: SlideKey, o: { band?: string; title?: string; body: ReactNode; aside?: ReactNode }, suffix = '') =>
+  const page = (key: SlideKey, o: { title?: string; hideTitle?: boolean; body: ReactNode; aside?: ReactNode }, suffix = '') =>
     add(
       key,
       (ctx) => (
-        <Page ctx={ctx} time={slideTime(key)} band={o.band} title={o.title ?? slideLabel(key)} aside={o.aside}>
+        <Page ctx={ctx} time={slideTime(key)} title={o.title ?? slideLabel(key)} hideTitle={o.hideTitle} aside={o.aside}>
           {o.body}
           {d.notes[key] ? <Note text={d.notes[key]} /> : null}
         </Page>
@@ -251,24 +247,27 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       suffix,
     );
 
-  const team = groupLeadership(d.leadership);
 
   for (const key of d.slides) {
     switch (key) {
       case 'welcome':
         add(key, (ctx) => (
-          <Hero ctx={ctx} kicker={`Meeting #${d.number}`} title={`Welcome to ${site.name}`}>
-            <p className="m-0 text-[2.4cqw] text-[#1c3b3a]">
-              {date} · {formatMeetingTime(start)} PT
+          <div className="relative h-full overflow-hidden bg-white">
+            <Image src={BRIDGE} alt="" fill sizes="100vw" priority className="object-cover object-[60%_55%] opacity-35" />
+            <span className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-white/40" aria-hidden="true" />
+            <span className="absolute inset-x-0 bottom-0 h-[0.9cqw] bg-gradient-to-r from-[#0e7c74] via-[#12a89d] to-[#00c2cb]" aria-hidden="true" />
+            <div className="relative flex h-full items-center justify-center">
+              <h2 className="sr-only">Welcome to {site.name}</h2>
+              <Lockup size={2.9} />
+            </div>
+            <p className="absolute right-[3cqw] bottom-[2cqw] m-0 text-[1.25cqw] font-semibold text-[#0e5a55]">
+              {ctx.n} / {ctx.total}
             </p>
-            <p className="font-display m-0 text-[2.2cqw] font-bold text-[#0c7b74]">A system for business growth.</p>
-            {d.notes.welcome ? <Note text={d.notes.welcome} /> : null}
-          </Hero>
+          </div>
         ));
         break;
       case 'agenda':
         page(key, {
-          band: 'Meeting agenda',
           title: 'Today’s agenda',
           body: (
             <ol className="m-0 grid list-none grid-flow-col grid-rows-7 gap-x-[4cqw] gap-y-[0.7cqw] p-0">
@@ -288,11 +287,9 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       case 'networking':
         page(key, {
-          band: 'Welcome in',
-          title: 'Open Networking',
+          title: 'Welcome',
           body: (
             <>
-              <Lead>A chance to chat, check your tech and warm up for the day, especially helpful on Zoom.</Lead>
               <Bullets items={['Say hello to someone you haven’t met yet.', 'Camera on, name and business in your Zoom name.', 'We call the meeting to order at 8:30 AM sharp.']} />
             </>
           ),
@@ -300,11 +297,9 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       case 'call_to_order':
         page(key, {
-          band: 'Meeting called to order',
-          title: 'Welcome. Let’s begin.',
+          title: 'Let’s begin.',
           body: (
             <>
-              <p className="m-0 max-w-[72cqw] border-l-[0.5cqw] border-[#12a89d] pl-[1.6cqw] text-[2.1cqw] leading-snug text-[#1c3b3a] italic">{purpose}</p>
               <Bullets
                 items={[
                   'Please turn off or silence all cellphones and other devices.',
@@ -317,111 +312,41 @@ export function buildSlides(d: DeckData): DeckSlide[] {
           ),
         });
         break;
-      case 'leadership':
+      case 'leadership': {
+        // Everyone on the Management list once, all cards the same: photo, then name and role below.
+        const people = d.leadership;
+        const cols = people.length > 10 ? 6 : 5;
+        const photo = people.length > 12 ? 6.5 : people.length > 10 ? 7.5 : 8.6;
         page(key, {
-          band: 'Leadership & responsibilities',
-          title: 'Meet the leadership team',
+          title: 'Meet the Management Team',
           body: (
-            <div className="flex flex-col gap-[1.6cqw]">
-              <ul className="m-0 grid list-none grid-cols-3 gap-[1.2cqw] p-0">
-                {team.leaders.slice(0, 6).map((l) => (
-                  <li key={l.id} className="flex items-center gap-[1.2cqw]">
-                    <Face name={l.name} path={l.photo} size={7} square />
-                    <span className="flex min-w-0 flex-col">
-                      <span className="font-display text-[1.9cqw] leading-tight font-extrabold text-[#0e7c74]">{l.name}</span>
-                      <span className="text-[1.55cqw] leading-tight font-semibold text-[#1c3b3a]">{l.title}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <div className="flex gap-[4cqw]">
-                {[
-                  { t: 'Membership Committee', p: team.committee },
-                  { t: 'Attendance Managers', p: team.attendance },
-                ]
-                  .filter((g) => g.p.length)
-                  .map((g) => (
-                    <div key={g.t} className="flex flex-col gap-[0.6cqw]">
-                      <p className="m-0 text-[1.5cqw] font-bold tracking-[0.12em] text-[#0e7c74] uppercase">{g.t}</p>
-                      <ul className="m-0 flex list-none gap-[1.2cqw] p-0">
-                        {g.p.map((l) => (
-                          <li key={l.id} className="flex flex-col items-center gap-[0.3cqw] text-[1.4cqw] font-semibold text-[#1c3b3a]">
-                            <Face name={l.name} path={l.photo} size={5.2} square />
-                            {l.name.split(' ')[0]}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-              </div>
-            </div>
+            <ul className="m-0 grid list-none content-start gap-x-[1.6cqw] gap-y-[1.4cqw] p-0" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+              {people.map((l) => (
+                <li key={l.id} className="flex flex-col items-center gap-[0.5cqw] text-center">
+                  <Face name={l.name} path={l.photo} size={photo} square />
+                  <span className="font-display text-[1.6cqw] leading-tight font-extrabold text-[#0e7c74]">{l.name}</span>
+                  <span className="text-[1.3cqw] leading-tight font-semibold text-[#1c3b3a]">{l.role}</span>
+                </li>
+              ))}
+            </ul>
           ),
         });
         break;
+      }
       case 'guests':
-        page(key, {
-          band: 'Please welcome',
-          title: 'Introduction of guests',
-          body: (
-            <div className="grid flex-1 grid-cols-[3fr_2fr] gap-[4cqw]">
-              <div className="flex flex-col gap-[1cqw]">
-                <p className="m-0 text-[1.6cqw] font-bold tracking-[0.12em] text-[#0e7c74] uppercase">Today’s visitors</p>
-                {d.visitors.length ? (
-                  <ul className="m-0 flex list-none flex-col gap-[0.9cqw] p-0">
-                    {d.visitors.slice(0, 7).map((v, n) => (
-                      <li key={`${v.display_name}${n}`} className="flex items-center gap-[1.2cqw]">
-                        <span className="font-display flex h-[4.4cqw] w-[4.4cqw] flex-none items-center justify-center rounded-full bg-[#e0f4f4] text-[1.6cqw] font-extrabold text-[#0c7b74]">
-                          {initials(v.display_name)}
-                        </span>
-                        <span className="flex flex-col leading-tight">
-                          <strong className="text-[2.1cqw] text-[#1c3b3a]">
-                            {v.display_name}
-                            {v.business_name ? <span className="font-semibold text-[#355856]"> · {v.business_name}</span> : null}
-                          </strong>
-                          {v.invited_by ? <span className="text-[1.6cqw] text-[#0c7b74]">Guest of {v.invited_by}</span> : null}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <Muted>Visitors who registered will appear here. Welcome, everyone!</Muted>
-                )}
-              </div>
-              <div className="flex flex-col gap-[1cqw]">
-                <p className="m-0 text-[1.6cqw] font-bold tracking-[0.12em] text-[#0e7c74] uppercase">New members</p>
-                {d.newMembers.length ? (
-                  <ul className="m-0 flex list-none flex-col gap-[0.7cqw] p-0 text-[2cqw]">
-                    {d.newMembers.slice(0, 6).map((m) => (
-                      <li key={`${m.first_name}${m.last_name}`}>
-                        <strong className="text-[#1c3b3a]">
-                          {m.first_name} {m.last_name}
-                        </strong>
-                        <span className="text-on-band-muted block text-[1.6cqw]">{m.business_name}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <Muted>No new members since the last meeting.</Muted>
-                )}
-              </div>
-            </div>
-          ),
-        });
+        page(key, { title: 'Introduction of Guests', body: null });
         break;
       case 'infomercials':
         page(key, {
-          band: 'Roundtable',
           title: '60-second infomercials',
+          hideTitle: true,
           aside: <SlideTimer seconds={60} label="60-second infomercial" />,
           body: (
             <>
               <Lead>{procedures.definitions.find((x) => x.term === 'Infomercial')?.text}</Lead>
-              <p className="m-0 text-[1.6cqw] font-bold tracking-[0.12em] text-[#0e7c74] uppercase">Then share your</p>
-              <ul className="m-0 flex max-w-[62cqw] list-none flex-wrap gap-[0.9cqw] p-0">
-                {['Referrals', 'One-to-ones', 'Closed business', 'Thank-yous', 'Testimonials', 'Leads', 'Announcements'].map((c) => (
-                  <Chip key={c}>{c}</Chip>
-                ))}
-              </ul>
+              <div className="columns-2 gap-[3cqw] [&_li]:break-inside-avoid">
+                <Bullets items={['Referrals', 'One-to-ones', 'Closed business', 'Thank-yous', 'Testimonials', 'Leads', 'Announcements']} size={2.5} />
+              </div>
             </>
           ),
         });
@@ -429,12 +354,11 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'asks': {
         const pages = chunk(d.asks, 6);
         if (!pages.length)
-          page(key, { band: 'Weekly specific asks', body: <Lead>Add your ask on your dashboard and it will appear here.</Lead> });
+          page(key, { body: <Lead>Add your ask on your dashboard and it will appear here.</Lead> });
         pages.forEach((p, i) =>
           page(
             key,
             {
-              band: `Weekly specific asks${pages.length > 1 ? ` · ${i + 1} of ${pages.length}` : ''}`,
               body: (
                 <ul className="m-0 grid list-none grid-cols-2 content-start gap-[1.4cqw] p-0">
                   {p.map((a) => (
@@ -456,7 +380,6 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'statistics': {
         const cycle = d.totals[0]?.t;
         page(key, {
-          band: 'Statistics info',
           title: 'Our numbers',
           body: (
             <>
@@ -511,7 +434,6 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       }
       case 'leaderboards':
         page(key, {
-          band: 'This month',
           title: 'Leaderboards',
           body: (
             <div className="grid grid-cols-4 gap-[1.6cqw]">
@@ -544,12 +466,11 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       case 'five_minute':
         page(key, {
-          band: '5-minute educational presentation',
-          title: 'Member education',
+          title: '5-Minute Educational Presentation',
           aside: <SlideTimer seconds={300} label="5-minute presentation" />,
           body: (
             <>
-              <Lead>{slotDescriptions.education}</Lead>
+              <TopicTitle s={d.five} />
               <Speaker s={d.five} fallback="This slot is open today." />
             </>
           ),
@@ -557,7 +478,6 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       case 'five_qa':
         page(key, {
-          band: 'Questions',
           title: d.five ? `Questions for ${d.five.display_name.split(' ')[0]}` : 'Questions',
           aside: <SlideTimer seconds={60} label="1 minute of questions" />,
           body: <Lead>One minute of questions for the 5-minute presentation. Keep them short so everyone gets a turn.</Lead>,
@@ -565,12 +485,11 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       case 'ten_minute':
         page(key, {
-          band: '10-minute presentation',
-          title: 'Member spotlight',
+          title: '10-Minute Presentation',
           aside: <SlideTimer seconds={600} label="10-minute presentation" />,
           body: (
             <>
-              <Lead>{slotDescriptions.presentation}</Lead>
+              <TopicTitle s={d.ten} />
               <Speaker s={d.ten} fallback="This slot is open today." />
             </>
           ),
@@ -578,7 +497,6 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       case 'ten_qa':
         page(key, {
-          band: 'Questions',
           title: d.ten ? `Questions for ${d.ten.display_name.split(' ')[0]}` : 'Questions',
           aside: <SlideTimer seconds={300} label="5 minutes of questions" />,
           body: (
@@ -591,7 +509,6 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       case 'announcements':
         page(key, {
-          band: 'Announcements',
           title: 'Upcoming events & announcements',
           body: d.events.length ? (
             <ul className="m-0 grid list-none grid-cols-2 content-start gap-[1.3cqw] p-0">
@@ -620,7 +537,6 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       case 'visitors_thanks':
         page(key, {
-          band: 'Thank you, visitors',
           title: 'Thank you for visiting. We will contact you.',
           body: (
             <>

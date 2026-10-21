@@ -122,8 +122,11 @@ test.describe('cancelled meetings and slides', () => {
     const deck = page.getByRole('region', { name: 'Meeting slides' });
     const stage = deck.locator('[aria-roledescription="slide"]');
     expect(await stage.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(255, 255, 255)');
-    const title = deck.getByRole('heading', { name: /Welcome to Bay Area Referral Partners/ });
+    // Slide 1 is now just the logo (owner, 2026-10-21), so check the title colour on slide 2.
+    await page.keyboard.press('ArrowRight');
+    const title = deck.getByRole('heading', { name: 'Welcome', exact: true });
     expect(await title.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(0, 128, 128)');
+    await page.keyboard.press('Home');
 
     const seen: string[] = [];
     for (let i = 0; i < 20; i++) {
@@ -131,8 +134,8 @@ test.describe('cancelled meetings and slides', () => {
       await page.keyboard.press('ArrowRight');
     }
     for (const s of [
-      'Open networking',
-      'Introduction of the leadership team',
+      'Welcome (open networking)',
+      'Meet the Management Team',
       '60-second infomercials',
       'Statistics',
       '5-minute educational presentation',
@@ -147,7 +150,7 @@ test.describe('cancelled meetings and slides', () => {
     await expect(page.getByText('Slides saved.')).toBeVisible();
     await page.getByRole('link', { name: 'Open the slides' }).click();
     for (let i = 0; i < 20; i++) {
-      if (await deck.getByRole('heading', { name: '60-second infomercials' }).isVisible()) break;
+      if (await deck.getByText(/Tells who you are, describes your business/).isVisible()) break;
       await page.keyboard.press('ArrowRight');
     }
     await expect(deck.getByText('Shout-out: welcome back, Jeanie!')).toBeVisible();

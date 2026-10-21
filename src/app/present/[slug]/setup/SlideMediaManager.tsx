@@ -27,7 +27,7 @@ function AfterSelect({ name, options, defaultValue, id, error }: { name: string;
   );
 }
 
-function UploadForm({ meetingId, options }: { meetingId: string; options: Option[] }) {
+function UploadForm({ meetingId, options, fixedAfter, name = 'Upload an image or PDF' }: { meetingId: string; options: Option[]; fixedAfter?: string; name?: string }) {
   const router = useRouter();
   const fileId = useId();
   const [msg, setMsg] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(null);
@@ -78,8 +78,8 @@ function UploadForm({ meetingId, options }: { meetingId: string; options: Option
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3" aria-label="Upload an image or PDF">
-      <h3 className="h3 m-0">Upload an image or PDF</h3>
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3" aria-label={name}>
+      <h3 className="h3 m-0">{fixedAfter ? 'Upload an image or PDF' : name}</h3>
       <p className="text-ink-muted m-0 text-sm">
         JPG, PNG, WebP, GIF or PDF, up to 20 MB. Each PDF page becomes its own slide (up to {PDF_MAX_PAGES} pages), so a presenter can step through it
         with the clicker.
@@ -92,8 +92,12 @@ function UploadForm({ meetingId, options }: { meetingId: string; options: Option
         <input id={fileId} name="file" type="file" accept={MEDIA_TYPES.join(',')} className="field py-2" disabled={busy} />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <TextField name="title" id="upload-title" label="Title (optional)" maxLength={120} />
-        <AfterSelect name="afterSlide" id="upload-after" options={options} defaultValue="ten_minute" />
+        <TextField name="title" id={`${fileId}-title`} label="Title (optional)" maxLength={120} />
+        {fixedAfter ? (
+          <input type="hidden" name="afterSlide" value={fixedAfter} />
+        ) : (
+          <AfterSelect name="afterSlide" id={`${fileId}-after`} options={options} defaultValue="ten_minute" />
+        )}
       </div>
       <div>
         <button type="submit" className="btn btn-primary" disabled={busy}>
@@ -104,18 +108,19 @@ function UploadForm({ meetingId, options }: { meetingId: string; options: Option
   );
 }
 
-function YouTubeForm({ meetingId, options }: { meetingId: string; options: Option[] }) {
+function YouTubeForm({ meetingId, options, fixedAfter, name = 'Add a YouTube video' }: { meetingId: string; options: Option[]; fixedAfter?: string; name?: string }) {
+  const uid = useId();
   const [state, action] = useActionState(addYouTubeSlide, idle);
   const errors = state.errors ?? {};
   return (
-    <form action={action} noValidate className="flex flex-col gap-3" aria-label="Add a YouTube video" key={state.status === 'success' ? state.message : 'yt'}>
-      <h3 className="h3 m-0">Add a YouTube video</h3>
+    <form action={action} noValidate className="flex flex-col gap-3" aria-label={name} key={state.status === 'success' ? state.message : 'yt'}>
+      <h3 className="h3 m-0">{fixedAfter ? 'Add a YouTube video' : name}</h3>
       {state.status === 'success' ? <Notice tone="success">{state.message}</Notice> : null}
       {state.status === 'error' && state.message ? <Notice tone="error">{state.message}</Notice> : null}
       <input type="hidden" name="meetingId" value={meetingId} />
       <TextField
         name="youtubeUrl"
-        id="yt-url"
+        id={`${uid}-url`}
         label="YouTube link"
         placeholder="https://www.youtube.com/watch?v=…"
         defaultValue={state.status === 'error' ? state.values?.youtubeUrl : ''}
@@ -123,13 +128,77 @@ function YouTubeForm({ meetingId, options }: { meetingId: string; options: Optio
         help="A link with a start time (e.g. ?t=90) starts the video there."
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <TextField name="title" id="yt-title" label="Title (optional)" maxLength={120} defaultValue={state.status === 'error' ? state.values?.title : ''} error={errors.title} />
-        <AfterSelect name="afterSlide" id="yt-after" options={options} defaultValue={state.status === 'error' ? (state.values?.afterSlide ?? 'announcements') : 'announcements'} error={errors.afterSlide} />
+        <TextField name="title" id={`${uid}-title`} label="Title (optional)" maxLength={120} defaultValue={state.status === 'error' ? state.values?.title : ''} error={errors.title} />
+        {fixedAfter ? (
+          <input type="hidden" name="afterSlide" value={fixedAfter} />
+        ) : (
+          <AfterSelect
+            name="afterSlide"
+            id={`${uid}-after`}
+            options={options}
+            defaultValue={state.status === 'error' ? (state.values?.afterSlide ?? 'announcements') : 'announcements'}
+            error={errors.afterSlide}
+          />
+        )}
       </div>
       <div>
         <SubmitButton pendingText="Adding…">Add video</SubmitButton>
       </div>
     </form>
+  );
+}
+
+const presentations = [
+  { slot: 'five_minute', title: '5-minute presentation', help: 'Shown right after the 5-minute presentation slide, before the 1-minute questions.' },
+  { slot: 'ten_minute', title: '10-minute presentation', help: 'Shown right after the 10-minute presentation slide, before the 5-minute questions.' },
+] as const;
+
+function MediaList({ media, label, name }: { media: MediaRow[]; label: (k: string) => string; name: string }) {
+  if (!media.length) return <p className="text-ink-muted m-0">Nothing added yet.</p>;
+  return (
+    <ul className="m-0 flex list-none flex-col p-0" aria-label={name}>
+      {media.map((m) => (
+        <li key={m.id} className="border-line-soft flex flex-wrap items-center gap-3 border-t py-3">
+          <div className="min-w-0 flex-1">
+            <p className="m-0 font-semibold">{m.title || kindLabel[m.kind]}</p>
+            <p className="text-ink-muted m-0 text-sm">
+              {kindLabel[m.kind]}
+              {m.kind === 'pdf' && m.pageCount ? ` · ${m.pageCount} page${m.pageCount === 1 ? '' : 's'}` : ''} · after “{label(m.afterSlide)}”
+            </p>
+          </div>
+          <form action={removeSlideMedia}>
+            <input type="hidden" name="id" value={m.id} />
+            <SubmitButton pendingText="Removing…" className="btn btn-outline btn-sm">
+              Remove<span className="sr-only"> {m.title || kindLabel[m.kind]}</span>
+            </SubmitButton>
+          </form>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Upload or link the presenter's materials for the 5- and 10-minute presentations. */
+export function PresentationMaterials({ meetingId, options, media }: { meetingId: string; options: Option[]; media: MediaRow[] }) {
+  const label = (k: string) => options.find((o) => o.key === k)?.label ?? k;
+  return (
+    <>
+      {presentations.map((p) => (
+        <section key={p.slot} className="card flex flex-col gap-5 p-5" aria-labelledby={`${p.slot}-h`}>
+          <div>
+            <h2 id={`${p.slot}-h`} className="h2 m-0 text-2xl">
+              Materials for the {p.title}
+            </h2>
+            <p className="text-ink-muted m-0 mt-1">Image, PDF or YouTube video from the presenter. {p.help}</p>
+          </div>
+          <MediaList media={media.filter((m) => m.afterSlide === p.slot)} label={label} name={`Materials for the ${p.title}`} />
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <UploadForm meetingId={meetingId} options={options} fixedAfter={p.slot} name={`Upload for the ${p.title}`} />
+            <YouTubeForm meetingId={meetingId} options={options} fixedAfter={p.slot} name={`YouTube video for the ${p.title}`} />
+          </div>
+        </section>
+      ))}
+    </>
   );
 }
 
@@ -139,9 +208,9 @@ export function SlideMediaManager({ meetingId, options, media }: { meetingId: st
     <section className="card flex flex-col gap-6 p-5" aria-labelledby="media-h">
       <div>
         <h2 id="media-h" className="h2 m-0 text-2xl">
-          Added slides
+          Other added slides
         </h2>
-        <p className="text-ink-muted m-0 mt-1">Images, PDFs and YouTube videos for this meeting, shown after the agenda slide you choose.</p>
+        <p className="text-ink-muted m-0 mt-1">Any other images, PDFs or YouTube videos for this meeting, shown after the slide you choose.</p>
       </div>
       {media.length ? (
         <ul className="m-0 flex list-none flex-col p-0" aria-label="Added slides list">

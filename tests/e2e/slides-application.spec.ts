@@ -19,7 +19,7 @@ async function goToSlide(deck: import('@playwright/test').Locator, page: import(
 }
 
 test.describe('meeting slides follow the new agenda', () => {
-  test('agenda order and times, logo and bridge on every slide, 60-second timer', async ({ page }) => {
+  test('the owner’s standard deck: order, logo and bridge on every slide, no section tabs, timers', async ({ page }) => {
     const errors = trackConsole(page);
     await login(page, users.member, undefined, '/present/next');
     const deck = page.getByRole('region', { name: 'Meeting slides' });
@@ -31,30 +31,52 @@ test.describe('meeting slides follow the new agenda', () => {
       await expect(g.locator('img[src*="logo-mark"]')).toBeAttached();
       await page.keyboard.press('ArrowRight');
     }
-    const order = [
-      'Welcome',
-      'Today’s agenda',
-      'Open networking',
-      'Meeting called to order',
-      'Introduction of the leadership team',
+    expect(labels).toEqual([
+      'Logo',
+      'Welcome (open networking)',
+      'Let’s begin (meeting called to order)',
+      'Meet the Management Team',
       'Introduction of guests',
       '60-second infomercials',
       'Statistics',
+      'Leaderboards',
       '5-minute educational presentation',
       'Questions for the 5-minute presentation',
       '10-minute presentation',
       'Questions for the 10-minute presentation',
       'Announcements',
-      'Thank you, visitors',
       'Adjourn',
-    ];
-    expect(labels.filter((l) => order.includes(l))).toEqual(order);
+    ]);
     await expect(deck.locator('img[src*="hero-bridge"]').first()).toBeAttached();
+    // No green section tabs (spaced capitals) above the titles any more.
+    await expect(deck.getByText(/^(Welcome in|Meeting called to order|Leadership & responsibilities|Please welcome|Roundtable)$/)).toHaveCount(0);
 
-    await goToSlide(deck, page, 'Today’s agenda');
-    await expect(deck.getByText('9:11', { exact: true })).toBeVisible();
-    await goToSlide(deck, page, '60-second infomercials');
-    await expect(deck.getByText('8:33 AM').filter({ visible: true })).toBeVisible();
+    // Slide 1: just the logo, large.
+    await page.keyboard.press('Home');
+    const first = deck.getByRole('group').filter({ visible: true });
+    await expect(first.getByText(/Meeting #|A system for business growth|AM PT/)).toHaveCount(0);
+    const stageW = (await deck.locator('[aria-roledescription="slide"]').boundingBox())?.width ?? 0;
+    const logoW = (await first.locator('img[src*="logo-mark"]').boundingBox())?.width ?? 0;
+    expect(logoW).toBeGreaterThan(stageW * 0.12);
+
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('heading', { name: 'Welcome', exact: true })).toBeVisible();
+    await expect(deck.getByText(/A chance to chat/)).toHaveCount(0);
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('heading', { name: 'Let’s begin.' })).toBeVisible();
+    await expect(deck.getByText(/We are an established networking group/)).toHaveCount(0);
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('heading', { name: 'Meet the Management Team' })).toBeVisible();
+    await page.keyboard.press('ArrowRight');
+    const guests = deck.getByRole('group').filter({ visible: true });
+    await expect(guests.getByRole('heading', { name: 'Introduction of Guests' })).toBeVisible();
+    await expect(guests.getByRole('listitem')).toHaveCount(0);
+
+    await page.keyboard.press('ArrowRight');
+    const info = deck.getByRole('group').filter({ visible: true });
+    for (const b of ['Referrals', 'One-to-ones', 'Closed business', 'Thank-yous', 'Testimonials', 'Leads', 'Announcements'])
+      await expect(info.getByRole('listitem').filter({ hasText: new RegExp(`^${b}$`) })).toBeVisible();
+    await expect(info.getByText('60-second infomercials', { exact: true })).not.toBeInViewport();
     const timer = deck.getByRole('timer', { name: /60-second infomercial/ });
     await expect(timer).toHaveText('1:00');
     await deck.getByRole('button', { name: /Start timer \(60-second infomercial\)/ }).click();
@@ -62,8 +84,57 @@ test.describe('meeting slides follow the new agenda', () => {
     await deck.getByRole('button', { name: /Pause/ }).click();
     await deck.getByRole('button', { name: /Reset 60-second infomercial/ }).click();
     await expect(timer).toHaveText('1:00');
+
+    // Presentation slides show the presentation title, then a questions slide with its own timer.
+    await goToSlide(deck, page, '5-Minute Educational Presentation');
+    await expect(deck.getByText('“Understanding umbrella insurance”')).toBeVisible();
+    await expect(deck.getByText(/One member shares something/)).toHaveCount(0);
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('timer', { name: /1 minute of questions/ })).toHaveText('1:00');
+    await goToSlide(deck, page, '10-Minute Presentation');
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('timer', { name: /5 minutes of questions/ })).toHaveText('5:00');
     await expectAccessible(page);
     expect(errors).toEqual([]);
+  });
+
+  test('admins add materials for the 5- and 10-minute presentations; they show right after that presentation', async ({ page }) => {
+    await login(page, users.admin, undefined, '/present/next');
+    const deck = page.getByRole('region', { name: 'Meeting slides' });
+    await deck.getByRole('link', { name: 'Customize slides' }).click();
+    const five = page.getByRole('form', { name: 'Upload for the 5-minute presentation' });
+    await five.getByLabel('File').setInputFiles('tests/e2e/fixtures/two-pages.pdf');
+    await five.getByLabel('Title (optional)').fill('Umbrella insurance deck');
+    await five.getByRole('button', { name: 'Add to slides' }).click();
+    await expect(five.getByText('PDF added (2 pages).')).toBeVisible();
+    const ten = page.getByRole('form', { name: 'YouTube video for the 10-minute presentation' });
+    await ten.getByLabel('YouTube link').fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    await ten.getByLabel('Title (optional)').fill('Client story');
+    await ten.getByRole('button', { name: 'Add video' }).click();
+    await expect(page.getByText('Video added.')).toBeVisible();
+    await expect(page.getByRole('list', { name: 'Materials for the 5-minute presentation' })).toContainText('Umbrella insurance deck');
+    await expect(page.getByRole('list', { name: 'Materials for the 10-minute presentation' })).toContainText('Client story');
+    await expectAccessible(page);
+
+    await page.getByRole('link', { name: 'Open the slides' }).click();
+    await goToSlide(deck, page, '5-Minute Educational Presentation');
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('img', { name: 'Umbrella insurance deck, page 1' })).toBeVisible();
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('img', { name: 'Umbrella insurance deck, page 2' })).toBeVisible();
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('timer', { name: /1 minute of questions/ })).toBeVisible();
+    await goToSlide(deck, page, '10-Minute Presentation');
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('button', { name: 'Play video: Client story' })).toBeVisible();
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('timer', { name: /5 minutes of questions/ })).toBeVisible();
+
+    await deck.getByRole('link', { name: 'Customize slides' }).click();
+    await page.getByRole('button', { name: 'Remove Umbrella insurance deck' }).click();
+    await expect(page.getByRole('button', { name: 'Remove Umbrella insurance deck' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Remove Client story' }).click();
+    await expect(page.getByRole('button', { name: 'Remove Client story' })).toHaveCount(0);
   });
 
   test('admins add an image, a PDF (one slide per page) and a YouTube video, move and remove them', async ({ page }) => {
@@ -81,7 +152,7 @@ test.describe('meeting slides follow the new agenda', () => {
 
     await upload.getByLabel('File').setInputFiles('tests/e2e/fixtures/two-pages.pdf');
     await upload.getByLabel('Title (optional)').fill('Celeste’s deck');
-    await upload.getByLabel('Show after').selectOption('ten_minute');
+    await upload.getByLabel('Show after').selectOption('statistics');
     await upload.getByRole('button', { name: 'Add to slides' }).click();
     await expect(upload.getByText('PDF added (2 pages).')).toBeVisible();
 
@@ -96,6 +167,7 @@ test.describe('meeting slides follow the new agenda', () => {
     const list = page.getByRole('list', { name: 'Added slides list' });
     await expect(list.getByRole('listitem')).toHaveCount(3);
     await expect(list).toContainText('PDF · 2 pages');
+    await expect(page.getByText('Nothing added yet.')).toHaveCount(2);
     await expectAccessible(page);
 
     await page.getByRole('link', { name: 'Open the slides' }).click();
@@ -105,7 +177,7 @@ test.describe('meeting slides follow the new agenda', () => {
     await expect(shownImage).toBeVisible();
     expect(await shownImage.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
     await page.keyboard.press('ArrowRight');
-    await expect(deck.getByRole('heading', { name: 'Introduction of the leadership team' }).or(deck.getByRole('heading', { name: 'Meet the leadership team' }))).toBeVisible();
+    await expect(deck.getByRole('heading', { name: 'Meet the Management Team' })).toBeVisible();
 
     await goToSlide(deck, page, /Celeste’s deck/);
     await expect(deck.getByRole('img', { name: 'Celeste’s deck, page 1' })).toBeVisible();

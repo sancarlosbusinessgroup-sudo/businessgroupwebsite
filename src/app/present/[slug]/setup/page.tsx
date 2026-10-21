@@ -4,9 +4,9 @@ import { notFound } from 'next/navigation';
 import { requireAdmin } from '@/lib/auth';
 import { getMeetingBySlug } from '@/lib/data/public';
 import { formatMeetingDate } from '@/lib/dates';
-import { DEFAULT_SLIDES, resolveNotes, resolveSlides, slideLabel, slideTime } from '@/lib/slides';
+import { SLIDE_KEYS, resolveNotes, resolveSlides, slideLabel, slideTime } from '@/lib/slides';
 import { createClient } from '@/lib/supabase/server';
-import { SlideMediaManager } from './SlideMediaManager';
+import { PresentationMaterials, SlideMediaManager } from './SlideMediaManager';
 import { SlideSettingsForm } from './SlideSettingsForm';
 
 export const metadata: Metadata = { title: 'Customize slides', robots: { index: false } };
@@ -22,9 +22,9 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
     supabase.from('meeting_slide_media').select('id, kind, title, after_slide, page_count').eq('meeting_id', meeting.id).order('sort').order('created_at'),
   ]);
   const media = (mediaRes.data ?? []).map((m) => ({ id: m.id, kind: m.kind, title: m.title, afterSlide: m.after_slide, pageCount: m.page_count }));
-  const options = DEFAULT_SLIDES.map((k) => ({ key: k, label: `${slideTime(k) ? `${slideTime(k)} · ` : ''}${slideLabel(k)}` }));
+  const options = SLIDE_KEYS.map((k) => ({ key: k, label: `${slideTime(k) ? `${slideTime(k)} · ` : ''}${slideLabel(k)}` }));
   const shown = resolveSlides(data?.slides);
-  const hidden = DEFAULT_SLIDES.filter((k) => !shown.includes(k));
+  const hidden = SLIDE_KEYS.filter((k) => !shown.includes(k));
   const notes = resolveNotes(data?.notes);
   const rows = [...shown, ...hidden].map((k, n) => ({ key: k, label: `${slideTime(k) ? `${slideTime(k)} · ` : ''}${slideLabel(k)}`, shown: shown.includes(k), position: n + 1, note: notes[k] ?? '' }));
 
@@ -40,8 +40,9 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
             {data ? 'This meeting uses a custom order.' : 'This meeting uses the standard agenda.'} Changes apply to this meeting only.
           </p>
         </div>
+        <PresentationMaterials meetingId={meeting.id} options={options} media={media} />
         <SlideSettingsForm meetingId={meeting.id} rows={rows} deckHref={`/present/${slug}`} />
-        <SlideMediaManager meetingId={meeting.id} options={options} media={media} />
+        <SlideMediaManager meetingId={meeting.id} options={options} media={media.filter((m) => m.afterSlide !== 'five_minute' && m.afterSlide !== 'ten_minute')} />
       </div>
     </div>
   );
