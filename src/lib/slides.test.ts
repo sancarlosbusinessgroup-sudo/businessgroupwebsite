@@ -9,7 +9,6 @@ describe('slide settings', () => {
       'call_to_order',
       'visitor_path',
       'leadership',
-      'guests',
       'infomercials',
       'statistics',
       'leaderboards',
@@ -21,18 +20,18 @@ describe('slide settings', () => {
       'adjourn',
     ]);
     // Still available to add per meeting, but not in the standard deck (owner, 2026-10-21).
-    for (const k of ['agenda', 'asks', 'visitors_thanks'] as const) {
+    for (const k of ['agenda', 'guests', 'asks', 'visitors_thanks'] as const) {
       expect(SLIDE_KEYS).toContain(k);
       expect(DEFAULT_SLIDES).not.toContain(k);
     }
-    expect([slideTime('networking'), slideTime('call_to_order'), slideTime('infomercials'), slideTime('five_qa'), slideTime('ten_minute'), slideTime('adjourn')]).toEqual([
-      '8:15',
-      '8:30',
-      '8:33',
-      '9:10',
-      '9:11',
-      '9:30',
-    ]);
+    expect([
+      slideTime('networking'),
+      slideTime('call_to_order'),
+      slideTime('infomercials'),
+      slideTime('five_qa'),
+      slideTime('ten_minute'),
+      slideTime('adjourn'),
+    ]).toEqual(['8:15', '8:30', '8:33', '9:10', '9:11', '9:30']);
     expect(slideLabel('infomercials')).toBe('60-second infomercial and reporting');
     for (const k of SLIDE_KEYS) expect(slideLabel(k)).toMatch(/\w/);
   });

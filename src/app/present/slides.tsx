@@ -1,21 +1,33 @@
 import Image from 'next/image';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { initials } from '@/components/ui';
 import { leaderboardMetrics, site } from '@/lib/content';
 import type { DeckData, SlideMedia, SpeakerCard } from '@/lib/data/slides';
 import { formatMeetingDate, formatMeetingTime, formatMoney } from '@/lib/dates';
 import { env, mediaUrl } from '@/lib/env';
-import { procedures } from '@/lib/governance';
 import { groupLeadership } from '@/lib/leadership';
 import { chunk, slideLabel, slideTime, type SlideKey } from '@/lib/slides';
 import type { DeckSlide } from './Deck';
+import { Icon, SilencePhone, type IconName } from './icons';
 import { PdfPageSlide, SlideTimer, WebsiteSlide, YouTubeSlide } from './SlideWidgets';
 
-// Meeting slides in the style of the group's printed Bylaws: white pages, the logo lockup top left, a grey
-// "card" for the agenda time, chevron bullets and the Golden Gate photo along the foot.
-// Sizes use container units (cqw) so everything scales with the 16:9 stage on a shared screen.
+// Meeting slides. Design (owner's references, 2026-10-22): clean white pages in the logo's blues, a cyan-to-blue
+// gradient band, soft raised cards, round icon badges, big numbers and a numbered flow for the path to membership.
+// The logo sits top left and the Golden Gate photo along the foot. Sizes use container units (cqw) so everything
+// scales with the 16:9 stage on a shared screen.
 
 const BRIDGE = '/images/hero-bridge.jpg';
+const NAVY = '#12346e';
+const BLUE = '#1f7fd0';
+const INK = '#1c2b4a';
+const MUTED = '#4a5a72';
+const GRADIENT = 'linear-gradient(90deg, #5ce1e6 0%, #1f7fd0 58%, #0a47a9 100%)';
+/** Five steps, cyan to navy (used for the Visitors flow and the leaderboard headers). */
+const STEP_COLORS = ['#14b8c4', '#1599d6', '#1f7fd0', '#1b5fc0', '#12346e'] as const;
+
+const Band = ({ className = '', style }: { className?: string; style?: CSSProperties }) => (
+  <span className={`absolute inset-x-0 bottom-0 h-[0.9cqw] ${className}`} style={{ background: GRADIENT, ...style }} aria-hidden="true" />
+);
 
 function Lockup({ size = 1 }: { size?: number }) {
   return (
@@ -35,18 +47,35 @@ function Lockup({ size = 1 }: { size?: number }) {
   );
 }
 
+/** Round blue badge with a white line icon (the references' icon style). */
+function Badge({ name, size = 4.2, color = BLUE, light = false }: { name: IconName; size?: number; color?: string; light?: boolean }) {
+  return (
+    <span
+      className="flex flex-none items-center justify-center rounded-full"
+      style={{ width: `${size}cqw`, height: `${size}cqw`, background: light ? '#fff' : color, color: light ? color : '#fff' }}
+      aria-hidden="true"
+    >
+      <Icon name={name} style={{ width: `${size * 0.5}cqw`, height: `${size * 0.5}cqw` }} />
+    </span>
+  );
+}
+
+/** Soft raised card. `tint` gives the pale blue card with a thin border. */
+const card = (tint = false) =>
+  `rounded-[1.4cqw] ${tint ? 'border border-[#d6e4f5] bg-[#f2f7fd]' : 'bg-white shadow-[0_0.5cqw_1.8cqw_rgba(18,52,110,0.13)] ring-1 ring-[#e6eef8]'}`;
+
 function Chevron() {
   return (
     <svg viewBox="0 0 20 20" className="mt-[0.35cqw] h-[2cqw] w-[2cqw] flex-none" aria-hidden="true">
-      <path d="M3 2.5 17 10 3 17.5l3.2-7.5z" fill="#0e7c74" />
+      <path d="M3 2.5 17 10 3 17.5l3.2-7.5z" fill={BLUE} />
     </svg>
   );
 }
 
 const Bullets = ({ items, size = 2.3 }: { items: ReactNode[]; size?: number }) => (
-  <ul className="m-0 flex list-none flex-col gap-[1.2cqw] p-0" style={{ fontSize: `${size}cqw` }}>
+  <ul className="m-0 flex list-none flex-col gap-[1.2cqw] p-0" style={{ fontSize: `${size}cqw`, color: MUTED }}>
     {items.map((t, i) => (
-      <li key={i} className="text-on-band-muted flex gap-[1.2cqw] leading-snug">
+      <li key={i} className="flex gap-[1.2cqw] leading-snug">
         <Chevron />
         <span>{t}</span>
       </li>
@@ -54,11 +83,31 @@ const Bullets = ({ items, size = 2.3 }: { items: ReactNode[]; size?: number }) =
   </ul>
 );
 
-const Lead = ({ children }: { children: ReactNode }) => <p className="text-on-band-muted m-0 max-w-[70cqw] text-[2.3cqw] leading-snug">{children}</p>;
+/** Bullets with a round icon badge in front of each line. */
+const IconRows = ({ items, size = 2.2, boxed = false }: { items: [IconName, ReactNode][]; size?: number; boxed?: boolean }) => (
+  <ul className={`m-0 flex list-none flex-col p-0 ${boxed ? 'gap-[1.2cqw]' : 'gap-[1.5cqw]'}`}>
+    {items.map(([icon, t], i) => (
+      <li
+        key={i}
+        className={`flex items-center gap-[1.5cqw] leading-snug ${boxed ? `${card()} max-w-[60cqw] px-[1.6cqw] py-[1.2cqw]` : ''}`}
+        style={{ fontSize: `${size}cqw`, color: INK }}
+      >
+        <Badge name={icon} size={size * 1.9} />
+        <span>{t}</span>
+      </li>
+    ))}
+  </ul>
+);
+
+const Lead = ({ children }: { children: ReactNode }) => (
+  <p className="m-0 max-w-[72cqw] text-[2.1cqw] leading-snug" style={{ color: MUTED }}>
+    {children}
+  </p>
+);
 
 type Ctx = { n: number; total: number; date: string; meetingNo: number };
 
-/** Standard page: logo, title area, content, Golden Gate strip and footer (no date/time card since 2026-10-22). */
+/** Standard page: logo, title with a short gradient rule, content, Golden Gate strip and gradient band. */
 function Page({
   ctx,
   title,
@@ -76,7 +125,7 @@ function Page({
   aside?: ReactNode;
 }) {
   return (
-    <div className="relative flex h-full flex-col bg-white">
+    <div className="relative flex h-full flex-col overflow-hidden bg-white">
       {photo ? (
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           <Image src={BRIDGE} alt="" fill sizes="100vw" className="object-cover object-[72%_55%]" />
@@ -87,27 +136,38 @@ function Page({
                 'linear-gradient(to right, #fff 0%, #fff 38%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0.6) 62%, rgba(255,255,255,0.2) 76%, rgba(255,255,255,0) 90%)',
             }}
           />
-          <span className="absolute inset-x-0 bottom-0 h-[0.8cqw] bg-gradient-to-r from-[#0e7c74] via-[#12a89d] to-[#00c2cb]" />
         </div>
       ) : (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[12cqw]" aria-hidden="true">
-          <Image src={BRIDGE} alt="" fill sizes="100vw" className="object-cover object-[50%_62%] opacity-55" />
-          <span className="absolute inset-0 bg-gradient-to-b from-white via-white/70 to-white/10" />
-          <span className="absolute inset-x-0 bottom-0 h-[0.8cqw] bg-gradient-to-r from-[#0e7c74] via-[#12a89d] to-[#00c2cb]" />
+        <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+          {/* Dotted corner, as in the reference decks. */}
+          <span
+            className="absolute top-[1.6cqw] right-[2cqw] h-[9cqw] w-[16cqw] opacity-60"
+            style={{ backgroundImage: 'radial-gradient(#c5d8ef 0.18cqw, transparent 0.2cqw)', backgroundSize: '1.4cqw 1.4cqw' }}
+          />
+          <span className="absolute inset-x-0 bottom-0 h-[11cqw]">
+            <Image src={BRIDGE} alt="" fill sizes="100vw" className="object-cover object-[50%_62%] opacity-45" />
+            <span className="absolute inset-0 bg-gradient-to-b from-white via-white/75 to-white/10" />
+          </span>
         </div>
       )}
+      <Band />
       <header className="relative flex items-center justify-between px-[4.5cqw] pt-[3cqw]">
         <Lockup size={1.1} />
       </header>
-      <div className="relative flex min-h-0 flex-1 gap-[3.5cqw] px-[4.5cqw] pt-[2.2cqw] pb-[7cqw]">
+      <div className="relative flex min-h-0 flex-1 gap-[3.5cqw] px-[4.5cqw] pt-[2cqw] pb-[6.5cqw]">
         {/* Title and text sit in the vertical middle of the slide (owner, 2026-10-21). */}
         <div className={`flex min-w-0 flex-1 flex-col justify-center gap-[1.8cqw] ${center ? 'items-center text-center' : ''}`}>
-          <h2 className="font-display text-on-band m-0 text-[4.2cqw] leading-[1.05] font-extrabold tracking-[-0.01em]">{title}</h2>
+          <div className={`flex flex-col gap-[1cqw] ${center ? 'items-center' : ''}`}>
+            <h2 className="font-display m-0 text-[4.2cqw] leading-[1.05] font-extrabold tracking-[-0.01em]" style={{ color: NAVY }}>
+              {title}
+            </h2>
+            <span className="h-[0.5cqw] w-[9cqw] rounded-full" style={{ background: GRADIENT }} aria-hidden="true" />
+          </div>
           {children}
         </div>
         {aside ? <div className="flex flex-none flex-col items-center justify-center">{aside}</div> : null}
       </div>
-      <footer className="absolute inset-x-[4.5cqw] bottom-[1.6cqw] flex items-center justify-between text-[1.25cqw] font-semibold text-[#0e5a55]">
+      <footer className="absolute inset-x-[4.5cqw] bottom-[1.8cqw] flex items-center justify-between text-[1.25cqw] font-semibold" style={{ color: NAVY }}>
         <span>
           {site.name} · Meeting #{ctx.meetingNo}
         </span>
@@ -119,17 +179,21 @@ function Page({
   );
 }
 
-/** Full-bleed Golden Gate page for the opening and closing slides. */
+/** Full-bleed Golden Gate page for the closing slide. */
 function Hero({ ctx, kicker, title, children }: { ctx: Ctx; kicker: string; title: string; children?: ReactNode }) {
   return (
     <div className="relative h-full overflow-hidden bg-white">
       <Image src={BRIDGE} alt="" fill sizes="100vw" priority className="object-cover object-[60%_55%]" />
       <span className="absolute inset-0 bg-gradient-to-r from-white via-white/92 to-white/5" aria-hidden="true" />
-      <span className="absolute inset-x-0 bottom-0 h-[0.9cqw] bg-gradient-to-r from-[#0e7c74] via-[#12a89d] to-[#00c2cb]" aria-hidden="true" />
+      <Band />
       <div className="relative flex h-full max-w-[62cqw] flex-col justify-center gap-[2cqw] px-[6cqw]">
         <Lockup size={1.35} />
-        <p className="font-display m-0 mt-[1.5cqw] text-[1.7cqw] font-bold tracking-[0.28em] text-[#0e7c74] uppercase">{kicker}</p>
-        <h2 className="font-display text-on-band m-0 text-[5.4cqw] leading-[1.02] font-extrabold tracking-[-0.015em]">{title}</h2>
+        <p className="font-display m-0 mt-[1.5cqw] text-[1.7cqw] font-bold tracking-[0.28em] uppercase" style={{ color: BLUE }}>
+          {kicker}
+        </p>
+        <h2 className="font-display m-0 text-[5.4cqw] leading-[1.02] font-extrabold tracking-[-0.015em]" style={{ color: NAVY }}>
+          {title}
+        </h2>
         {children}
       </div>
       <p className="absolute right-[3cqw] bottom-[2cqw] m-0 text-[1.25cqw] font-semibold text-white [text-shadow:0_0.1cqw_0.4cqw_rgba(0,0,0,0.5)]">
@@ -143,7 +207,7 @@ function Face({ name, path, size = 12, square = false }: { name: string; path: s
   const url = mediaUrl('profile-media', path);
   return (
     <span
-      className={`font-display relative flex flex-none items-center justify-center overflow-hidden bg-[#e0f4f4] font-extrabold text-[#0c7b74] ${square ? 'rounded-[1.4cqw]' : 'rounded-full'}`}
+      className={`font-display relative flex flex-none items-center justify-center overflow-hidden bg-[#e3eefb] font-extrabold text-[#1f5fb0] ${square ? 'rounded-[1.2cqw]' : 'rounded-full'}`}
       style={{ width: `${size}cqw`, height: `${size}cqw`, fontSize: `${size * 0.36}cqw` }}
       aria-hidden="true"
     >
@@ -152,22 +216,38 @@ function Face({ name, path, size = 12, square = false }: { name: string; path: s
   );
 }
 
-const Muted = ({ children }: { children: ReactNode }) => <p className="text-on-band-muted m-0 text-[2cqw]">{children}</p>;
+const Muted = ({ children }: { children: ReactNode }) => (
+  <p className="m-0 text-[2cqw]" style={{ color: MUTED }}>
+    {children}
+  </p>
+);
 
 function Speaker({ s, fallback }: { s: SpeakerCard | null; fallback: string }) {
   if (!s)
     return (
-      <div className="flex flex-1 items-center">
+      <div className="flex items-center">
         <Muted>{fallback}</Muted>
       </div>
     );
   return (
-    <div className="flex flex-1 items-center gap-[3cqw]">
-      <Face name={s.display_name} path={s.avatar_path} size={17} square />
-      <div className="flex min-w-0 flex-col gap-[0.8cqw]">
-        <p className="font-display text-on-band m-0 text-[3.4cqw] leading-tight font-extrabold">{s.display_name}</p>
-        {s.business ? <p className="m-0 text-[2.1cqw] font-semibold text-[#0c7b74]">{s.business}</p> : null}
-        {s.topic_description ? <p className="text-on-band-muted m-0 text-[1.8cqw] leading-snug">{s.topic_description}</p> : null}
+    <div className="flex items-center gap-[2.4cqw]">
+      <span className="rounded-[1.4cqw] shadow-[0_0.5cqw_1.6cqw_rgba(18,52,110,0.22)]">
+        <Face name={s.display_name} path={s.avatar_path} size={13} square />
+      </span>
+      <div className="flex min-w-0 flex-col gap-[0.6cqw]">
+        <p className="font-display m-0 text-[3.2cqw] leading-tight font-extrabold" style={{ color: NAVY }}>
+          {s.display_name}
+        </p>
+        {s.business ? (
+          <p className="m-0 text-[2cqw] font-semibold italic" style={{ color: BLUE }}>
+            {s.business}
+          </p>
+        ) : null}
+        {s.topic_description ? (
+          <p className="m-0 max-w-[50cqw] text-[1.7cqw] leading-snug" style={{ color: MUTED }}>
+            {s.topic_description}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -175,21 +255,30 @@ function Speaker({ s, fallback }: { s: SpeakerCard | null; fallback: string }) {
 
 function Note({ text }: { text: string }) {
   return (
-    <p className="m-0 rounded-[1cqw] border-l-[0.6cqw] border-[#00c2cb] bg-[#effbfc] px-[1.6cqw] py-[1cqw] text-[1.9cqw] leading-snug whitespace-pre-line text-[#1c3b3a]">
+    <p
+      className="m-0 rounded-[1cqw] border-l-[0.6cqw] border-[#1f7fd0] bg-[#f2f7fd] px-[1.6cqw] py-[1cqw] text-[1.9cqw] leading-snug whitespace-pre-line"
+      style={{ color: INK }}
+    >
       {text}
     </p>
   );
 }
 
-/** The presentation's title, large, in place of the slot description. */
-const TopicTitle = ({ s }: { s: SpeakerCard | null }) => (
-  <p className="font-display m-0 max-w-[68cqw] text-[3cqw] leading-tight font-bold text-[#1c3b3a]">
-    {s?.topic ? `“${s.topic}”` : s ? 'Presentation title to be announced' : ''}
-  </p>
-);
+/** The presentation's title on a gradient banner that runs in from the left edge (as in the AI presentation sample). */
+const TopicBanner = ({ s }: { s: SpeakerCard | null }) =>
+  s ? (
+    <div
+      className="-ml-[4.5cqw] flex min-h-[8cqw] max-w-[74cqw] items-center rounded-r-[1.6cqw] py-[1.6cqw] pr-[3cqw] pl-[4.5cqw] shadow-[0_0.6cqw_1.8cqw_rgba(10,71,169,0.25)]"
+      style={{ background: GRADIENT }}
+    >
+      <p className="font-display m-0 text-[2.9cqw] leading-tight font-extrabold text-white [text-shadow:0_0.1cqw_0.3cqw_rgba(0,0,0,0.25)]">
+        {s.topic ? `“${s.topic}”` : 'Presentation title to be announced'}
+      </p>
+    </div>
+  ) : null;
 
 const Chip = ({ children }: { children: ReactNode }) => (
-  <li className="rounded-full border border-[#c9eef0] bg-[#effbfc] px-[1.5cqw] py-[0.5cqw] text-[1.8cqw] font-semibold text-[#0c5f5a]">{children}</li>
+  <li className="rounded-full border border-[#d6e4f5] bg-[#f2f7fd] px-[1.5cqw] py-[0.5cqw] text-[1.8cqw] font-semibold text-[#1b4f99]">{children}</li>
 );
 
 function MediaPage({ ctx, m, page, timers }: { ctx: Ctx; m: SlideMedia; page?: number; timers: DeckData['timers'] }) {
@@ -205,13 +294,18 @@ function MediaPage({ ctx, m, page, timers }: { ctx: Ctx; m: SlideMedia; page?: n
     <div className="relative flex h-full flex-col bg-white">
       <header className="flex items-center justify-between gap-[2cqw] px-[3cqw] pt-[1.8cqw] pb-[1.2cqw]">
         <Lockup size={0.6} />
-        <h2 className="font-display text-on-band m-0 min-w-0 truncate text-[2.2cqw] font-extrabold">
+        <h2 className="font-display m-0 min-w-0 truncate text-[2.2cqw] font-extrabold" style={{ color: NAVY }}>
           {title}
-          {m.kind === 'pdf' && m.pageCount > 1 ? <span className="text-on-band-muted font-semibold"> · page {page} of {m.pageCount}</span> : null}
+          {m.kind === 'pdf' && m.pageCount > 1 ? (
+            <span className="font-semibold" style={{ color: MUTED }}>
+              {' '}
+              · page {page} of {m.pageCount}
+            </span>
+          ) : null}
         </h2>
         <span className="flex flex-none items-center gap-[1.4cqw]">
           {timer}
-          <span className="text-[1.2cqw] font-semibold text-[#0e5a55] tabular-nums">
+          <span className="text-[1.2cqw] font-semibold tabular-nums" style={{ color: NAVY }}>
             {ctx.n} / {ctx.total}
           </span>
         </span>
@@ -232,7 +326,7 @@ function MediaPage({ ctx, m, page, timers }: { ctx: Ctx; m: SlideMedia; page?: n
           <img src={m.url} alt={title} className="h-full w-full object-contain" />
         )}
       </div>
-      <span className="absolute inset-x-0 bottom-0 h-[0.6cqw] bg-gradient-to-r from-[#0e7c74] via-[#12a89d] to-[#00c2cb]" aria-hidden="true" />
+      <Band className="h-[0.6cqw]" />
     </div>
   );
 }
@@ -272,7 +366,6 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       suffix,
     );
 
-
   for (const key of d.slides) {
     switch (key) {
       case 'welcome':
@@ -280,13 +373,16 @@ export function buildSlides(d: DeckData): DeckSlide[] {
           <div className="relative h-full overflow-hidden bg-white">
             {/* Full-strength photo (no white wash); a white glow around the letters makes the logo stand out. */}
             <Image src={BRIDGE} alt="" fill sizes="100vw" priority className="object-cover object-[60%_55%]" />
-            <span className="absolute inset-x-0 bottom-0 h-[0.9cqw] bg-gradient-to-r from-[#0e7c74] via-[#12a89d] to-[#00c2cb]" aria-hidden="true" />
+            <Band />
             <div className="relative flex h-full items-center justify-center">
               <h2 className="sr-only">Welcome to {site.name}</h2>
               {/* Soft white glow that radiates from the letters and fades into the photo (no box). */}
               <span
                 className="absolute top-1/2 left-1/2 h-[46cqw] w-[96cqw] -translate-x-1/2 -translate-y-1/2"
-                style={{ background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.82) 30%, rgba(255,255,255,0.45) 52%, rgba(255,255,255,0) 72%)' }}
+                style={{
+                  background:
+                    'radial-gradient(ellipse at center, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.82) 30%, rgba(255,255,255,0.45) 52%, rgba(255,255,255,0) 72%)',
+                }}
                 aria-hidden="true"
               />
               <div
@@ -312,9 +408,9 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                 .filter((k, i, all) => all.findIndex((x) => slideTime(x) === slideTime(k)) === i)
                 .map((k) => (
                   <li key={k} className="flex items-center gap-[1.4cqw] text-[1.85cqw]">
-                    <span className="h-[1.3cqw] w-[1.3cqw] flex-none rounded-full border-[0.35cqw] border-[#0e7c74]" aria-hidden="true" />
-                    <span className="font-display w-[5cqw] flex-none font-extrabold text-[#0e7c74] tabular-nums">{slideTime(k)}</span>
-                    <span className="text-[#1c3b3a]">{slideLabel(k)}</span>
+                    <span className="h-[1.3cqw] w-[1.3cqw] flex-none rounded-full border-[0.35cqw] border-[#1f7fd0]" aria-hidden="true" />
+                    <span className="font-display w-[5cqw] flex-none font-extrabold text-[#1f7fd0] tabular-nums">{slideTime(k)}</span>
+                    <span className="text-[#1c2b4a]">{slideLabel(k)}</span>
                   </li>
                 ))}
             </ol>
@@ -326,9 +422,14 @@ export function buildSlides(d: DeckData): DeckSlide[] {
           title: 'Welcome',
           photo: true,
           body: (
-            <>
-              <Bullets items={['Say hello to someone you haven’t met yet.', 'Camera on, name and business in your Zoom name.', 'We call the meeting to order at 8:30 AM sharp.']} />
-            </>
+            <IconRows
+              boxed
+              items={[
+                ['users', 'Say hello to someone you haven’t met yet.'],
+                ['video', 'Please camera on, name and business in your Zoom name.'],
+                ['clock', 'We call the meeting to order at 8:30 AM sharp.'],
+              ]}
+            />
           ),
         });
         break;
@@ -336,50 +437,58 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         page(key, {
           title: 'Let’s begin.',
           center: true,
-          body: (
-            <svg viewBox="0 0 64 64" className="h-[13cqw] w-[13cqw]" fill="none" stroke="#0e7c74" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Please silence your phone">
-              <rect x="20" y="6" width="24" height="44" rx="4.5" />
-              <path d="M29 43h6" />
-              <path d="M44.5 25l4.5-4.5m0 9L44.5 25" stroke="#0e7c74" />
-              <circle cx="32" cy="32" r="27" stroke="#b42318" strokeWidth="3.6" />
-              <path d="M13 51 51 13" stroke="#b42318" strokeWidth="3.6" />
-            </svg>
-          ),
+          body: <SilencePhone className="h-[17cqw] w-[17cqw]" />,
         });
         break;
       case 'visitor_path': {
-        const steps = [
-          'Attend as a guest',
-          'Receive the application form',
-          'Have a one-on-one with the Membership Committee',
-          'Application approved',
-          'We help you grow your business by referral',
+        // Numbered flow in the style of the owner's sample diagrams: white icon circle on a coloured pennant,
+        // a dashed timeline with matching dots, and the step below (owner, 2026-10-22).
+        const steps: [IconName, string][] = [
+          ['userPlus', 'Attend as a guest'],
+          ['clipboard', 'Receive the application form'],
+          ['chat', 'Have a one-on-one with the Membership Committee'],
+          ['badgeCheck', 'Application approved'],
+          ['trendingUp', 'We help you grow your business by referral'],
         ];
         page(key, {
           title: 'Visitors',
           body: (
-            <>
-              <Bullets items={['Attend for free.']} size={2.4} />
-              <ol className="m-0 mt-[1.5cqw] flex list-none items-stretch p-0" aria-label="How to become a member">
-                {steps.map((t, i) => {
-                  const last = i === steps.length - 1;
-                  return (
-                    <li key={t} className="flex flex-1 items-center">
-                      <div
-                        className={`relative flex aspect-square w-full flex-col items-center justify-center rounded-full px-[1.4cqw] text-center border-[0.45cqw] ${last ? 'border-[#0e7c74] bg-gradient-to-br from-[#0e7c74] to-[#12a89d] text-white' : 'border-[#12a89d] bg-[#effbfc] text-[#1c3b3a]'}`}
+            <ol className="m-0 mt-[2.6cqw] grid list-none grid-cols-5 p-0" aria-label="How to become a member">
+              {steps.map(([icon, t], i) => {
+                const color = STEP_COLORS[i] ?? BLUE;
+                return (
+                  <li key={t} className="flex flex-col items-center text-center">
+                    <div className="relative w-full px-[0.9cqw]">
+                      <span
+                        className="absolute top-[-3.6cqw] left-1/2 z-10 flex h-[7.2cqw] w-[7.2cqw] -translate-x-1/2 items-center justify-center rounded-full bg-white shadow-[0_0.5cqw_1.4cqw_rgba(18,52,110,0.22)]"
+                        aria-hidden="true"
                       >
-                        <span className={`font-display text-[2.2cqw] leading-none font-extrabold ${last ? 'text-white/85' : 'text-[#0e7c74]'}`}>{i + 1}</span>
-                        <span className="mt-[0.6cqw] text-[1.6cqw] leading-snug font-semibold">{t}</span>
+                        <Icon name={icon} style={{ width: '3.4cqw', height: '3.4cqw', color }} />
+                      </span>
+                      <div
+                        className="flex h-[12.5cqw] items-end justify-center pb-[2.6cqw]"
+                        style={{ background: color, clipPath: 'polygon(0 0, 100% 0, 100% 74%, 50% 100%, 0 74%)' }}
+                      >
+                        <span className="font-display text-[4cqw] leading-none font-extrabold text-white/95 tabular-nums">
+                          {String(i + 1).padStart(2, '0')}
+                        </span>
                       </div>
-                      {/* Same arrow space after every circle (hidden after the last) keeps all circles the same size. */}
-                      <svg viewBox="0 0 20 20" className={`mx-[0.3cqw] h-[2.4cqw] w-[2.4cqw] flex-none ${last ? 'invisible' : ''}`} aria-hidden="true">
-                        <path d="M3 2.5 17 10 3 17.5l3.2-7.5z" fill="#0e7c74" />
-                      </svg>
-                    </li>
-                  );
-                })}
-              </ol>
-            </>
+                    </div>
+                    <div className="my-[1.4cqw] flex w-full items-center" aria-hidden="true">
+                      <span className={`h-0 flex-1 border-t-[0.25cqw] border-dashed border-[#b8c6d8] ${i === 0 ? 'invisible' : ''}`} />
+                      <span
+                        className="h-[2cqw] w-[2cqw] rounded-full ring-[0.4cqw] ring-white"
+                        style={{ background: color, boxShadow: `0 0 0 0.55cqw ${color}33` }}
+                      />
+                      <span className={`h-0 flex-1 border-t-[0.25cqw] border-dashed border-[#b8c6d8] ${i === steps.length - 1 ? 'invisible' : ''}`} />
+                    </div>
+                    <span className="font-display px-[0.6cqw] text-[1.75cqw] leading-snug font-bold" style={{ color: INK }}>
+                      {t}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
           ),
         });
         break;
@@ -391,21 +500,44 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         const team = groupLeadership(d.leadership);
         type P = (typeof d.leadership)[number];
         const Person = ({ p, role }: { p: P; role?: string }) => (
-          <li className="flex items-center gap-[1.3cqw]">
-            <span className="shadow-[0.3cqw_0.4cqw_0.9cqw_rgba(0,0,0,0.18)]">
-              <Face name={p.name} path={p.photo} size={5.6} square />
+          <li className="flex items-center gap-[1.2cqw]">
+            <span className="rounded-[1.2cqw] shadow-[0_0.3cqw_0.9cqw_rgba(18,52,110,0.2)]">
+              <Face name={p.name} path={p.photo} size={4.9} square />
             </span>
             <span className="flex min-w-0 flex-col leading-tight">
-              {role ? <span className="font-display text-[1.55cqw] font-extrabold text-[#0e7c74]">{role}</span> : null}
-              <span className="text-[1.6cqw] font-semibold text-[#1c3b3a]">{p.name}</span>
-              {p.business ? <span className="text-[1.3cqw] text-[#355856] italic">{p.business}</span> : null}
+              {role ? (
+                <span className="font-display text-[1.45cqw] font-extrabold" style={{ color: BLUE }}>
+                  {role}
+                </span>
+              ) : null}
+              <span className="text-[1.55cqw] font-semibold" style={{ color: INK }}>
+                {p.name}
+              </span>
+              {p.business ? (
+                <span className="text-[1.25cqw] italic" style={{ color: MUTED }}>
+                  {p.business}
+                </span>
+              ) : null}
             </span>
           </li>
         );
-        const Column = ({ heading, children }: { heading?: string; children: ReactNode }) => (
-          <div className="flex min-w-0 flex-col gap-[1.1cqw]">
-            {heading ? <h3 className="font-display m-0 text-[1.7cqw] font-extrabold text-[#1c3b3a]">{heading}</h3> : null}
-            <ul className="m-0 flex list-none flex-col gap-[1.1cqw] p-0">{children}</ul>
+        const Group = ({ heading, children }: { heading?: string; children: ReactNode }) => (
+          <div className="flex min-w-0 flex-col gap-[0.9cqw]">
+            {heading ? (
+              <h3 className="font-display m-0 flex items-center gap-[0.7cqw] text-[1.6cqw] font-extrabold" style={{ color: NAVY }}>
+                <span className="h-[1.3cqw] w-[0.45cqw] rounded-full" style={{ background: GRADIENT }} aria-hidden="true" />
+                {heading}
+              </h3>
+            ) : null}
+            <ul className="m-0 flex list-none flex-col gap-[0.9cqw] p-0">{children}</ul>
+          </div>
+        );
+        const Panel = ({ color, children }: { color: string; children: ReactNode }) => (
+          <div
+            className={`${card()} flex flex-col gap-[1.4cqw] overflow-hidden px-[1.6cqw] pt-[1.8cqw] pb-[1.6cqw]`}
+            style={{ borderTop: `0.5cqw solid ${color}` }}
+          >
+            {children}
           </div>
         );
         const top = team.leaders.slice(0, 2);
@@ -413,32 +545,36 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         page(key, {
           title: 'Meet the Management Team',
           body: (
-            <div className="grid grid-cols-3 items-start gap-x-[3cqw]">
-              <div className="flex flex-col gap-[1.6cqw]">
-                <Column>
+            <div className="grid grid-cols-3 items-start gap-x-[2cqw]">
+              <Panel color={STEP_COLORS[0]}>
+                <Group>
                   {top.map((p) => (
                     <Person key={p.id} p={p} role={p.title} />
                   ))}
-                </Column>
+                </Group>
                 {team.attendance.length ? (
-                  <Column heading="Attendance Managers">
+                  <Group heading="Attendance Managers">
                     {team.attendance.map((p) => (
                       <Person key={p.id} p={p} />
                     ))}
-                  </Column>
+                  </Group>
                 ) : null}
-              </div>
-              <Column>
-                {others.map((p) => (
-                  <Person key={p.id} p={p} role={p.title} />
-                ))}
-              </Column>
-              {team.committee.length ? (
-                <Column heading="Membership Committee">
-                  {team.committee.map((p) => (
-                    <Person key={p.id} p={p} />
+              </Panel>
+              <Panel color={STEP_COLORS[2]}>
+                <Group>
+                  {others.map((p) => (
+                    <Person key={p.id} p={p} role={p.title} />
                   ))}
-                </Column>
+                </Group>
+              </Panel>
+              {team.committee.length ? (
+                <Panel color={STEP_COLORS[4]}>
+                  <Group heading="Membership Committee">
+                    {team.committee.map((p) => (
+                      <Person key={p.id} p={p} />
+                    ))}
+                  </Group>
+                </Panel>
               ) : (
                 <span />
               )}
@@ -450,24 +586,39 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'guests':
         page(key, { title: 'Introduction of Guests', center: true, body: null });
         break;
-      case 'infomercials':
+      case 'infomercials': {
+        const items: [IconName, string][] = [
+          ['megaphone', 'Infomercial'],
+          ['share', 'Referrals'],
+          ['chat', 'One-to-ones'],
+          ['dollar', 'Closed business'],
+          ['heart', 'Thank-yous'],
+          ['star', 'Testimonials'],
+          ['bulb', 'Leads'],
+        ];
         page(key, {
           title: '60-second infomercial and reporting',
           aside: d.timers.infomercials ? <SlideTimer seconds={60} label="60-second infomercial" /> : undefined,
           body: (
             <>
-              <Lead>{procedures.definitions.find((x) => x.term === 'Infomercial')?.text}</Lead>
-              <div className="columns-2 gap-[3cqw] [&_li]:break-inside-avoid">
-                <Bullets items={['Infomercial', 'Referrals', 'One-to-ones', 'Closed business', 'Thank-yous', 'Testimonials', 'Leads']} size={2.5} />
-              </div>
+              <ul className="m-0 grid list-none grid-cols-4 gap-[1.2cqw] p-0">
+                {items.map(([icon, t]) => (
+                  <li key={t} className={`${card(true)} flex items-center gap-[1cqw] px-[1.2cqw] py-[1.1cqw]`}>
+                    <Badge name={icon} size={3.8} />
+                    <span className="font-display text-[1.8cqw] leading-tight font-bold" style={{ color: INK }}>
+                      {t}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </>
           ),
         });
         break;
+      }
       case 'asks': {
         const pages = chunk(d.asks, 6);
-        if (!pages.length)
-          page(key, { body: <Lead>Add your ask on your dashboard and it will appear here.</Lead> });
+        if (!pages.length) page(key, { body: <Lead>Add your ask on your dashboard and it will appear here.</Lead> });
         pages.forEach((p, i) =>
           page(
             key,
@@ -475,11 +626,13 @@ export function buildSlides(d: DeckData): DeckSlide[] {
               body: (
                 <ul className="m-0 grid list-none grid-cols-2 content-start gap-[1.4cqw] p-0">
                   {p.map((a) => (
-                    <li key={`${a.first_name}${a.last_name}`} className="flex flex-col gap-[0.3cqw] rounded-[1.2cqw] border border-[#c9eef0] bg-[#f7fdfd] px-[1.6cqw] py-[1.2cqw]">
-                      <span className="text-[1.5cqw] font-bold text-[#0c7b74]">
+                    <li key={`${a.first_name}${a.last_name}`} className={`${card(true)} flex flex-col gap-[0.3cqw] px-[1.6cqw] py-[1.2cqw]`}>
+                      <span className="text-[1.5cqw] font-bold" style={{ color: BLUE }}>
                         {a.first_name} {a.last_name} · {a.business_name}
                       </span>
-                      <span className="text-[2cqw] leading-snug text-[#1c3b3a]">{a.weekly_ask}</span>
+                      <span className="text-[2cqw] leading-snug" style={{ color: INK }}>
+                        {a.weekly_ask}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -492,26 +645,43 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       }
       case 'statistics': {
         const cycle = d.totals[0]?.t;
+        const tiles: [IconName, string, string][] = cycle
+          ? [
+              ['chat', String(cycle.one_on_ones), 'One-to-ones'],
+              ['share', String(cycle.referrals), 'Referrals'],
+              ['badgeCheck', String(cycle.closed_deals), 'Closed deals'],
+              ['dollar', formatMoney(cycle.closed_amount), 'Closed business'],
+            ]
+          : [];
         page(key, {
           title: 'Statistics',
           body: (
             <>
               {cycle ? (
-                <ul className="m-0 grid list-none grid-cols-4 gap-[1.4cqw] p-0">
-                  {[
-                    ['One-to-ones', String(cycle.one_on_ones)],
-                    ['Referrals', String(cycle.referrals)],
-                    ['Closed deals', String(cycle.closed_deals)],
-                    ['Closed business', formatMoney(cycle.closed_amount)],
-                  ].map(([l, v]) => (
-                    <li key={l} className="flex flex-col gap-[0.4cqw] rounded-[1.4cqw] bg-gradient-to-br from-[#0e7c74] to-[#12a89d] px-[1.6cqw] py-[1.4cqw] text-white">
-                      <span className="font-display text-[4.2cqw] leading-none font-extrabold tabular-nums">{v}</span>
-                      <span className="text-[1.6cqw] font-semibold">{l}</span>
-                    </li>
-                  ))}
+                <ul className="m-0 grid list-none grid-cols-4 gap-[1.4cqw] p-0" aria-label="Since the last meeting">
+                  {tiles.map(([icon, v, l], i) => {
+                    const hi = i === tiles.length - 1;
+                    return (
+                      <li
+                        key={l}
+                        className={`flex flex-col gap-[0.8cqw] rounded-[1.4cqw] px-[1.6cqw] py-[1.4cqw] ${hi ? 'text-white shadow-[0_0.6cqw_1.8cqw_rgba(10,71,169,0.3)]' : card(true)}`}
+                        style={hi ? { background: 'linear-gradient(135deg, #1f7fd0, #0a47a9)' } : undefined}
+                      >
+                        <Badge name={icon} size={3.6} light={hi} />
+                        <span className="font-display text-[3.8cqw] leading-none font-extrabold tabular-nums" style={hi ? undefined : { color: BLUE }}>
+                          {v}
+                        </span>
+                        <span className="text-[1.6cqw] font-semibold" style={hi ? undefined : { color: INK }}>
+                          {l}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : null}
-              <p className="text-on-band-muted m-0 text-[1.6cqw]">Since the last meeting. Month and year so far:</p>
+              <p className="m-0 text-[1.5cqw]" style={{ color: MUTED }}>
+                Since the last meeting. Month and year so far:
+              </p>
               <table className="w-full max-w-[80cqw] border-separate border-spacing-x-[1cqw] text-left">
                 <thead>
                   <tr>
@@ -519,7 +689,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                       <span className="sr-only">Period</span>
                     </th>
                     {['One-to-ones', 'Referrals', 'Closed deals', 'Closed business'].map((h) => (
-                      <th key={h} scope="col" className="text-[1.4cqw] font-bold tracking-[0.08em] text-[#0e7c74] uppercase">
+                      <th key={h} scope="col" className="text-[1.3cqw] font-bold tracking-[0.08em] uppercase" style={{ color: BLUE }}>
                         {h}
                       </th>
                     ))}
@@ -528,11 +698,11 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                 <tbody>
                   {d.totals.slice(1).map(({ label, t }) => (
                     <tr key={label}>
-                      <th scope="row" className="text-[1.8cqw] font-semibold text-[#355856]">
+                      <th scope="row" className="text-[1.7cqw] font-semibold" style={{ color: MUTED }}>
                         {label}
                       </th>
                       {[t.one_on_ones, t.referrals, t.closed_deals, formatMoney(t.closed_amount)].map((v, n) => (
-                        <td key={n} className="font-display text-[2.6cqw] font-extrabold text-[#1c3b3a] tabular-nums">
+                        <td key={n} className="font-display text-[2.4cqw] font-extrabold tabular-nums" style={{ color: NAVY }}>
                           {v}
                         </td>
                       ))}
@@ -545,31 +715,51 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         });
         break;
       }
-      case 'leaderboards':
+      case 'leaderboards': {
+        const icons: Record<string, IconName> = { one_on_ones: 'chat', referrals: 'share', closed_deals: 'badgeCheck', visitors: 'userPlus' };
         page(key, {
           title: 'Leaderboards',
           body: (
             <div className="grid grid-cols-4 gap-[1.6cqw]">
-              {leaderboardMetrics.map((m) => {
+              {leaderboardMetrics.map((m, i) => {
                 const rows = d.leaders.filter((r) => r.metric === m.key);
+                const color = STEP_COLORS[i + 1] ?? BLUE;
                 return (
-                  <div key={m.key} className="flex flex-col gap-[0.7cqw]">
-                    <h3 className="m-0 text-[1.45cqw] font-bold tracking-[0.08em] text-[#0e7c74] uppercase">{m.label}</h3>
-                    {rows.length ? (
-                      <ol className="m-0 flex list-none flex-col gap-[0.5cqw] p-0">
-                        {rows.map((r) => (
-                          <li key={r.profile_id} className="flex items-center gap-[0.8cqw] rounded-[0.8cqw] bg-[#f2fbfb] px-[1cqw] py-[0.55cqw] text-[1.7cqw]">
-                            <span className="w-[2cqw] font-extrabold text-[#0e7c74]">{r.rank}</span>
-                            <span className="min-w-0 flex-1 truncate text-[#1c3b3a]">
-                              {r.first_name} {r.last_name.slice(0, 1)}.
-                            </span>
-                            <strong className="text-[#1c3b3a] tabular-nums">{r.value}</strong>
-                          </li>
-                        ))}
-                      </ol>
-                    ) : (
-                      <Muted>Nothing yet.</Muted>
-                    )}
+                  <div key={m.key} className={`${card()} flex flex-col overflow-hidden`}>
+                    {/* Coloured header with a pointer, as in the roadmap sample. */}
+                    <div className="relative flex items-center gap-[0.9cqw] px-[1.3cqw] py-[1cqw] text-white" style={{ background: color }}>
+                      <Icon name={icons[m.key] ?? 'award'} style={{ width: '2.2cqw', height: '2.2cqw' }} />
+                      <h3 className="font-display m-0 text-[1.55cqw] font-extrabold text-white">{m.label}</h3>
+                      <span
+                        className="absolute -bottom-[0.9cqw] left-1/2 h-[1.8cqw] w-[1.8cqw] -translate-x-1/2 rotate-45"
+                        style={{ background: color }}
+                        aria-hidden="true"
+                      />
+                    </div>
+                    <div className="px-[1.1cqw] pt-[1.6cqw] pb-[1.1cqw]">
+                      {rows.length ? (
+                        <ol className="m-0 flex list-none flex-col gap-[0.5cqw] p-0">
+                          {rows.map((r) => (
+                            <li key={r.profile_id} className="flex items-center gap-[0.8cqw] text-[1.6cqw]">
+                              <span
+                                className="flex h-[2.3cqw] w-[2.3cqw] flex-none items-center justify-center rounded-full text-[1.2cqw] font-extrabold text-white"
+                                style={{ background: color }}
+                              >
+                                {r.rank}
+                              </span>
+                              <span className="min-w-0 flex-1 truncate" style={{ color: INK }}>
+                                {r.first_name} {r.last_name.slice(0, 1)}.
+                              </span>
+                              <strong className="tabular-nums" style={{ color: NAVY }}>
+                                {r.value}
+                              </strong>
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <Muted>Nothing yet.</Muted>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -577,13 +767,14 @@ export function buildSlides(d: DeckData): DeckSlide[] {
           ),
         });
         break;
+      }
       case 'five_minute':
         page(key, {
           title: '5-Minute Educational Presentation',
           aside: d.timers.five_minute ? <SlideTimer id="five_minute" seconds={300} label="5-minute presentation" /> : undefined,
           body: (
             <>
-              <TopicTitle s={d.five} />
+              <TopicBanner s={d.five} />
               <Speaker s={d.five} fallback="This slot is open today." />
             </>
           ),
@@ -592,7 +783,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'five_qa':
         page(key, {
           title: d.five ? `Questions for ${d.five.display_name.split(' ')[0]}` : 'Questions',
-          aside: d.timers.five_qa ? <SlideTimer seconds={60} label="1 minute of questions" /> : undefined,
+          aside: d.timers.five_qa ? <SlideTimer seconds={60} label="1 minute of questions" /> : <Badge name="help" size={15} />,
           body: <Lead>One minute of questions for the 5-minute presentation. Keep them short so everyone gets a turn.</Lead>,
         });
         break;
@@ -602,7 +793,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
           aside: d.timers.ten_minute ? <SlideTimer id="ten_minute" seconds={600} label="10-minute presentation" /> : undefined,
           body: (
             <>
-              <TopicTitle s={d.ten} />
+              <TopicBanner s={d.ten} />
               <Speaker s={d.ten} fallback="This slot is open today." />
             </>
           ),
@@ -611,11 +802,17 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'ten_qa':
         page(key, {
           title: d.ten ? `Questions for ${d.ten.display_name.split(' ')[0]}` : 'Questions',
-          aside: d.timers.ten_qa ? <SlideTimer seconds={300} label="5 minutes of questions" /> : undefined,
+          aside: d.timers.ten_qa ? <SlideTimer seconds={300} label="5 minutes of questions" /> : <Badge name="help" size={15} />,
           body: (
             <>
               <Lead>Five minutes of questions for the 10-minute presentation.</Lead>
-              <Bullets items={['Who is a perfect referral for them?', 'What should we listen for this week?', 'How do we introduce them?']} />
+              <IconRows
+                items={[
+                  ['target', 'Who is a perfect referral for them?'],
+                  ['ear', 'What should we listen for this week?'],
+                  ['users', 'How do we introduce them?'],
+                ]}
+              />
             </>
           ),
         });
@@ -624,18 +821,25 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         page(key, {
           title: 'Upcoming events & announcements',
           body: d.events.length ? (
-            <ul className="m-0 grid list-none grid-cols-2 content-start gap-[1.3cqw] p-0">
+            <ul className="m-0 grid list-none grid-cols-2 content-start gap-[1.4cqw] p-0">
               {d.events.map((e) => (
-                <li key={e.id} className="flex gap-[1.3cqw] rounded-[1.2cqw] border border-[#c9eef0] bg-[#f7fdfd] p-[1.3cqw]">
-                  <span className="flex w-[6.4cqw] flex-none flex-col items-center justify-center rounded-[0.9cqw] bg-[#0e7c74] py-[0.6cqw] text-white">
-                    <span className="text-[1.2cqw] font-bold uppercase">{new Date(e.starts_at).toLocaleString('en-US', { month: 'short', timeZone: site.timezone })}</span>
+                <li key={e.id} className={`${card()} flex gap-[1.3cqw] p-[1.3cqw]`}>
+                  <span
+                    className="flex w-[6.4cqw] flex-none flex-col items-center justify-center rounded-[0.9cqw] py-[0.6cqw] text-white"
+                    style={{ background: 'linear-gradient(160deg, #1f7fd0, #0a47a9)' }}
+                  >
+                    <span className="text-[1.2cqw] font-bold uppercase">
+                      {new Date(e.starts_at).toLocaleString('en-US', { month: 'short', timeZone: site.timezone })}
+                    </span>
                     <span className="font-display text-[2.8cqw] leading-none font-extrabold">
                       {new Date(e.starts_at).toLocaleString('en-US', { day: 'numeric', timeZone: site.timezone })}
                     </span>
                   </span>
                   <span className="flex min-w-0 flex-col gap-[0.2cqw]">
-                    <span className="text-[2cqw] leading-tight font-bold text-[#1c3b3a]">{e.title}</span>
-                    <span className="text-[1.5cqw] text-[#355856]">
+                    <span className="text-[2cqw] leading-tight font-bold" style={{ color: NAVY }}>
+                      {e.title}
+                    </span>
+                    <span className="text-[1.5cqw]" style={{ color: MUTED }}>
                       {formatMeetingTime(new Date(e.starts_at))} · {e.is_online ? 'Online' : e.location}
                       {e.kind === 'member' && e.hostName ? ` · Hosted by ${e.hostName}` : ''}
                     </span>
@@ -658,12 +862,14 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                   'Next step: one-to-ones with three members of our leadership team.',
                   'The leadership team then reviews your application. Only one person per business category.',
                   <>
-                    Apply or learn more at <strong className="text-[#0e7c74]">{visitUrl}</strong>
+                    Apply or learn more at <strong style={{ color: BLUE }}>{visitUrl}</strong>
                   </>,
                 ]}
                 size={2.1}
               />
-              <p className="m-0 text-[1.5cqw] font-bold tracking-[0.12em] text-[#0e7c74] uppercase">Open professions</p>
+              <p className="m-0 text-[1.5cqw] font-bold tracking-[0.12em] uppercase" style={{ color: BLUE }}>
+                Open professions
+              </p>
               {d.openCategories.length ? (
                 <ul className="m-0 flex max-w-[80cqw] list-none flex-wrap gap-[0.8cqw] p-0">
                   {d.openCategories.slice(0, 16).map((c) => (
@@ -681,22 +887,24 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         add(key, (ctx) => (
           <Hero ctx={ctx} kicker="9:30 AM · Adjourn" title="Thank you for joining us">
             {d.next ? (
-              <div className="flex flex-col gap-[0.8cqw] text-[2cqw] text-[#1c3b3a]">
+              <div className="flex flex-col gap-[0.8cqw] text-[2cqw]" style={{ color: INK }}>
                 <p className="m-0 text-[2.3cqw]">
-                  Next meeting: <strong className="text-[#0e7c74]">{formatMeetingDate(new Date(d.next.starts_at))}</strong> ·{' '}
+                  Next meeting: <strong className="text-[#1f7fd0]">{formatMeetingDate(new Date(d.next.starts_at))}</strong> ·{' '}
                   {formatMeetingTime(new Date(d.next.starts_at))} PT
                 </p>
                 <p className="m-0">
-                  <strong className="text-[#0e7c74]">5-minute:</strong>{' '}
+                  <strong className="text-[#1f7fd0]">5-minute:</strong>{' '}
                   {d.next.five ? `${d.next.five.display_name}${d.next.five.topic ? ` · “${d.next.five.topic}”` : ''}` : 'open, claim it on the Meetings page'}
                 </p>
                 <p className="m-0">
-                  <strong className="text-[#0e7c74]">10-minute:</strong>{' '}
+                  <strong className="text-[#1f7fd0]">10-minute:</strong>{' '}
                   {d.next.ten ? `${d.next.ten.display_name}${d.next.ten.topic ? ` · “${d.next.ten.topic}”` : ''}` : 'open, claim it on the Meetings page'}
                 </p>
               </div>
             ) : (
-              <p className="m-0 text-[2.2cqw] text-[#1c3b3a]">The next meeting date will be posted soon.</p>
+              <p className="m-0 text-[2.2cqw]" style={{ color: INK }}>
+                The next meeting date will be posted soon.
+              </p>
             )}
             {d.notes.adjourn ? <Note text={d.notes.adjourn} /> : null}
           </Hero>

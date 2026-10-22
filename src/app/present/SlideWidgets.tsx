@@ -104,13 +104,13 @@ export function SlideTimer({ seconds, label, id, compact = false }: { seconds: n
   const c = 2 * Math.PI * r;
   const ring = (
     <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden="true">
-      <circle cx="50" cy="50" r={r} fill="none" stroke="#e0f4f4" strokeWidth={compact ? 11 : 7} />
+      <circle cx="50" cy="50" r={r} fill="none" stroke="#e3eefb" strokeWidth={compact ? 11 : 7} />
       <circle
         cx="50"
         cy="50"
         r={r}
         fill="none"
-        stroke={done ? '#b42318' : '#0c7b74'}
+        stroke={done ? '#b42318' : '#1f7fd0'}
         strokeWidth={compact ? 11 : 7}
         strokeLinecap="round"
         strokeDasharray={c}

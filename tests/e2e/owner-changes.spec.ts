@@ -77,7 +77,12 @@ test.describe('one-on-ones', () => {
     const item = incoming.getByRole('listitem').filter({ hasText: 'Morgan Member' }).first();
     await expect(item.getByText('“Coffee next week to swap referral ideas?”')).toBeVisible();
     await item.getByRole('button', { name: 'Accept' }).click();
-    await expect(page.getByRole('region', { name: 'My requests' }).getByText(/ACCEPTED/).first()).toBeVisible();
+    await expect(
+      page
+        .getByRole('region', { name: 'My requests' })
+        .getByText(/ACCEPTED/)
+        .first(),
+    ).toBeVisible();
     const rows = await db<{ status: string }>('one_on_one_requests?select=status&message=eq.Coffee%20next%20week%20to%20swap%20referral%20ideas%3F');
     expect(rows.map((r) => r.status)).toContain('accepted');
   });
@@ -104,14 +109,20 @@ test.describe('cancelled meetings and slides', () => {
     await expectAccessible(page);
 
     await page.goto('/admin');
-    await schedule.getByRole('form', { name: `Restore ${label}` }).getByRole('button', { name: 'Restore meeting' }).click();
+    await schedule
+      .getByRole('form', { name: `Restore ${label}` })
+      .getByRole('button', { name: 'Restore meeting' })
+      .click();
     await expect(schedule.getByRole('form', { name: `Cancel ${label}` })).toBeVisible();
   });
 
   test('meeting pages describe the 5- and 10-minute presentations', async ({ page }) => {
     await page.goto('/group-meetings');
     await expect(page.getByText('One member shares something they’ve learned — a helpful insight, tool, or business tip.').first()).toBeVisible();
-    await page.getByRole('link', { name: /^View details for Bay Area Referral Partners Meeting/ }).first().click();
+    await page
+      .getByRole('link', { name: /^View details for Bay Area Referral Partners Meeting/ })
+      .first()
+      .click();
     await expect(page.getByRole('heading', { name: 'Presentations' })).toBeVisible();
     await expect(page.getByText('5-Minute Member Education')).toBeVisible();
     await expect(page.getByText('One member dives deeper into their business to teach the group how to refer them better.')).toBeVisible();
@@ -125,7 +136,8 @@ test.describe('cancelled meetings and slides', () => {
     // Slide 1 is now just the logo (owner, 2026-10-21), so check the title colour on slide 2.
     await page.keyboard.press('ArrowRight');
     const title = deck.getByRole('heading', { name: 'Welcome', exact: true });
-    expect(await title.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(0, 128, 128)');
+    // Titles are navy from the logo since the 2026-10-22 redesign (were teal).
+    expect(await title.evaluate((el) => getComputedStyle(el).color)).toBe('rgb(18, 52, 110)');
     await page.keyboard.press('Home');
 
     const seen: string[] = [];
@@ -150,11 +162,11 @@ test.describe('cancelled meetings and slides', () => {
     await expect(page.getByText('Slides saved.')).toBeVisible();
     await page.getByRole('link', { name: 'Open the slides' }).click();
     for (let i = 0; i < 20; i++) {
-      if (await deck.getByText(/Tells who you are, describes your business/).isVisible()) break;
+      if (await deck.getByRole('heading', { name: '60-second infomercial and reporting' }).isVisible()) break;
       await page.keyboard.press('ArrowRight');
     }
     await expect(deck.getByText('Shout-out: welcome back, Jeanie!')).toBeVisible();
-    await expect(deck.getByText(/Tells who you are, describes your business/)).toBeVisible();
+    await expect(deck.getByRole('heading', { name: '60-second infomercial and reporting' })).toBeVisible();
     await expectAccessible(page);
 
     await deck.getByRole('link', { name: 'Customize slides' }).click();
@@ -207,7 +219,7 @@ test.describe('banners, directory, profile and support (second request of the da
     await page.goto('/');
     await page.getByRole('contentinfo').getByRole('link', { name: 'Support' }).click();
     await expect(page).toHaveURL('/support');
-    for (const n of ['Cedrick Velasco', 'Shermaine Baldorino', 'Rachanee Munar']) await expect(page.getByText(n, { exact: true })).toBeVisible();
+    for (const n of ['Cedrick Velasco', 'Shermaine Benolirao', 'Rachanee Munar']) await expect(page.getByText(n, { exact: true })).toBeVisible();
     await page.getByText('How do I change my photo?').click();
     await expect(page.getByText(/open My profile and choose “Change photo”/)).toBeVisible();
     await page.getByRole('button', { name: 'Chat with support' }).first().click();

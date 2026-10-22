@@ -52,7 +52,6 @@ test.describe('meeting slides follow the new agenda', () => {
       'Let’s begin (meeting called to order)',
       'Visitors (how to join)',
       'Meet the Management Team',
-      'Introduction of guests',
       '60-second infomercial and reporting',
       'Statistics',
       'Leaderboards',
@@ -84,6 +83,7 @@ test.describe('meeting slides follow the new agenda', () => {
     // The Golden Gate photo shows on the right and fades to white beneath the text.
     await expect(deck.getByRole('group').filter({ visible: true }).locator('img[src*="hero-bridge"]')).toBeVisible();
     await expect(deck.getByText(/A chance to chat/)).toHaveCount(0);
+    await expect(deck.getByText('Please camera on, name and business in your Zoom name.')).toBeVisible();
     await page.keyboard.press('ArrowRight');
     const begin = deck.getByRole('group').filter({ visible: true });
     await expect(begin.getByRole('heading', { name: 'Let’s begin.' })).toBeVisible();
@@ -107,19 +107,13 @@ test.describe('meeting slides follow the new agenda', () => {
     // Grouped like the printed Management Team slide: roles in two columns, then the Membership Committee.
     await expect(mgmt.getByRole('heading', { name: 'Membership Committee' })).toBeVisible();
     await page.keyboard.press('ArrowRight');
-    const guests = deck.getByRole('group').filter({ visible: true });
-    const guestsTitle = guests.getByRole('heading', { name: 'Introduction of Guests' });
-    await expect(guestsTitle).toBeVisible();
-    const g = (await guestsTitle.boundingBox())!;
-    // Centred on the slide, left to right and top to bottom.
-    expect(Math.abs(g.x + g.width / 2 - (stageBox.x + stageBox.width / 2))).toBeLessThan(stageBox.width * 0.03);
-    expect(Math.abs(g.y + g.height / 2 - (stageBox.y + stageBox.height / 2))).toBeLessThan(stageBox.height * 0.12);
-    await expect(guests.getByRole('listitem')).toHaveCount(0);
-
-    await page.keyboard.press('ArrowRight');
+    // "Introduction of Guests" is no longer in the standard deck (owner, 2026-10-22): the infomercial slide comes next.
+    await expect(deck.getByRole('heading', { name: 'Introduction of Guests' })).toHaveCount(0);
     const info = deck.getByRole('group').filter({ visible: true });
     await expect(info.getByRole('listitem')).toHaveText(['Infomercial', 'Referrals', 'One-to-ones', 'Closed business', 'Thank-yous', 'Testimonials', 'Leads']);
     await expect(info.getByRole('heading', { name: '60-second infomercial and reporting' })).toBeVisible();
+    // No sentence under the title (owner, 2026-10-22).
+    await expect(info.getByText(/Tells who you are/)).toHaveCount(0);
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('heading', { name: 'Statistics' })).toBeVisible();
 
@@ -352,7 +346,11 @@ test.describe('membership application', () => {
     await expect(page.getByText('Invite sent.')).toBeVisible();
     let mail: { subject: string; htmlContent: string; textContent: string } | undefined;
     for (let i = 0; i < 40 && !mail; i++) {
-      const all = (await (await fetch(`${BREVO}/emails?to=${encodeURIComponent(email)}`)).json()) as { subject: string; htmlContent: string; textContent: string }[];
+      const all = (await (await fetch(`${BREVO}/emails?to=${encodeURIComponent(email)}`)).json()) as {
+        subject: string;
+        htmlContent: string;
+        textContent: string;
+      }[];
       mail = all.find((m) => /invited to apply/.test(m.subject));
       if (!mail) await page.waitForTimeout(250);
     }

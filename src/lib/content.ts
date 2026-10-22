@@ -160,7 +160,7 @@ export const slotDescriptions = {
 /** Support page (owner request, 2026-10-17). */
 export const supportTeam = [
   { name: 'Cedrick Velasco', role: 'Support' },
-  { name: 'Shermaine Baldorino', role: 'Support' },
+  { name: 'Shermaine Benolirao', role: 'Support' },
   { name: 'Rachanee Munar', role: 'Support' },
 ] as const;
 

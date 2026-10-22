@@ -23,15 +23,15 @@ export const SLIDE_KEYS = [
 ] as const;
 export type SlideKey = (typeof SLIDE_KEYS)[number];
 
-/** Standard deck (owner's order, 2026-10-21; "Visitors" added 2026-10-22). "Today's agenda", "This week we're looking for…" and
- *  "Thank you, visitors" stay available: tick them on the Customize slides page to add them to a meeting. */
+/** Standard deck (owner's order, 2026-10-21; "Visitors" added and "Introduction of guests" taken out 2026-10-22).
+ *  "Today's agenda", "Introduction of guests", "This week we're looking for…" and "Thank you, visitors" stay available:
+ *  tick them on the Customize slides page to add them to a meeting. */
 export const DEFAULT_SLIDES: SlideKey[] = [
   'welcome',
   'networking',
   'call_to_order',
   'visitor_path',
   'leadership',
-  'guests',
   'infomercials',
   'statistics',
   'leaderboards',
