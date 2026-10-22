@@ -30,7 +30,7 @@ export type DeckData = {
   notes: SlideNotes;
   timers: TimerSettings;
   saved: boolean;
-  leadership: { id: string; name: string; role: string; photo: string | null }[];
+  leadership: { id: string; name: string; role: string; photo: string | null; business: string | null }[];
   media: SlideMedia[];
   openCategories: string[];
   newMembers: { first_name: string; last_name: string; business_name: string }[];
@@ -163,7 +163,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     notes: resolveNotes(settingsRes.data?.notes),
     timers: resolveTimers(settingsRes.data?.timers),
     saved: !!settingsRes.data,
-    leadership: leadership.map((l) => ({ id: l.id, name: l.name, role: l.role, photo: l.photo_path ?? l.profile?.avatar_path ?? null })),
+    leadership: leadership.map((l) => ({ id: l.id, name: l.name, role: l.role, photo: l.photo_path ?? l.profile?.avatar_path ?? null, business: l.profile?.business_name ?? null })),
     media,
     openCategories: seats.filter((c) => c.open && c.name !== 'Other').map((c) => c.name),
     newMembers: newRes.data,

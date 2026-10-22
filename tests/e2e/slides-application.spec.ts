@@ -102,7 +102,10 @@ test.describe('meeting slides follow the new agenda', () => {
       /5\s*We help you grow your business by referral/,
     ]);
     await page.keyboard.press('ArrowRight');
-    await expect(deck.getByRole('heading', { name: 'Meet the Management Team' })).toBeVisible();
+    const mgmt = deck.getByRole('group').filter({ visible: true });
+    await expect(mgmt.getByRole('heading', { name: 'Meet the Management Team' })).toBeVisible();
+    // Grouped like the printed Management Team slide: roles in two columns, then the Membership Committee.
+    await expect(mgmt.getByRole('heading', { name: 'Membership Committee' })).toBeVisible();
     await page.keyboard.press('ArrowRight');
     const guests = deck.getByRole('group').filter({ visible: true });
     const guestsTitle = guests.getByRole('heading', { name: 'Introduction of Guests' });

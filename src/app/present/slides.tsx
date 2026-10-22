@@ -6,6 +6,7 @@ import type { DeckData, SlideMedia, SpeakerCard } from '@/lib/data/slides';
 import { formatMeetingDate, formatMeetingTime, formatMoney } from '@/lib/dates';
 import { env, mediaUrl } from '@/lib/env';
 import { procedures } from '@/lib/governance';
+import { groupLeadership } from '@/lib/leadership';
 import { chunk, slideLabel, slideTime, type SlideKey } from '@/lib/slides';
 import type { DeckSlide } from './Deck';
 import { PdfPageSlide, SlideTimer, WebsiteSlide, YouTubeSlide } from './SlideWidgets';
@@ -384,22 +385,64 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       }
       case 'leadership': {
-        // Everyone on the Management list once, all cards the same: photo, then name and role below.
-        const people = d.leadership;
-        const cols = people.length > 10 ? 6 : 5;
-        const photo = people.length > 12 ? 6.5 : people.length > 10 ? 7.5 : 8.6;
+        // Grouped like the group's printed Management Team slide (owner, 2026-10-22):
+        // column 1 the first two leaders (and the Attendance Managers), column 2 the other roles,
+        // column 3 the Membership Committee. Each person: photo, role in bold, name, business in italics.
+        const team = groupLeadership(d.leadership);
+        type P = (typeof d.leadership)[number];
+        const Person = ({ p, role }: { p: P; role?: string }) => (
+          <li className="flex items-center gap-[1.3cqw]">
+            <span className="shadow-[0.3cqw_0.4cqw_0.9cqw_rgba(0,0,0,0.18)]">
+              <Face name={p.name} path={p.photo} size={5.6} square />
+            </span>
+            <span className="flex min-w-0 flex-col leading-tight">
+              {role ? <span className="font-display text-[1.55cqw] font-extrabold text-[#0e7c74]">{role}</span> : null}
+              <span className="text-[1.6cqw] font-semibold text-[#1c3b3a]">{p.name}</span>
+              {p.business ? <span className="text-[1.3cqw] text-[#355856] italic">{p.business}</span> : null}
+            </span>
+          </li>
+        );
+        const Column = ({ heading, children }: { heading?: string; children: ReactNode }) => (
+          <div className="flex min-w-0 flex-col gap-[1.1cqw]">
+            {heading ? <h3 className="font-display m-0 text-[1.7cqw] font-extrabold text-[#1c3b3a]">{heading}</h3> : null}
+            <ul className="m-0 flex list-none flex-col gap-[1.1cqw] p-0">{children}</ul>
+          </div>
+        );
+        const top = team.leaders.slice(0, 2);
+        const others = team.leaders.slice(2);
         page(key, {
           title: 'Meet the Management Team',
           body: (
-            <ul className="m-0 grid list-none content-start gap-x-[1.6cqw] gap-y-[1.4cqw] p-0" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-              {people.map((l) => (
-                <li key={l.id} className="flex flex-col items-center gap-[0.5cqw] text-center">
-                  <Face name={l.name} path={l.photo} size={photo} square />
-                  <span className="font-display text-[1.6cqw] leading-tight font-extrabold text-[#0e7c74]">{l.name}</span>
-                  <span className="text-[1.3cqw] leading-tight font-semibold text-[#1c3b3a]">{l.role}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="grid grid-cols-3 items-start gap-x-[3cqw]">
+              <div className="flex flex-col gap-[1.6cqw]">
+                <Column>
+                  {top.map((p) => (
+                    <Person key={p.id} p={p} role={p.title} />
+                  ))}
+                </Column>
+                {team.attendance.length ? (
+                  <Column heading="Attendance Managers">
+                    {team.attendance.map((p) => (
+                      <Person key={p.id} p={p} />
+                    ))}
+                  </Column>
+                ) : null}
+              </div>
+              <Column>
+                {others.map((p) => (
+                  <Person key={p.id} p={p} role={p.title} />
+                ))}
+              </Column>
+              {team.committee.length ? (
+                <Column heading="Membership Committee">
+                  {team.committee.map((p) => (
+                    <Person key={p.id} p={p} />
+                  ))}
+                </Column>
+              ) : (
+                <span />
+              )}
+            </div>
           ),
         });
         break;
