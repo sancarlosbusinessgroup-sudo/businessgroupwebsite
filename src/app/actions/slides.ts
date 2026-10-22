@@ -16,8 +16,8 @@ export async function saveSlideSettings(_prev: ActionState, formData: FormData):
   if (!slides.success) return { status: 'error', message: 'Show at least one slide.', values };
   const notes = slideNotesSchema.safeParse(values);
   if (!notes.success) return { status: 'error', message: 'Please shorten the highlighted slide text.', errors: fieldErrors(notes.error), values };
-  // Timer switches (checkboxes timer_<key>): only the ones turned off are stored.
-  const timers = Object.fromEntries(TIMER_KEYS.filter((k) => values[`timer_${k}`] !== 'on').map((k) => [k, false]));
+  // Timer switches (checkboxes timer_<key>): timers are off unless ticked, so only the ones switched on are stored.
+  const timers = Object.fromEntries(TIMER_KEYS.filter((k) => values[`timer_${k}`] === 'on').map((k) => [k, true]));
   const supabase = await createClient();
   const { error } = await supabase.from('meeting_slide_settings').upsert({ meeting_id: meeting.data, slides: slides.data, notes: notes.data, timers });
   if (error) return { status: 'error', message: 'Only admins can change the slides.', values };

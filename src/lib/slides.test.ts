@@ -7,6 +7,7 @@ describe('slide settings', () => {
       'welcome',
       'networking',
       'call_to_order',
+      'visitor_path',
       'leadership',
       'guests',
       'infomercials',
@@ -32,7 +33,7 @@ describe('slide settings', () => {
       '9:11',
       '9:30',
     ]);
-    expect(slideLabel('infomercials')).toBe('60-second infomercials');
+    expect(slideLabel('infomercials')).toBe('60-second infomercial and reporting');
     for (const k of SLIDE_KEYS) expect(slideLabel(k)).toMatch(/\w/);
   });
 
@@ -109,19 +110,12 @@ describe('parseWebsite', () => {
 });
 
 describe('resolveTimers', () => {
-  it('every timer is on unless saved as false', () => {
-    expect(resolveTimers(null)).toEqual({
-      infomercials: true,
-      five_minute: true,
-      five_materials: true,
-      five_qa: true,
-      ten_minute: true,
-      ten_materials: true,
-      ten_qa: true,
-    });
-    const t = resolveTimers({ five_qa: false, ten_materials: false, bogus: false, ten_qa: 'no' });
-    expect(t.five_qa).toBe(false);
-    expect(t.ten_materials).toBe(false);
-    expect(t.ten_qa).toBe(true);
+  it('every timer is off unless saved as on (owner, 2026-10-22)', () => {
+    expect(Object.values(resolveTimers(null)).every((v) => v === false)).toBe(true);
+    const t = resolveTimers({ five_qa: true, ten_materials: true, bogus: true, ten_qa: 'yes', infomercials: false });
+    expect(t.five_qa).toBe(true);
+    expect(t.ten_materials).toBe(true);
+    expect(t.ten_qa).toBe(false);
+    expect(t.infomercials).toBe(false);
   });
 });

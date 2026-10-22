@@ -136,7 +136,7 @@ test.describe('cancelled meetings and slides', () => {
     for (const s of [
       'Welcome (open networking)',
       'Meet the Management Team',
-      '60-second infomercials',
+      '60-second infomercial and reporting',
       'Statistics',
       '5-minute educational presentation',
       '10-minute presentation',
@@ -145,7 +145,7 @@ test.describe('cancelled meetings and slides', () => {
       expect(seen).toContain(s);
 
     await deck.getByRole('link', { name: 'Customize slides' }).click();
-    await page.getByLabel('Extra text for “8:33 · 60-second infomercials”').fill('Shout-out: welcome back, Jeanie!');
+    await page.getByLabel('Extra text for “8:33 · 60-second infomercial and reporting”').fill('Shout-out: welcome back, Jeanie!');
     await page.getByRole('button', { name: 'Save slides' }).click();
     await expect(page.getByText('Slides saved.')).toBeVisible();
     await page.getByRole('link', { name: 'Open the slides' }).click();

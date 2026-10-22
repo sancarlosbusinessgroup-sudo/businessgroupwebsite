@@ -57,10 +57,9 @@ const Lead = ({ children }: { children: ReactNode }) => <p className="text-on-ba
 
 type Ctx = { n: number; total: number; date: string; meetingNo: number };
 
-/** Standard page: logo, agenda time card, title area, content, Golden Gate strip and footer. */
+/** Standard page: logo, title area, content, Golden Gate strip and footer (no date/time card since 2026-10-22). */
 function Page({
   ctx,
-  time,
   title,
   center,
   photo,
@@ -68,7 +67,6 @@ function Page({
   aside,
 }: {
   ctx: Ctx;
-  time: string | null;
   title: string;
   center?: boolean;
   /** Show the Golden Gate photo across the right side, fading to white beneath the text. */
@@ -98,11 +96,7 @@ function Page({
         </div>
       )}
       <header className="relative flex items-center justify-between px-[4.5cqw] pt-[3cqw]">
-        <Lockup size={0.85} />
-        <div className="rounded-[1.4cqw] bg-gradient-to-br from-[#eef0f4] to-[#f8f9fb] px-[2cqw] py-[0.9cqw] text-right shadow-[0_0.2cqw_0.8cqw_rgba(0,0,0,0.06)]">
-          <p className="font-display m-0 text-[1.5cqw] font-bold text-[#0e7c74]">{time ? `${time} AM` : 'Today'}</p>
-          <p className="m-0 text-[1.3cqw] text-[#3b4a4f]">{ctx.date}</p>
-        </div>
+        <Lockup size={1.1} />
       </header>
       <div className="relative flex min-h-0 flex-1 gap-[3.5cqw] px-[4.5cqw] pt-[2.2cqw] pb-[7cqw]">
         {/* Title and text sit in the vertical middle of the slide (owner, 2026-10-21). */}
@@ -269,7 +263,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
     add(
       key,
       (ctx) => (
-        <Page ctx={ctx} time={slideTime(key)} title={o.title ?? slideLabel(key)} center={o.center} photo={o.photo} aside={o.aside}>
+        <Page ctx={ctx} title={o.title ?? slideLabel(key)} center={o.center} photo={o.photo} aside={o.aside}>
           {o.body}
           {d.notes[key] ? <Note text={d.notes[key]} /> : null}
         </Page>
@@ -340,20 +334,55 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'call_to_order':
         page(key, {
           title: 'Let’s begin.',
+          center: true,
+          body: (
+            <svg viewBox="0 0 64 64" className="h-[13cqw] w-[13cqw]" fill="none" stroke="#0e7c74" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label="Please silence your phone">
+              <rect x="20" y="6" width="24" height="44" rx="4.5" />
+              <path d="M29 43h6" />
+              <path d="M44.5 25l4.5-4.5m0 9L44.5 25" stroke="#0e7c74" />
+              <circle cx="32" cy="32" r="27" stroke="#b42318" strokeWidth="3.6" />
+              <path d="M13 51 51 13" stroke="#b42318" strokeWidth="3.6" />
+            </svg>
+          ),
+        });
+        break;
+      case 'visitor_path': {
+        const steps = [
+          'Attend as a guest',
+          'Receive the application form',
+          'Have a one-on-one with the Membership Committee',
+          'Application approved',
+          'We help you grow your business by referral',
+        ];
+        page(key, {
+          title: 'Visitors',
           body: (
             <>
-              <Bullets
-                items={[
-                  'Please turn off or silence all cellphones and other devices.',
-                  'Members should be seated, on Zoom or in person, when the meeting is called to order.',
-                  'Arrived after 8:30 AM? Please skip your infomercial today. Leaving before 9:30 AM means no infomercial at the next meeting.',
-                ]}
-                size={2.1}
-              />
+              <Bullets items={['Attend for free.']} size={2.4} />
+              <ol className="m-0 mt-[1.5cqw] flex list-none items-stretch p-0" aria-label="How to become a member">
+                {steps.map((t, i) => {
+                  const last = i === steps.length - 1;
+                  return (
+                    <li key={t} className="flex flex-1 items-center">
+                      <div
+                        className={`relative flex aspect-square w-full flex-col items-center justify-center rounded-full px-[1.4cqw] text-center border-[0.45cqw] ${last ? 'border-[#0e7c74] bg-gradient-to-br from-[#0e7c74] to-[#12a89d] text-white' : 'border-[#12a89d] bg-[#effbfc] text-[#1c3b3a]'}`}
+                      >
+                        <span className={`font-display text-[2.2cqw] leading-none font-extrabold ${last ? 'text-white/85' : 'text-[#0e7c74]'}`}>{i + 1}</span>
+                        <span className="mt-[0.6cqw] text-[1.6cqw] leading-snug font-semibold">{t}</span>
+                      </div>
+                      {/* Same arrow space after every circle (hidden after the last) keeps all circles the same size. */}
+                      <svg viewBox="0 0 20 20" className={`mx-[0.3cqw] h-[2.4cqw] w-[2.4cqw] flex-none ${last ? 'invisible' : ''}`} aria-hidden="true">
+                        <path d="M3 2.5 17 10 3 17.5l3.2-7.5z" fill="#0e7c74" />
+                      </svg>
+                    </li>
+                  );
+                })}
+              </ol>
             </>
           ),
         });
         break;
+      }
       case 'leadership': {
         // Everyone on the Management list once, all cards the same: photo, then name and role below.
         const people = d.leadership;
@@ -380,13 +409,13 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       case 'infomercials':
         page(key, {
-          title: '60-second infomercials',
+          title: '60-second infomercial and reporting',
           aside: d.timers.infomercials ? <SlideTimer seconds={60} label="60-second infomercial" /> : undefined,
           body: (
             <>
               <Lead>{procedures.definitions.find((x) => x.term === 'Infomercial')?.text}</Lead>
               <div className="columns-2 gap-[3cqw] [&_li]:break-inside-avoid">
-                <Bullets items={['Referrals', 'One-to-ones', 'Closed business', 'Thank-yous', 'Testimonials', 'Leads', 'Announcements']} size={2.5} />
+                <Bullets items={['Infomercial', 'Referrals', 'One-to-ones', 'Closed business', 'Thank-yous', 'Testimonials', 'Leads']} size={2.5} />
               </div>
             </>
           ),
@@ -421,7 +450,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'statistics': {
         const cycle = d.totals[0]?.t;
         page(key, {
-          title: 'Our numbers',
+          title: 'Statistics',
           body: (
             <>
               {cycle ? (

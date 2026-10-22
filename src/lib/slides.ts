@@ -6,6 +6,7 @@ export const SLIDE_KEYS = [
   'agenda',
   'networking',
   'call_to_order',
+  'visitor_path',
   'leadership',
   'guests',
   'infomercials',
@@ -22,12 +23,13 @@ export const SLIDE_KEYS = [
 ] as const;
 export type SlideKey = (typeof SLIDE_KEYS)[number];
 
-/** Standard deck (owner's order, 2026-10-21). "Today's agenda", "This week we're looking for…" and
+/** Standard deck (owner's order, 2026-10-21; "Visitors" added 2026-10-22). "Today's agenda", "This week we're looking for…" and
  *  "Thank you, visitors" stay available: tick them on the Customize slides page to add them to a meeting. */
 export const DEFAULT_SLIDES: SlideKey[] = [
   'welcome',
   'networking',
   'call_to_order',
+  'visitor_path',
   'leadership',
   'guests',
   'infomercials',
@@ -47,9 +49,10 @@ const info: Record<SlideKey, SlideInfo> = {
   agenda: { label: 'Today’s agenda' },
   networking: { label: 'Welcome (open networking)', time: '8:15' },
   call_to_order: { label: 'Let’s begin (meeting called to order)', time: '8:30' },
+  visitor_path: { label: 'Visitors (how to join)' },
   leadership: { label: 'Meet the Management Team', time: '8:31' },
   guests: { label: 'Introduction of guests', time: '8:32' },
-  infomercials: { label: '60-second infomercials', time: '8:33' },
+  infomercials: { label: '60-second infomercial and reporting', time: '8:33' },
   asks: { label: 'This week we’re looking for…', time: '8:33' },
   statistics: { label: 'Statistics', time: '9:00' },
   leaderboards: { label: 'Leaderboards', time: '9:00' },
@@ -163,7 +166,7 @@ export type TimerKey = (typeof TIMER_KEYS)[number];
 export type TimerSettings = Record<TimerKey, boolean>;
 
 export const timerLabels: Record<TimerKey, string> = {
-  infomercials: '60-second infomercials',
+  infomercials: '60-second infomercial and reporting',
   five_minute: '5-minute presentation slide',
   five_materials: 'Slides added for the 5-minute presentation',
   five_qa: 'Questions for the 5-minute presentation',
@@ -172,8 +175,8 @@ export const timerLabels: Record<TimerKey, string> = {
   ten_qa: 'Questions for the 10-minute presentation',
 };
 
-/** Saved timer switches; anything not saved as false is on. */
+/** Saved timer switches. Timers are off unless switched on (owner, 2026-10-22). */
 export function resolveTimers(saved: unknown): TimerSettings {
   const obj = saved && typeof saved === 'object' && !Array.isArray(saved) ? (saved as Record<string, unknown>) : {};
-  return Object.fromEntries(TIMER_KEYS.map((k) => [k, obj[k] !== false])) as TimerSettings;
+  return Object.fromEntries(TIMER_KEYS.map((k) => [k, obj[k] === true])) as TimerSettings;
 }
