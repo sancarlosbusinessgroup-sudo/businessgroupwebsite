@@ -172,6 +172,12 @@ export const newPasswordSchema = z
   .object({ password, confirm: z.string() })
   .refine((v) => v.password === v.confirm, { path: ['confirm'], message: 'Passwords do not match' });
 
+/** Change password from My profile: the current password, then the new one twice. */
+export const changePasswordSchema = z
+  .object({ current: z.string({ error: 'Enter your current password' }).min(1, 'Enter your current password').max(72), password, confirm: z.string() })
+  .refine((v) => v.password === v.confirm, { path: ['confirm'], message: 'Passwords do not match' })
+  .refine((v) => v.password !== v.current, { path: ['password'], message: 'Choose a password different from your current one' });
+
 export const referralStatuses = ['new', 'contacted', 'meeting_set', 'closed_deal', 'not_a_fit'] as const;
 
 export const referralSchema = z.object({

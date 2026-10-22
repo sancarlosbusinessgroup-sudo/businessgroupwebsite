@@ -425,9 +425,8 @@ export function buildSlides(d: DeckData): DeckSlide[] {
             <IconRows
               boxed
               items={[
-                ['users', 'Say hello to someone you haven’t met yet.'],
-                ['video', 'Please camera on, name and business in your Zoom name.'],
-                ['clock', 'We call the meeting to order at 8:30 AM sharp.'],
+                ['video', 'Please can you put your camera on, and add your name and business to your Zoom Window.'],
+                ['clock', 'Meeting called to order at 8:30am sharp'],
               ]}
             />
           ),
@@ -445,7 +444,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         // a dashed timeline with matching dots, and the step below (owner, 2026-10-22).
         const steps: [IconName, string][] = [
           ['userPlus', 'Attend as a guest'],
-          ['clipboard', 'Receive the application form'],
+          ['clipboard', 'Receive all application forms'],
           ['chat', 'Have a one-on-one with the Membership Committee'],
           ['badgeCheck', 'Application approved'],
           ['trendingUp', 'We help you grow your business by referral'],
@@ -768,6 +767,24 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         });
         break;
       }
+      case 'champion':
+        // Placeholder until the BARP Champion award is defined (owner, 2026-10-23).
+        page(key, {
+          title: 'BARP Champion',
+          center: true,
+          body: (
+            <div className="flex flex-col items-center gap-[1.6cqw]">
+              <Badge name="award" size={14} />
+              <p
+                className="font-display m-0 rounded-full px-[2.4cqw] py-[0.8cqw] text-[2.4cqw] font-extrabold tracking-[0.2em] text-white uppercase"
+                style={{ background: GRADIENT }}
+              >
+                Coming soon
+              </p>
+            </div>
+          ),
+        });
+        break;
       case 'five_minute':
         page(key, {
           title: '5-Minute Educational Presentation',
@@ -824,20 +841,24 @@ export function buildSlides(d: DeckData): DeckSlide[] {
             <ul className="m-0 grid list-none grid-cols-2 content-start gap-[1.4cqw] p-0">
               {d.events.map((e) => (
                 <li key={e.id} className={`${card()} flex gap-[1.3cqw] p-[1.3cqw]`}>
-                  <span
-                    className="flex w-[6.4cqw] flex-none flex-col items-center justify-center rounded-[0.9cqw] py-[0.6cqw] text-white"
-                    style={{ background: 'linear-gradient(160deg, #1f7fd0, #0a47a9)' }}
-                  >
-                    <span className="text-[1.2cqw] font-bold uppercase">
+                  {/* Calendar-page badge: the month large on a coloured band, the day below (owner, 2026-10-23: month more obvious). */}
+                  <span className="flex w-[8.4cqw] flex-none flex-col overflow-hidden rounded-[1cqw] bg-white shadow-[0_0.3cqw_0.9cqw_rgba(18,52,110,0.18)] ring-1 ring-[#d6e4f5]">
+                    <span
+                      className="font-display py-[0.5cqw] text-center text-[2cqw] leading-none font-extrabold tracking-[0.06em] text-white uppercase"
+                      style={{ background: 'linear-gradient(160deg, #1f7fd0, #0a47a9)' }}
+                    >
                       {new Date(e.starts_at).toLocaleString('en-US', { month: 'short', timeZone: site.timezone })}
                     </span>
-                    <span className="font-display text-[2.8cqw] leading-none font-extrabold">
+                    <span className="font-display py-[0.6cqw] text-center text-[3.4cqw] leading-none font-extrabold" style={{ color: NAVY }}>
                       {new Date(e.starts_at).toLocaleString('en-US', { day: 'numeric', timeZone: site.timezone })}
                     </span>
                   </span>
                   <span className="flex min-w-0 flex-col gap-[0.2cqw]">
                     <span className="text-[2cqw] leading-tight font-bold" style={{ color: NAVY }}>
                       {e.title}
+                    </span>
+                    <span className="text-[1.6cqw] font-bold" style={{ color: BLUE }}>
+                      {new Date(e.starts_at).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: site.timezone })}
                     </span>
                     <span className="text-[1.5cqw]" style={{ color: MUTED }}>
                       {formatMeetingTime(new Date(e.starts_at))} · {e.is_online ? 'Online' : e.location}
@@ -892,14 +913,34 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                   Next meeting: <strong className="text-[#1f7fd0]">{formatMeetingDate(new Date(d.next.starts_at))}</strong> ·{' '}
                   {formatMeetingTime(new Date(d.next.starts_at))} PT
                 </p>
-                <p className="m-0">
-                  <strong className="text-[#1f7fd0]">5-minute:</strong>{' '}
-                  {d.next.five ? `${d.next.five.display_name}${d.next.five.topic ? ` · “${d.next.five.topic}”` : ''}` : 'open, claim it on the Meetings page'}
-                </p>
-                <p className="m-0">
-                  <strong className="text-[#1f7fd0]">10-minute:</strong>{' '}
-                  {d.next.ten ? `${d.next.ten.display_name}${d.next.ten.topic ? ` · “${d.next.ten.topic}”` : ''}` : 'open, claim it on the Meetings page'}
-                </p>
+                {/* Next meeting's presenters with their photos (owner, 2026-10-23). */}
+                <ul className="m-0 mt-[0.6cqw] flex list-none flex-col gap-[1.2cqw] p-0" aria-label="Presenting next meeting">
+                  {(
+                    [
+                      ['5-minute presentation', d.next.five],
+                      ['10-minute presentation', d.next.ten],
+                    ] as const
+                  ).map(([slotLabel, s]) => (
+                    <li key={slotLabel} className="flex items-center gap-[1.4cqw]">
+                      {s ? (
+                        <span className="rounded-[1.2cqw] shadow-[0_0.4cqw_1.2cqw_rgba(18,52,110,0.25)]">
+                          <Face name={s.display_name} path={s.avatar_path} size={7.5} square />
+                        </span>
+                      ) : (
+                        <Badge name="presentation" size={7.5} />
+                      )}
+                      <span className="flex min-w-0 flex-col leading-tight">
+                        <span className="text-[1.5cqw] font-bold tracking-[0.04em] uppercase" style={{ color: BLUE }}>
+                          {slotLabel}
+                        </span>
+                        <span className="font-display text-[2.3cqw] font-extrabold" style={{ color: NAVY }}>
+                          {s ? s.display_name : 'Open: claim it on the Meetings page'}
+                        </span>
+                        {s?.topic ? <span className="text-[1.6cqw] italic">“{s.topic}”</span> : null}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ) : (
               <p className="m-0 text-[2.2cqw]" style={{ color: INK }}>

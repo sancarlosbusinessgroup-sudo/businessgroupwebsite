@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useActionState, useState } from 'react';
-import { SubmitButton, TextField } from '@/components/forms';
+import { PasswordField, SubmitButton, TextField } from '@/components/forms';
 import { useClientValidation } from '@/components/useClientValidation';
 import { Notice } from '@/components/ui';
 import { emailOnlySchema, idle, loginSchema, otpSchema } from '@/lib/validation';
@@ -65,14 +65,7 @@ export function LoginForms({ next, linkError }: { next: string; linkError: boole
               defaultValue={pwState.values?.email}
               error={(pwV.clientErrors ?? pwState.errors)?.email}
             />
-            <TextField
-              name="password"
-              type="password"
-              label="Password"
-              autoComplete="current-password"
-              required
-              error={(pwV.clientErrors ?? pwState.errors)?.password}
-            />
+            <PasswordField name="password" label="Password" autoComplete="current-password" required error={(pwV.clientErrors ?? pwState.errors)?.password} />
             <SubmitButton pendingText="Logging in…">Log in</SubmitButton>
             <Link href="/forgot-password" className="text-[15px] font-bold">
               Forgot your password?

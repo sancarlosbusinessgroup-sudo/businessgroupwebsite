@@ -116,6 +116,21 @@ export async function getOneOnOnes(opts: { meId?: string; days: number; limit: n
   return data;
 }
 
+/** Every one-on-one I took part in, newest first (owner, 2026-10-23: one-on-one history). */
+export async function getMyOneOnOneHistory(meId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('one_on_ones')
+    .select(
+      'id, met_on, confirmed_at, reporter_id, partner_id, reporter:profiles!one_on_ones_reporter_id_fkey(first_name, last_name, business_name, slug), partner:profiles!one_on_ones_partner_id_fkey(first_name, last_name, business_name, slug)',
+    )
+    .or(`reporter_id.eq.${meId},partner_id.eq.${meId}`)
+    .order('met_on', { ascending: false })
+    .limit(1000);
+  if (error) fail('one-on-one history', error);
+  return data;
+}
+
 export type OneOnOneRequest = {
   id: string;
   requester_id: string;

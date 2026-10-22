@@ -4,6 +4,8 @@ import { DateBadge, EmptyState, Notice, Pill, StatTile } from '@/components/ui';
 import { speakerFor } from '@/components/meetings';
 import { requireMember } from '@/lib/auth';
 import { attendanceHistory } from '@/lib/attendance';
+import { absencesFor, memberSince } from '@/lib/data/attendance';
+import { ABSENCE_LIMIT, lateEarly } from '@/lib/zoom';
 import { getUpcomingMeetings } from '@/lib/data/public';
 import { formatDayMonth, formatMeetingDate, formatMeetingTime, formatShortDate, inCheckInWindow, nowMs } from '@/lib/dates';
 import { attendancePct } from '@/lib/stats';
@@ -28,12 +30,12 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
     supabase.from('rsvps').select('meeting_id, attending').eq('profile_id', me.id),
     supabase
       .from('meetings')
-      .select('id, starts_at')
+      .select('id, starts_at, ends_at')
       .eq('category', 'Networking')
       .lt('ends_at', new Date().toISOString())
       .gte('starts_at', since)
       .order('starts_at', { ascending: false }),
-    supabase.from('attendance').select('meeting_id, status, checked_in_at, method').eq('profile_id', me.id),
+    supabase.from('attendance').select('meeting_id, status, checked_in_at, method, zoom, substitute, joined_at, left_at, minutes').eq('profile_id', me.id),
     supabase
       .from('meeting_speakers')
       .select('slot, meetings!inner(starts_at)')
@@ -49,6 +51,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const yearStart = `${new Date().getFullYear()}-01-01`;
   const thisYear = history.items.filter((i) => i.meeting.starts_at >= yearStart && i.status === 'present').length;
   const lastSpoke = spokeRes.data?.[0];
+  const detail = new Map((attRes.data ?? []).map((a) => [a.meeting_id, a]));
+  const missed = (await absencesFor(supabase, [{ id: me.id, since: memberSince(me) }])).get(me.id);
   const now = new Date();
 
   return (
@@ -75,6 +79,11 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
             sub={`${history.present} of ${history.held} meetings`}
           />
           <StatTile label="Current streak" value={String(history.streak)} sub="meetings in a row" />
+          <StatTile
+            label="Missed · 6 months"
+            value={`${missed?.missed ?? 0} of ${ABSENCE_LIMIT}`}
+            sub={missed?.atLimit ? 'You have reached the limit' : 'allowed by the Bylaws'}
+          />
           <StatTile label="Attended this year" value={String(thisYear)} sub="Monday meetings" />
           <StatTile
             label="Last spoke"
@@ -176,35 +185,56 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
             <h2 id="hist-h" className="font-display m-0 text-[22px] font-extrabold">
               My attendance history
             </h2>
-            <span className="text-ink-muted text-sm">Recorded when you join from this site during the meeting</span>
+            <span className="text-ink-muted text-sm">Taken from the Zoom attendance report, or when you join from this site</span>
           </div>
           {history.items.length === 0 ? (
             <EmptyState title="No past meetings yet">Your history starts with your first meeting as a member.</EmptyState>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="My attendance table">
               <table className="data-table">
                 <caption className="sr-only">Attendance at past meetings</caption>
                 <thead>
                   <tr>
                     <th scope="col">Meeting</th>
-                    <th scope="col">Checked in</th>
+                    <th scope="col">On Zoom</th>
                     <th scope="col">How</th>
                     <th scope="col">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {history.items.slice(0, 12).map((i) => (
-                    <tr key={i.meeting.id}>
-                      <td>{formatMeetingDate(new Date(i.meeting.starts_at))}</td>
-                      <td>{i.checkedInAt ? formatMeetingTime(new Date(i.checkedInAt)) : '—'}</td>
-                      <td>{i.method === 'self' ? 'Joined from site' : i.method === 'admin' ? 'Marked by admin' : '—'}</td>
-                      <td>
-                        <Pill tone={i.status === 'present' ? 'green' : i.status === 'excused' ? 'amber' : 'red'}>
-                          {i.status === 'present' ? 'Present' : i.status === 'excused' ? 'Excused' : 'Absent'}
-                        </Pill>
-                      </td>
-                    </tr>
-                  ))}
+                  {history.items.slice(0, 12).map((i) => {
+                    const a = detail.get(i.meeting.id);
+                    const flags = a?.zoom ? lateEarly(i.meeting, a.joined_at, a.left_at) : { late: false, leftEarly: false };
+                    const sub = !!a?.substitute;
+                    return (
+                      <tr key={i.meeting.id}>
+                        <td>{formatMeetingDate(new Date(i.meeting.starts_at))}</td>
+                        <td>
+                          {a?.zoom && a.joined_at
+                            ? `${formatMeetingTime(new Date(a.joined_at))}–${a.left_at ? formatMeetingTime(new Date(a.left_at)) : '?'} · ${a.minutes ?? 0} min`
+                            : i.checkedInAt
+                              ? formatMeetingTime(new Date(i.checkedInAt))
+                              : '—'}
+                          {flags.late ? (
+                            <span className="ml-2">
+                              <Pill tone="amber">Late</Pill>
+                            </span>
+                          ) : null}
+                          {flags.leftEarly ? (
+                            <span className="ml-2">
+                              <Pill tone="amber">Left early</Pill>
+                            </span>
+                          ) : null}
+                        </td>
+                        <td>{a?.zoom ? 'Zoom report' : i.method === 'self' ? 'Joined from site' : i.method === 'admin' ? 'Marked by admin' : '—'}</td>
+                        <td>
+                          <Pill tone={sub ? 'teal' : i.status === 'present' ? 'green' : i.status === 'excused' ? 'amber' : 'red'}>
+                            {sub ? 'Sent a substitute' : i.status === 'present' ? 'Present' : i.status === 'excused' ? 'Excused' : 'Absent'}
+                          </Pill>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

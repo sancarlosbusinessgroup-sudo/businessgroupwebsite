@@ -3,7 +3,7 @@ type Meeting = { id: string; starts_at: string };
 type Row = { meeting_id: string; status: Status; checked_in_at: string | null; method: string };
 
 /** Past meetings (newest first) joined with attendance records; missing records count as absent. */
-export function attendanceHistory(pastMeetings: Meeting[], rows: Row[]) {
+export function attendanceHistory<M extends Meeting>(pastMeetings: M[], rows: Row[]) {
   const byMeeting = new Map(rows.map((r) => [r.meeting_id, r]));
   const items = [...pastMeetings]
     .sort((a, b) => b.starts_at.localeCompare(a.starts_at))

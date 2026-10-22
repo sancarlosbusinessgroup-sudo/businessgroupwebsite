@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 
@@ -47,6 +48,53 @@ export function TextField({ name, label, error, help, required, id, ...rest }: B
         aria-required={required || undefined}
         {...rest}
       />
+    </Wrap>
+  );
+}
+
+/** Password input with a show / hide (eye) button. */
+export function PasswordField({ name, label, error, help, required, id, ...rest }: Base & Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  const fid = id ?? `f-${name}`;
+  const [shown, setShown] = useState(false);
+  return (
+    <Wrap id={fid} name={name} label={label} error={error} help={help} required={required}>
+      <div className="relative">
+        <input
+          id={fid}
+          name={name}
+          type={shown ? 'text' : 'password'}
+          className="field pr-14"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy(fid, error, help)}
+          aria-required={required || undefined}
+          autoCapitalize="none"
+          spellCheck={false}
+          {...rest}
+        />
+        <button
+          type="button"
+          onClick={() => setShown((v) => !v)}
+          aria-label={shown ? 'Hide password' : 'Show password'}
+          aria-pressed={shown}
+          aria-controls={fid}
+          className="text-ink-muted hover:text-heading absolute top-1/2 right-1 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0" />
+            <circle cx="12" cy="12" r="3" />
+            {shown ? <path d="m3 3 18 18" /> : null}
+          </svg>
+        </button>
+      </div>
     </Wrap>
   );
 }

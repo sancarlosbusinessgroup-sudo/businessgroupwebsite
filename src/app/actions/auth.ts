@@ -4,7 +4,17 @@ import { redirect } from 'next/navigation';
 import { safeNext } from '@/lib/auth';
 import { env } from '@/lib/env';
 import { createClient } from '@/lib/supabase/server';
-import { type ActionState, emailOnlySchema, fieldErrors, formToObject, joinSchema, loginSchema, newPasswordSchema, otpSchema } from '@/lib/validation';
+import {
+  type ActionState,
+  changePasswordSchema,
+  emailOnlySchema,
+  fieldErrors,
+  formToObject,
+  joinSchema,
+  loginSchema,
+  newPasswordSchema,
+  otpSchema,
+} from '@/lib/validation';
 
 const callback = (next: string) => `${env.siteUrl}/auth/callback?next=${encodeURIComponent(next)}`;
 const withoutSecrets = (v: Record<string, string>) => {
@@ -132,6 +142,23 @@ export async function updatePassword(_prev: ActionState, formData: FormData): Pr
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { status: 'error', message: 'We could not update your password. Please try a different one.' };
   redirect('/dashboard');
+}
+
+/** My profile → Change password. Checks the current password first. */
+export async function changePassword(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formToObject(formData);
+  const parsed = changePasswordSchema.safeParse(values);
+  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error) };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { status: 'error', message: 'Please log in again.' };
+  const check = await supabase.auth.signInWithPassword({ email: user.email, password: parsed.data.current });
+  if (check.error) return { status: 'error', errors: { current: 'That isn’t your current password.' } };
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+  if (error) return { status: 'error', message: 'We could not change your password. Please try a different one.' };
+  return { status: 'success', message: 'Your password has been changed.' };
 }
 
 export async function signOut(): Promise<void> {

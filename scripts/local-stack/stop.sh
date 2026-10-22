@@ -5,6 +5,7 @@ PG_BIN="${PG_BIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail
 pkill -f "scripts/local-stack/gateway.mjs" 2>/dev/null
 pkill -f "scripts/local-stack/smtp-sink.mjs" 2>/dev/null
 pkill -f "scripts/local-stack/brevo-mock.mjs" 2>/dev/null
+pkill -f "scripts/local-stack/zoom-mock.mjs" 2>/dev/null
 pkill -x postgrest 2>/dev/null
 pkill -x auth 2>/dev/null
 if [[ -d "$STACK/pgdata" ]]; then

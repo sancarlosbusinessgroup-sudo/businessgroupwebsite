@@ -13,6 +13,7 @@ export const SLIDE_KEYS = [
   'asks',
   'statistics',
   'leaderboards',
+  'champion',
   'five_minute',
   'five_qa',
   'ten_minute',
@@ -23,9 +24,10 @@ export const SLIDE_KEYS = [
 ] as const;
 export type SlideKey = (typeof SLIDE_KEYS)[number];
 
-/** Standard deck (owner's order, 2026-10-21; "Visitors" added and "Introduction of guests" taken out 2026-10-22).
- *  "Today's agenda", "Introduction of guests", "This week we're looking for…" and "Thank you, visitors" stay available:
- *  tick them on the Customize slides page to add them to a meeting. */
+/** Standard deck (owner's order, 2026-10-21; "Visitors" added and "Introduction of guests" taken out 2026-10-22;
+ *  "BARP Champion" added and the two question slides taken out 2026-10-23).
+ *  "Today's agenda", "Introduction of guests", "This week we're looking for…", the question slides and "Thank you, visitors"
+ *  stay available: tick them on the Customize slides page to add them to a meeting. */
 export const DEFAULT_SLIDES: SlideKey[] = [
   'welcome',
   'networking',
@@ -35,10 +37,9 @@ export const DEFAULT_SLIDES: SlideKey[] = [
   'infomercials',
   'statistics',
   'leaderboards',
+  'champion',
   'five_minute',
-  'five_qa',
   'ten_minute',
-  'ten_qa',
   'announcements',
   'adjourn',
 ];
@@ -56,6 +57,7 @@ const info: Record<SlideKey, SlideInfo> = {
   asks: { label: 'This week we’re looking for…', time: '8:33' },
   statistics: { label: 'Statistics', time: '9:00' },
   leaderboards: { label: 'Leaderboards', time: '9:00' },
+  champion: { label: 'BARP Champion' },
   five_minute: { label: '5-minute educational presentation', time: '9:05' },
   five_qa: { label: 'Questions for the 5-minute presentation', time: '9:10' },
   ten_minute: { label: '10-minute presentation', time: '9:11' },

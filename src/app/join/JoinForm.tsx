@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useActionState, useRef, useState, type FormEvent } from 'react';
-import { Checkbox, SelectField, SubmitButton, TextArea, TextField } from '@/components/forms';
+import { Checkbox, PasswordField, SelectField, SubmitButton, TextArea, TextField } from '@/components/forms';
 import { CheckIcon, Notice } from '@/components/ui';
 import { agreementTerms } from '@/lib/content';
 import { fieldErrors, formToObject, idle, joinSchema } from '@/lib/validation';
@@ -181,9 +181,8 @@ export function JoinForm({ categories, referralCode, referrerName, today, prefil
             maxLength={500}
           />
           <div className="sm:col-span-2">
-            <TextField
+            <PasswordField
               name="password"
-              type="password"
               label="Password"
               autoComplete="new-password"
               required

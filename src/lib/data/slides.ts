@@ -41,7 +41,7 @@ export type DeckData = {
   totals: { label: string; t: GroupTotals }[];
   leaders: LeaderRow[];
   events: CalendarItem[];
-  next: (MeetingWithSpeakers & { five: Speaker | null; ten: Speaker | null }) | null;
+  next: (MeetingWithSpeakers & { five: SpeakerCard | null; ten: SpeakerCard | null }) | null;
 };
 
 function fail(what: string, error: { message: string } | null): never {
@@ -83,7 +83,9 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
   const meetingDay = localDateKey(new Date(start));
   const cycle = { from: localDateKey(new Date(prevStart)), to: meetingDay };
 
-  const speakerIds = meeting.meeting_speakers.map((s) => s.profile_id).filter((x): x is string => !!x);
+  // Photos for today's presenters and the next meeting's (shown on the closing slide).
+  const nextSpeakers = ((nextRes.data as MeetingWithSpeakers | null)?.meeting_speakers ?? []) as Speaker[];
+  const speakerIds = [...meeting.meeting_speakers, ...nextSpeakers].map((s) => s.profile_id).filter((x): x is string => !!x);
   const [visitorsRes, newRes, asksRes, avatarsRes, seats, cycleT, monthT, yearT, leaders, groupEvents, memberEvents, leadership] = await Promise.all([
     supabase.rpc('meeting_visitors', { p_meeting: meeting.id }),
     supabase
@@ -112,8 +114,8 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
   if (visitorsRes.error || newRes.error || asksRes.error || avatarsRes.error) fail('the slides', visitorsRes.error ?? newRes.error ?? asksRes.error);
 
   const avatar = new Map((avatarsRes.data ?? []).map((a) => [a.id, a.avatar_path]));
-  const card = (slot: 'education' | 'presentation'): SpeakerCard | null => {
-    const s = meeting.meeting_speakers.find((x) => x.slot === slot);
+  const card = (slot: 'education' | 'presentation', from: Speaker[] = meeting.meeting_speakers): SpeakerCard | null => {
+    const s = from.find((x) => x.slot === slot);
     return s ? { ...s, avatar_path: s.profile_id ? (avatar.get(s.profile_id) ?? null) : null } : null;
   };
   const horizon = Date.parse(start) + 45 * 86400000;
@@ -163,7 +165,13 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     notes: resolveNotes(settingsRes.data?.notes),
     timers: resolveTimers(settingsRes.data?.timers),
     saved: !!settingsRes.data,
-    leadership: leadership.map((l) => ({ id: l.id, name: l.name, role: l.role, photo: l.photo_path ?? l.profile?.avatar_path ?? null, business: l.profile?.business_name ?? null })),
+    leadership: leadership.map((l) => ({
+      id: l.id,
+      name: l.name,
+      role: l.role,
+      photo: l.photo_path ?? l.profile?.avatar_path ?? null,
+      business: l.profile?.business_name ?? null,
+    })),
     media,
     openCategories: seats.filter((c) => c.open && c.name !== 'Other').map((c) => c.name),
     newMembers: newRes.data,
@@ -181,8 +189,8 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     next: next
       ? {
           ...next,
-          five: next.meeting_speakers.find((s) => s.slot === 'education') ?? null,
-          ten: next.meeting_speakers.find((s) => s.slot === 'presentation') ?? null,
+          five: card('education', next.meeting_speakers),
+          ten: card('presentation', next.meeting_speakers),
         }
       : null,
   };

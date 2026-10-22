@@ -19,7 +19,6 @@ export const publicNav = [
   { href: '/members', label: 'Members' },
   { href: '/visit', label: 'Visit' },
   { href: '/gallery', label: 'Gallery' },
-  { href: '/support', label: 'Support' },
 ] as const;
 
 export type NavItem = { href: string; label: string; children?: readonly { href: string; label: string }[] };
@@ -157,6 +156,9 @@ export const slotDescriptions = {
   presentation: 'One member dives deeper into their business to teach the group how to refer them better.',
 } as const;
 
+/** "BARP Google Sheet" button on the directory (owner, 2026-10-23). Link as given by the owner. */
+export const barpSheetUrl = 'https://us02web.zoom.us/j/83818742413?pwd=MqjMJxuz7vkXXe05Eut0xHsoQ1FpSZ.1';
+
 /** Support page (owner request, 2026-10-17). */
 export const supportTeam = [
   { name: 'Cedrick Velasco', role: 'Support' },
@@ -179,7 +181,13 @@ export const supportFaq = [
     a: 'Go to Log in and choose “Forgot password”. Enter the email the group has for you and follow the link to set your password. If nothing arrives, check your spam folder or ask support.',
   },
   { q: 'How do I change my photo?', a: 'Log in, open My profile and choose “Change photo”. Your photo is shown on your directory card and profile.' },
-  { q: 'How do I report a referral or a one-on-one?', a: 'Log in and open Report Activity in the menu. Choose Referrals to file a referral slip, or One-on-ones to report or request a one-on-one.' },
+  {
+    q: 'How do I report a referral or a one-on-one?',
+    a: 'Log in and open Report Activity in the menu. Choose Referrals to file a referral slip, or One-on-ones to report or request a one-on-one.',
+  },
   { q: 'Where is the Zoom link?', a: 'Members find it on the Meetings page (“Open Zoom link”). It is shared with logged-in members only.' },
-  { q: 'I’m not a member yet. How do I visit?', a: 'Use “Request for an Invite” at the top of any page. The leadership team will be in touch about the next meeting.' },
+  {
+    q: 'I’m not a member yet. How do I visit?',
+    a: 'Use “Request for an Invite” at the top of any page. The leadership team will be in touch about the next meeting.',
+  },
 ] as const;

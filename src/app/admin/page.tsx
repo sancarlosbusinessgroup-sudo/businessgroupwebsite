@@ -7,6 +7,9 @@ import { getCategorySeats, getUpcomingMeetings } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime, formatShortDate } from '@/lib/dates';
 import { MeetingCancelForm } from './MeetingCancelForm';
 import { createClient } from '@/lib/supabase/server';
+import { absencesFor, memberSince } from '@/lib/data/attendance';
+import { ABSENCE_LIMIT } from '@/lib/zoom';
+import Link from 'next/link';
 import { resolveCorrection, setGuestStatus, setMemberStatus } from '../actions/admin';
 import { InviteToApplyButton } from './InviteToApplyButton';
 import { NewsletterSyncForm } from './NewsletterSyncForm';
@@ -56,6 +59,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     supabase.from('email_log').select('id, kind, recipient, subject, status, error, created_at').order('created_at', { ascending: false }).limit(25),
     supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'apply_invite').eq('status', 'sent').order('created_at').limit(500),
   ]);
+  const { data: approved } = await supabase
+    .from('profiles')
+    .select('id, first_name, last_name, approved_at, member_since, created_at')
+    .eq('status', 'approved');
+  const absences = await absencesFor(
+    supabase,
+    (approved ?? []).map((p) => ({ id: p.id, since: memberSince(p) })),
+  );
+  const atLimit = (approved ?? []).filter((p) => absences.get(p.id)?.atLimit);
   const invitedOn = new Map((invitesRes.data ?? []).map((r) => [r.dedupe_key.split(':')[0], formatShortDate(new Date(r.created_at))]));
   if (pendingRes.error || guestsRes.error || corrRes.error || downloadsRes.error) throw new Error('Could not load admin data');
 
@@ -64,6 +76,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Admin</h1>
         <AdminNav current="/admin" />
+        {atLimit.length ? (
+          <Notice tone="error">
+            {atLimit.length === 1 ? '1 member has' : `${atLimit.length} members have`} reached the absence limit ({ABSENCE_LIMIT} missed meetings in 6 months):{' '}
+            {atLimit.map((p) => `${p.first_name} ${p.last_name}`).join(', ')}. <Link href="/admin/attendance">Open attendance</Link>
+          </Notice>
+        ) : null}
         {error && errors[error] ? <Notice tone="error">{errors[error]}</Notice> : null}
 
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="ap-h">
@@ -286,7 +304,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <li key={m.id} className="border-line-soft flex flex-wrap items-center justify-between gap-3 border-t py-3">
                 <span>
                   <strong>{formatMeetingDate(new Date(m.starts_at))}</strong>
-                  <span className="text-ink-muted"> · {formatMeetingTime(new Date(m.starts_at))} PT · {m.title}</span>
+                  <span className="text-ink-muted">
+                    {' '}
+                    · {formatMeetingTime(new Date(m.starts_at))} PT · {m.title}
+                  </span>
                 </span>
                 <MeetingCancelForm id={m.id} label={m.title} reason={m.cancelled_reason} />
               </li>
@@ -319,8 +340,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             Onboarding &amp; email
           </h2>
           <p className="text-ink-muted m-0 text-sm">
-            Approved members get a welcome email with the onboarding form, and a reminder after 3 days if they haven&apos;t finished it. The newsletter list in Brevo is
-            updated on approval; use the button to re-sync everyone.
+            Approved members get a welcome email with the onboarding form, and a reminder after 3 days if they haven&apos;t finished it. The newsletter list in
+            Brevo is updated on approval; use the button to re-sync everyone.
           </p>
           <NewsletterSyncForm />
           <h3 className="h3 mt-2 mb-0">Onboarding</h3>
@@ -381,7 +402,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                       <td>{m.recipient}</td>
                       <td>{m.subject}</td>
                       <td title={m.error ?? undefined}>
-                        <Pill tone={m.status === 'sent' ? 'green' : m.status === 'failed' ? 'red' : 'gray'}>{m.status === 'sent' ? 'Sent' : m.status === 'failed' ? 'Failed' : 'Not sent'}</Pill>
+                        <Pill tone={m.status === 'sent' ? 'green' : m.status === 'failed' ? 'red' : 'gray'}>
+                          {m.status === 'sent' ? 'Sent' : m.status === 'failed' ? 'Failed' : 'Not sent'}
+                        </Pill>
                       </td>
                     </tr>
                   ))}

@@ -186,7 +186,7 @@ test.describe('banners, directory, profile and support (second request of the da
   });
 
   test('page title banners use the bridge photo with a light wash, keeping dark title text @responsive', async ({ page }) => {
-    for (const path of ['/about', '/group-meetings', '/members', '/visit', '/support']) {
+    for (const path of ['/about', '/group-meetings', '/members', '/visit']) {
       await page.goto(path);
       const hero = page.locator('section', { has: page.getByRole('heading', { level: 1 }) }).first();
       await expect(hero.locator('img[src*="hero-bridge"]')).toBeAttached();
@@ -215,10 +215,20 @@ test.describe('banners, directory, profile and support (second request of the da
     await expectAccessible(page);
   });
 
-  test('support page: team, topics, FAQ and a chat button that opens (for now) a coming-soon window', async ({ page }) => {
+  test('support page (members only since 2026-10-23): team, topics, FAQ and a chat button that opens (for now) a coming-soon window', async ({ page }) => {
+    await page.goto('/support');
+    await expect(page).toHaveURL(/\/login\?next=%2Fsupport/);
     await page.goto('/');
-    await page.getByRole('contentinfo').getByRole('link', { name: 'Support' }).click();
+    await expect(page.getByRole('contentinfo').getByRole('link', { name: 'Support' })).toHaveCount(0);
+    await login(page, users.member, undefined, '/support');
     await expect(page).toHaveURL('/support');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(
+      page
+        .locator('section', { has: page.getByRole('heading', { level: 1 }) })
+        .first()
+        .locator('img[src*="hero-bridge"]'),
+    ).toBeAttached();
     for (const n of ['Cedrick Velasco', 'Shermaine Benolirao', 'Rachanee Munar']) await expect(page.getByText(n, { exact: true })).toBeVisible();
     await page.getByText('How do I change my photo?').click();
     await expect(page.getByText(/open My profile and choose “Change photo”/)).toBeVisible();

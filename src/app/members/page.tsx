@@ -7,7 +7,7 @@ import { getCategories, getDirectory, getMemberCount } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
 import { filterDirectory, paginate } from '@/lib/directory';
 import { mediaUrl } from '@/lib/env';
-import { site } from '@/lib/content';
+import { barpSheetUrl, site } from '@/lib/content';
 
 export const metadata: Metadata = { title: 'Members' };
 
@@ -92,8 +92,8 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
           </p>
           {member ? (
             <div className="flex flex-wrap gap-2">
-              <a className="btn btn-outline btn-sm" href="/members/export?format=csv" download>
-                Download spreadsheet (CSV)
+              <a className="btn btn-outline btn-sm" href={barpSheetUrl} target="_blank" rel="noopener noreferrer">
+                BARP Google Sheet<span className="sr-only"> (opens in a new tab)</span>
               </a>
               <a className="btn btn-outline btn-sm" href="/members/export?format=vcf" download>
                 Download contacts (vCard)

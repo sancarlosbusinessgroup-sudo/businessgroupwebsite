@@ -31,9 +31,42 @@ export type Database = {
   public: {
     Tables: {
       attendance: {
-        Row: { checked_in_at: string | null; meeting_id: string; method: string; profile_id: string; status: E['attendance_status'] };
-        Insert: { checked_in_at?: string | null; meeting_id: string; method?: string; profile_id: string; status?: E['attendance_status'] };
-        Update: { checked_in_at?: string | null; meeting_id?: string; method?: string; profile_id?: string; status?: E['attendance_status'] };
+        Row: {
+          checked_in_at: string | null;
+          meeting_id: string;
+          method: string;
+          profile_id: string;
+          status: E['attendance_status'];
+          zoom: boolean;
+          joined_at: string | null;
+          left_at: string | null;
+          minutes: number | null;
+          substitute: boolean;
+        };
+        Insert: {
+          checked_in_at?: string | null;
+          meeting_id: string;
+          method?: string;
+          profile_id: string;
+          status?: E['attendance_status'];
+          zoom?: boolean;
+          joined_at?: string | null;
+          left_at?: string | null;
+          minutes?: number | null;
+          substitute?: boolean;
+        };
+        Update: {
+          checked_in_at?: string | null;
+          meeting_id?: string;
+          method?: string;
+          profile_id?: string;
+          status?: E['attendance_status'];
+          zoom?: boolean;
+          joined_at?: string | null;
+          left_at?: string | null;
+          minutes?: number | null;
+          substitute?: boolean;
+        };
         Relationships: [
           {
             foreignKeyName: 'attendance_meeting_id_fkey';
@@ -45,6 +78,56 @@ export type Database = {
           {
             foreignKeyName: 'attendance_profile_id_fkey';
             columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      attendance_imports: {
+        Row: {
+          meeting_id: string;
+          source: 'zoom' | 'manual';
+          zoom_uuid: string | null;
+          participants: number;
+          matched: number;
+          status: 'done' | 'error';
+          error: string | null;
+          imported_at: string;
+          imported_by: string | null;
+        };
+        Insert: {
+          meeting_id: string;
+          source: 'zoom' | 'manual';
+          zoom_uuid?: string | null;
+          participants?: number;
+          matched?: number;
+          status?: 'done' | 'error';
+          error?: string | null;
+          imported_at?: string;
+          imported_by?: string | null;
+        };
+        Update: {
+          source?: 'zoom' | 'manual';
+          zoom_uuid?: string | null;
+          participants?: number;
+          matched?: number;
+          status?: 'done' | 'error';
+          error?: string | null;
+          imported_at?: string;
+          imported_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'attendance_imports_meeting_id_fkey';
+            columns: ['meeting_id'];
+            isOneToOne: true;
+            referencedRelation: 'meetings';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'attendance_imports_imported_by_fkey';
+            columns: ['imported_by'];
             isOneToOne: false;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
@@ -373,8 +456,26 @@ export type Database = {
         ];
       };
       meeting_slide_links: {
-        Row: { id: string; meeting_id: string; url: string; title: string | null; after_slide: string; sort: number; created_by: string | null; created_at: string };
-        Insert: { id?: string; meeting_id: string; url: string; title?: string | null; after_slide: string; sort?: number; created_by?: string | null; created_at?: string };
+        Row: {
+          id: string;
+          meeting_id: string;
+          url: string;
+          title: string | null;
+          after_slide: string;
+          sort: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          meeting_id: string;
+          url: string;
+          title?: string | null;
+          after_slide: string;
+          sort?: number;
+          created_by?: string | null;
+          created_at?: string;
+        };
         Update: { title?: string | null; after_slide?: string; sort?: number };
         Relationships: [
           {
@@ -877,6 +978,86 @@ export type Database = {
         Relationships: [
           { foreignKeyName: 'rsvps_meeting_id_fkey'; columns: ['meeting_id']; isOneToOne: false; referencedRelation: 'meetings'; referencedColumns: ['id'] },
           { foreignKeyName: 'rsvps_profile_id_fkey'; columns: ['profile_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+        ];
+      };
+      zoom_participants: {
+        Row: {
+          id: string;
+          meeting_id: string;
+          key: string;
+          name: string;
+          email: string | null;
+          joined_at: string | null;
+          left_at: string | null;
+          minutes: number;
+          resolution: 'member' | 'guest' | 'visitor' | 'ignored' | 'pending';
+          matched_by: 'email' | 'name' | 'alias' | 'admin' | null;
+          profile_id: string | null;
+          guest_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          meeting_id: string;
+          key: string;
+          name: string;
+          email?: string | null;
+          joined_at?: string | null;
+          left_at?: string | null;
+          minutes?: number;
+          resolution?: 'member' | 'guest' | 'visitor' | 'ignored' | 'pending';
+          matched_by?: 'email' | 'name' | 'alias' | 'admin' | null;
+          profile_id?: string | null;
+          guest_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          email?: string | null;
+          joined_at?: string | null;
+          left_at?: string | null;
+          minutes?: number;
+          resolution?: 'member' | 'guest' | 'visitor' | 'ignored' | 'pending';
+          matched_by?: 'email' | 'name' | 'alias' | 'admin' | null;
+          profile_id?: string | null;
+          guest_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'zoom_participants_meeting_id_fkey';
+            columns: ['meeting_id'];
+            isOneToOne: false;
+            referencedRelation: 'meetings';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'zoom_participants_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'zoom_participants_guest_id_fkey';
+            columns: ['guest_id'];
+            isOneToOne: false;
+            referencedRelation: 'guest_requests';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      zoom_aliases: {
+        Row: { key: string; profile_id: string; created_at: string };
+        Insert: { key: string; profile_id: string; created_at?: string };
+        Update: { profile_id?: string };
+        Relationships: [
+          {
+            foreignKeyName: 'zoom_aliases_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
         ];
       };
     };

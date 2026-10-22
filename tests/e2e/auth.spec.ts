@@ -20,7 +20,7 @@ test.describe('sign up → admin approval → member access', () => {
     await you.getByLabel('Last name').fill('Applicant');
     await you.getByLabel('Email').fill(email);
     await you.getByLabel('Business phone').fill('(650) 555-0142');
-    await you.getByLabel('Password').fill('short');
+    await you.getByLabel(/^Password/).fill('short');
     await you.getByLabel('Business name').fill('Jamie Applicant Design');
     await you.getByLabel('Category').selectOption({ label: 'Marketing' });
     await you.getByLabel('Website').fill('ftp://bad');
@@ -45,7 +45,7 @@ test.describe('sign up → admin approval → member access', () => {
     await page.getByRole('button', { name: 'Submit application' }).click();
     await expect(page.getByText('Use at least 8 characters')).toBeVisible();
     await expect(page.getByText('Website must start with http:// or https://')).toBeVisible();
-    await you.getByLabel('Password').fill(PASSWORD);
+    await you.getByLabel(/^Password/).fill(PASSWORD);
     await you.getByLabel('Website').fill('https://jamie.example.org');
     const before = Date.now();
     await page.getByRole('button', { name: 'Submit application' }).click();
@@ -100,7 +100,7 @@ test.describe('sign up → admin approval → member access', () => {
     await you.getByLabel('Last name').fill('Licate');
     await you.getByLabel('Email').fill(users.member);
     await you.getByLabel('Business phone').fill('(650) 555-0100');
-    await you.getByLabel('Password').fill(PASSWORD);
+    await you.getByLabel(/^Password/).fill(PASSWORD);
     await you.getByLabel('Business name').fill('Dup Co');
     await you.getByLabel('Category').selectOption({ label: 'Other' });
     await you.getByLabel('How long have you been in this business?').fill('1 year');

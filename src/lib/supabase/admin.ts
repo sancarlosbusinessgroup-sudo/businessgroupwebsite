@@ -4,8 +4,8 @@ import type { Database } from '../database.types';
 import { env } from '../env';
 
 /**
- * Service-role client. Server-only and used for exactly two things: looking up who to email
- * (recipients the signed-in user can't read, e.g. a visitor's inviting member) and the daily email job.
+ * Service-role client. Server-only. Used to look up who to email
+ * (recipients the signed-in user can't read, e.g. a visitor's inviting member), by the scheduled email jobs and by the Zoom attendance import.
  * Returns null when the key isn't configured (emails are then skipped).
  */
 export function createAdminClient() {

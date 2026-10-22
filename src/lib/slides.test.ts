@@ -12,15 +12,14 @@ describe('slide settings', () => {
       'infomercials',
       'statistics',
       'leaderboards',
+      'champion',
       'five_minute',
-      'five_qa',
       'ten_minute',
-      'ten_qa',
       'announcements',
       'adjourn',
     ]);
     // Still available to add per meeting, but not in the standard deck (owner, 2026-10-21).
-    for (const k of ['agenda', 'guests', 'asks', 'visitors_thanks'] as const) {
+    for (const k of ['agenda', 'guests', 'asks', 'five_qa', 'ten_qa', 'visitors_thanks'] as const) {
       expect(SLIDE_KEYS).toContain(k);
       expect(DEFAULT_SLIDES).not.toContain(k);
     }

@@ -60,6 +60,8 @@ pkill -f "scripts/local-stack/smtp-sink.mjs" 2>/dev/null || true
 setsid nohup node "$ROOT/scripts/local-stack/smtp-sink.mjs" >"$LOGS/smtp.log" 2>&1 </dev/null &
 pkill -f "scripts/local-stack/brevo-mock.mjs" 2>/dev/null || true
 setsid nohup node "$ROOT/scripts/local-stack/brevo-mock.mjs" >"$LOGS/brevo.log" 2>&1 </dev/null &
+pkill -f "scripts/local-stack/zoom-mock.mjs" 2>/dev/null || true
+setsid nohup node "$ROOT/scripts/local-stack/zoom-mock.mjs" >"$LOGS/zoom.log" 2>&1 </dev/null &
 
 export GOTRUE_API_HOST=127.0.0.1 PORT=54323 API_EXTERNAL_URL="http://127.0.0.1:54321/auth/v1"
 export GOTRUE_DB_DRIVER=postgres DB_NAMESPACE=auth

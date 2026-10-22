@@ -21,6 +21,16 @@ async function setTimers(page: import('@playwright/test').Page, on: string[]) {
   await expect(page.getByText('Slides saved.')).toBeVisible();
 }
 
+/** On Customize slides: also show the two (optional) question slides, each right after its presentation. */
+async function showQuestionSlides(page: import('@playwright/test').Page) {
+  const form = page.getByRole('form', { name: 'Slides to show' });
+  for (const n of ['5', '10']) {
+    await form.getByLabel(new RegExp(`^Show “.*Questions for the ${n}-minute presentation”`)).check();
+    const at = await form.getByLabel(new RegExp(`^Position of “[^”]*· ${n === '5' ? '5-minute educational' : '10-minute'} presentation”`)).inputValue();
+    await form.getByLabel(new RegExp(`^Position of “.*Questions for the ${n}-minute presentation”`)).fill(at);
+  }
+}
+
 async function goToSlide(deck: import('@playwright/test').Locator, page: import('@playwright/test').Page, heading: string | RegExp) {
   await page.keyboard.press('Home');
   for (let i = 0; i < 30; i++) {
@@ -55,10 +65,9 @@ test.describe('meeting slides follow the new agenda', () => {
       '60-second infomercial and reporting',
       'Statistics',
       'Leaderboards',
+      'BARP Champion',
       '5-minute educational presentation',
-      'Questions for the 5-minute presentation',
       '10-minute presentation',
-      'Questions for the 10-minute presentation',
       'Announcements',
       'Adjourn',
     ]);
@@ -83,7 +92,10 @@ test.describe('meeting slides follow the new agenda', () => {
     // The Golden Gate photo shows on the right and fades to white beneath the text.
     await expect(deck.getByRole('group').filter({ visible: true }).locator('img[src*="hero-bridge"]')).toBeVisible();
     await expect(deck.getByText(/A chance to chat/)).toHaveCount(0);
-    await expect(deck.getByText('Please camera on, name and business in your Zoom name.')).toBeVisible();
+    // Welcome: two points since 2026-10-23 (no "Say hello").
+    await expect(deck.getByText('Please can you put your camera on, and add your name and business to your Zoom Window.')).toBeVisible();
+    await expect(deck.getByText('Meeting called to order at 8:30am sharp')).toBeVisible();
+    await expect(deck.getByText(/Say hello to someone/)).toHaveCount(0);
     await page.keyboard.press('ArrowRight');
     const begin = deck.getByRole('group').filter({ visible: true });
     await expect(begin.getByRole('heading', { name: 'Let’s begin.' })).toBeVisible();
@@ -96,7 +108,7 @@ test.describe('meeting slides follow the new agenda', () => {
     await expect(visitors.getByRole('heading', { name: 'Visitors', exact: true })).toBeVisible();
     await expect(visitors.getByRole('list', { name: 'How to become a member' }).getByRole('listitem')).toHaveText([
       /1\s*Attend as a guest/,
-      /2\s*Receive the application form/,
+      /2\s*Receive all application forms/,
       /3\s*Have a one-on-one with the Membership Committee/,
       /4\s*Application approved/,
       /5\s*We help you grow your business by referral/,
@@ -117,15 +129,26 @@ test.describe('meeting slides follow the new agenda', () => {
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('heading', { name: 'Statistics' })).toBeVisible();
 
-    // Presentation slides show the presentation title, then a questions slide.
+    // After the leaderboards: "BARP Champion", coming soon (owner, 2026-10-23).
+    await goToSlide(deck, page, 'Leaderboards');
+    await page.keyboard.press('ArrowRight');
+    await expect(deck.getByRole('heading', { name: 'BARP Champion' })).toBeVisible();
+    await expect(deck.getByRole('group').filter({ visible: true }).getByText('Coming soon')).toBeVisible();
+
+    // Presentation slides show the presentation title; no question slides after them by default (owner, 2026-10-23).
     await goToSlide(deck, page, '5-Minute Educational Presentation');
     await expect(deck.getByText('“Understanding umbrella insurance”')).toBeVisible();
     await expect(deck.getByText(/One member shares something/)).toHaveCount(0);
     await page.keyboard.press('ArrowRight');
-    await expect(deck.getByRole('heading', { name: /^Questions for/ })).toBeVisible();
-    await goToSlide(deck, page, '10-Minute Presentation');
+    await expect(deck.getByRole('heading', { name: '10-Minute Presentation' })).toBeVisible();
     await page.keyboard.press('ArrowRight');
-    await expect(deck.getByRole('heading', { name: /^Questions for/ })).toBeVisible();
+    await expect(deck.getByRole('heading', { name: /^Upcoming events/ })).toBeVisible();
+
+    // Closing slide: the next meeting's presenters, with their photo or initials.
+    await page.keyboard.press('End');
+    const presenters = deck.getByRole('group').filter({ visible: true }).getByRole('list', { name: 'Presenting next meeting' });
+    await expect(presenters.getByRole('listitem')).toHaveCount(2);
+    await expect(presenters.getByRole('listitem').first()).toContainText('5-minute presentation');
     await expectAccessible(page);
     expect(errors).toEqual([]);
   });
@@ -157,6 +180,8 @@ test.describe('meeting slides follow the new agenda', () => {
     await expect(page.getByRole('list', { name: 'Materials for the 5-minute presentation' })).toContainText('Client video page');
     await expect(page.getByRole('list', { name: 'Materials for the 10-minute presentation' })).toContainText('Client story');
     await expectAccessible(page);
+    // The question slides are optional since 2026-10-23: switch them on to check their timers.
+    await showQuestionSlides(page);
     await setTimers(page, ['five_minute', 'five_materials', 'five_qa', 'ten_minute', 'ten_materials', 'ten_qa']);
 
     await page.getByRole('link', { name: 'Open the slides' }).click();
@@ -220,6 +245,8 @@ test.describe('meeting slides follow the new agenda', () => {
     await form.getByLabel('Show timer: 60-second infomercial and reporting').check();
     await form.getByLabel('Show timer: 5-minute presentation slide').check();
     await form.getByLabel('Show timer: Questions for the 10-minute presentation').check();
+    // The question slides are optional since 2026-10-23: switch them on to check their timers.
+    await showQuestionSlides(page);
     await form.getByRole('button', { name: 'Save slides' }).click();
     await expect(page.getByText('Slides saved.')).toBeVisible();
     await expect(page.getByRole('form', { name: 'Slides to show' }).getByLabel('Show timer: 5-minute presentation slide')).toBeChecked();
@@ -386,7 +413,7 @@ test.describe('membership application', () => {
     await info.getByLabel('Category').selectOption({ index: 1 });
     await info.getByLabel(/How long have you been in this business/).fill('6 years');
     await info.getByLabel(/Describe your product or service/).fill('Printing for small businesses.');
-    await info.getByLabel('Password').fill(PASSWORD);
+    await info.getByLabel(/^Password/).fill(PASSWORD);
     for (const n of [1, 2]) {
       const ref = page.getByRole('group', { name: `Business reference ${n}` });
       await ref.getByLabel(/^Name/).fill(`Ref ${n} Person`);

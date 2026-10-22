@@ -2,11 +2,14 @@ import type { Metadata } from 'next';
 import { Avatar, PageHero } from '@/components/ui';
 import { site, supportFaq, supportTeam, supportTopics } from '@/lib/content';
 import { tawkConfigFromEnv } from '@/lib/chat';
+import { requireMember } from '@/lib/auth';
 import { SupportChatButton } from './SupportChatButton';
 
 export const metadata: Metadata = { title: 'Support' };
 
-export default function SupportPage() {
+export default async function SupportPage() {
+  // Members only (owner, 2026-10-23).
+  await requireMember('/support');
   const chatEnabled = tawkConfigFromEnv() !== null;
   return (
     <>

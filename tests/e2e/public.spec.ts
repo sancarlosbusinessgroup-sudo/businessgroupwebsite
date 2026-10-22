@@ -5,7 +5,6 @@ const pages = [
   { path: '/', heading: 'Local businesses, growing through real referrals.' },
   { path: '/about', heading: 'About Bay Area Referral Partners' },
   { path: '/group-meetings', heading: 'Meeting Schedules' },
-  { path: '/support', heading: 'Support' },
   { path: '/events', heading: 'Member events' },
   { path: '/members', heading: 'Our Bay Area Referral Partners members' },
   { path: '/members/harbor-lane-realty', heading: 'Avery Lindqvist' },
@@ -55,7 +54,6 @@ test.describe('navigation', () => {
       ['Members', '/members'],
       ['Visit', '/visit'],
       ['Gallery', '/gallery'],
-      ['Support', '/support'],
       ['Home', '/'],
     ] as const) {
       await nav.getByRole('link', { name: label, exact: true }).click();

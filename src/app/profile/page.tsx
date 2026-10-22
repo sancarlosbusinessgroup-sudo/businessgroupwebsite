@@ -9,6 +9,7 @@ import { getViewer } from '@/lib/auth';
 import { getCategories } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
 import { prefKeys, prefOn } from '@/lib/email/prefs';
+import { ChangePasswordForm } from './ChangePasswordForm';
 import { EmailPrefsForm } from './EmailPrefsForm';
 import { MediaUpload } from './MediaUpload';
 import { ProfileForm } from './ProfileForm';
@@ -52,7 +53,14 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           ) : (
             <Notice tone="info">You can edit your profile now. It appears in the directory once you&apos;re approved.</Notice>
           )}
-          {approved ? <span className="text-ink-muted text-sm">This is how visitors see your listing in the directory.</span> : null}
+          {approved ? (
+            <span className="text-ink-muted flex flex-wrap items-center gap-3 text-sm">
+              {!editing ? 'This is how visitors see your listing in the directory.' : null}
+              <Link href="/profile?tab=edit#password" className="font-bold">
+                Change password
+              </Link>
+            </span>
+          ) : null}
         </div>
 
         {editing ? (
@@ -88,6 +96,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
               }}
             />
             {approved ? <EmailPrefsForm on={prefs} isAdmin={p.role === 'admin'} /> : null}
+            <ChangePasswordForm />
           </>
         ) : (
           <ProfileView
