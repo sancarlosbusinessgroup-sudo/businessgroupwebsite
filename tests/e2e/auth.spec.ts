@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PASSWORD, codeIn, db, expectAccessible, lastMail, linkIn, login, users } from './support';
+import { PASSWORD, db, expectAccessible, lastMail, linkIn, login, users } from './support';
 
 test.describe('sign up → admin approval → member access', () => {
   test('one-page application validates, creates a pending account with the application, confirms email and gates member pages', async ({ page }) => {
@@ -118,20 +118,14 @@ test.describe('sign up → admin approval → member access', () => {
   });
 });
 
-test.describe('login, logout, codes and password reset', () => {
+test.describe('login, logout and password reset', () => {
   test('wrong password shows an error; right password signs in; log out signs out', async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel('Email').first().fill(users.member);
-    await page
-      .getByRole('tabpanel', { name: 'Password' })
-      .getByLabel(/^Password/)
-      .fill('wrong-password');
+    await page.getByRole('textbox', { name: 'Password', exact: true }).fill('wrong-password');
     await page.getByRole('button', { name: 'Log in' }).click();
     await expect(page.getByText('That email and password don’t match our records.')).toBeVisible();
-    await page
-      .getByRole('tabpanel', { name: 'Password' })
-      .getByLabel(/^Password/)
-      .fill(PASSWORD);
+    await page.getByRole('textbox', { name: 'Password', exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Log in' }).click();
     await expect(page).toHaveURL(/\/dashboard/);
     await page.getByRole('button', { name: 'Log out' }).click();
@@ -147,22 +141,12 @@ test.describe('login, logout, codes and password reset', () => {
     await expect(page.getByText('Password is required')).toBeVisible();
   });
 
-  test('email code login', async ({ page }) => {
+  test('login is by password only: no "Email me a code" option', async ({ page }) => {
     await page.goto('/login');
-    await page.getByRole('tab', { name: 'Email me a code' }).click();
-    await page.getByRole('button', { name: 'Send my code' }).click();
-    await expect(page.getByText('Email is required')).toBeVisible();
-    const before = Date.now();
-    await page.getByLabel('Email').last().fill(users.member2);
-    await page.getByRole('button', { name: 'Send my code' }).click();
-    await expect(page.getByText(/we emailed a 6-digit code/)).toBeVisible();
-    await page.getByLabel('6-digit code').fill('000000');
-    await page.getByRole('button', { name: 'Log in' }).last().click();
-    await expect(page.getByText('That code is wrong or has expired')).toBeVisible();
-    const code = codeIn(await lastMail(users.member2, before));
-    await page.getByLabel('6-digit code').fill(code);
-    await page.getByRole('button', { name: 'Log in' }).last().click();
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page.getByText('Email me a code')).toHaveCount(0);
+    await expect(page.getByRole('tab')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Send my code' })).toHaveCount(0);
+    await expect(page.getByRole('textbox', { name: 'Password', exact: true })).toBeVisible();
   });
 
   test('password reset via emailed link', async ({ page }) => {

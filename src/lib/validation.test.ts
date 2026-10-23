@@ -6,7 +6,6 @@ import {
   newPasswordSchema,
   oneOnOneRequestSchema,
   oneOnOneSchema,
-  otpSchema,
   profileSchema,
   leadershipSchema,
   memberEventSchema,
@@ -106,11 +105,7 @@ describe('joinSchema', () => {
   });
 });
 
-describe('otp + passwords', () => {
-  it('needs a 6 digit code', () => {
-    expect(otpSchema.safeParse({ email: 'a@b.co', code: '12345' }).success).toBe(false);
-    expect(otpSchema.safeParse({ email: 'a@b.co', code: '123456' }).success).toBe(true);
-  });
+describe('passwords', () => {
   it('new password must match confirmation', () => {
     const r = newPasswordSchema.safeParse({ password: 'abcdefgh1', confirm: 'abcdefgh2' });
     expect(r.success).toBe(false);

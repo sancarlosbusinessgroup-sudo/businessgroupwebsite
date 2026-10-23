@@ -53,19 +53,10 @@ export function linkIn(mail: Mail): string {
   return m[1].replace(/&amp;/g, '&');
 }
 
-export function codeIn(mail: Mail): string {
-  const m = mail.body.match(/\b(\d{6})\b/);
-  if (!m?.[1]) throw new Error('no code in email');
-  return m[1];
-}
-
 export async function login(page: Page, email: string, password = PASSWORD, next = '/dashboard') {
   await page.goto(`/login?next=${encodeURIComponent(next)}`);
   await page.getByLabel('Email').first().fill(email);
-  await page
-    .getByRole('tabpanel', { name: 'Password' })
-    .getByLabel(/^Password/)
-    .fill(password);
+  await page.getByRole('textbox', { name: 'Password', exact: true }).fill(password);
   await page.getByRole('button', { name: 'Log in' }).click();
   await page.waitForURL((u) => !u.pathname.startsWith('/login'));
 }

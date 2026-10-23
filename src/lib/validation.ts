@@ -161,13 +161,6 @@ export const joinSchema = z
 
 export const loginSchema = z.object({ email, password: z.string().min(1, 'Password is required') });
 export const emailOnlySchema = z.object({ email });
-export const otpSchema = z.object({
-  email,
-  code: z
-    .string()
-    .trim()
-    .regex(/^\d{6}$/, 'Enter the 6-digit code'),
-});
 export const newPasswordSchema = z
   .object({ password, confirm: z.string() })
   .refine((v) => v.password === v.confirm, { path: ['confirm'], message: 'Passwords do not match' });

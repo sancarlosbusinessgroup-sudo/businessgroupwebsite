@@ -17,7 +17,6 @@ import {
   joinSchema,
   loginSchema,
   newPasswordSchema,
-  otpSchema,
 } from '@/lib/validation';
 
 const callback = (next: string) => `${env.siteUrl}/auth/callback?next=${encodeURIComponent(next)}`;
@@ -97,34 +96,6 @@ export async function signInWithPassword(_prev: ActionState, formData: FormData)
       message: unconfirmed ? 'Please confirm your email first. Check your inbox for the link.' : 'That email and password don’t match our records.',
       values: withoutSecrets(values),
     };
-  }
-  redirect(afterLogin(data.user, values.next));
-}
-
-export async function sendLoginCode(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const values = formToObject(formData);
-  const parsed = emailOnlySchema.safeParse(values);
-  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values };
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithOtp({
-    email: parsed.data.email,
-    options: { shouldCreateUser: false, emailRedirectTo: callback(safeNext(values.next)) },
-  });
-  // Don't reveal whether an account exists; only surface rate limiting.
-  if (error && /rate|seconds/i.test(error.message)) {
-    return { status: 'error', message: 'Please wait a minute before asking for another code.', values };
-  }
-  return { status: 'success', values: { email: parsed.data.email, next: values.next ?? '' } };
-}
-
-export async function verifyLoginCode(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const values = formToObject(formData);
-  const parsed = otpSchema.safeParse(values);
-  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values: withoutSecrets(values) };
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.verifyOtp({ email: parsed.data.email, token: parsed.data.code, type: 'email' });
-  if (error) {
-    return { status: 'error', errors: { code: 'That code is wrong or has expired' }, values: withoutSecrets(values) };
   }
   redirect(afterLogin(data.user, values.next));
 }

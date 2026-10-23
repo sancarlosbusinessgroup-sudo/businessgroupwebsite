@@ -64,7 +64,7 @@ test('referral page: no introduction paragraph under the title', async ({ page }
 
 test('password fields have a show/hide eye', async ({ page }) => {
   await page.goto('/login');
-  const pw = page.locator('#panel-password').getByLabel(/^Password/);
+  const pw = page.getByRole('main').getByLabel(/^Password/);
   await pw.fill('secret-123');
   await expect(pw).toHaveAttribute('type', 'password');
   await page.getByRole('button', { name: 'Show password' }).click();
