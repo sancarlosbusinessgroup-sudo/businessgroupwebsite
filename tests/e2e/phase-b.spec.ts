@@ -61,9 +61,11 @@ test.describe('member events', () => {
     await login(page, users.member2, undefined, `/events/${slug}`);
     await expect(page.getByRole('link', { name: 'Edit event' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Log out' }).click();
-    await expect(page.getByRole('link', { name: 'Log in', exact: true })).toBeVisible();
+    await expect(page.getByRole('banner').getByRole('link', { name: 'Log in', exact: true })).toBeVisible();
     await login(page, users.member, undefined, `/events/${slug}`);
     await page.getByRole('button', { name: 'Delete event' }).click();
+    // A second step confirms the delete (owner, 2026-10-23).
+    await page.getByRole('button', { name: 'Yes, delete' }).click();
     await expect(page).toHaveURL(/\/events(\?|$)/);
     expect(await db(`member_events?slug=eq.${slug}&select=id`)).toEqual([]);
   });

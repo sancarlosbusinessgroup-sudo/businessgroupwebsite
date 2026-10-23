@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { notFound } from 'next/navigation';
 import { Countdown } from '@/components/Countdown';
 import { speakerFor } from '@/components/meetings';
@@ -126,12 +127,7 @@ export default async function EventDetail({ params }: Props) {
               <Link className="btn btn-outline" href={`/events/${m.slug}/edit`}>
                 Edit event
               </Link>
-              <form action={deleteMemberEvent}>
-                <input type="hidden" name="id" value={m.id} />
-                <button type="submit" className="btn text-red w-full">
-                  Delete event
-                </button>
-              </form>
+              <ConfirmDelete action={deleteMemberEvent} id={m.id} what="event" />
             </div>
           ) : null}
           <Link href={listPathFor(m.kind)} className="mt-2 text-[15px] font-bold">

@@ -186,3 +186,42 @@ test('My profile: remove photo (with a confirm step); the uploaded file is delet
   const file = await fetch(`${STACK}/storage/v1/object/public/profile-media/${path}`, { headers: { apikey: key } });
   expect(file.status).not.toBe(200);
 });
+
+test('members delete referral slips and one-on-ones they filed (with a confirm step); admins delete any from Member activity', async ({ page }) => {
+  const me = await idOf(users.member);
+  const other = await idOf(users.member2);
+  const today = new Date().toISOString().slice(0, 10);
+  const [slip] = await rest('referrals', 'POST', { from_id: me, to_id: other, contact_name: 'Delete Me Prospect', status: 'contacted' });
+  // A partner no other test uses, so this is the only matching row.
+  const theo = (await rest(`profiles?first_name=eq.Theo&last_name=eq.Marchetti&select=id`))[0]?.id as string;
+  const [ooo] = await rest('one_on_ones', 'POST', { reporter_id: me, partner_id: theo, met_on: today });
+  const [theirs] = await rest('referrals', 'POST', { from_id: other, to_id: me, contact_name: 'Admin Removes This' });
+
+  await login(page, users.member, undefined, '/referrals');
+  // A slip someone else gave me has no Delete for a member.
+  await expect(page.getByRole('button', { name: 'Delete referral slip for Admin Removes This' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Delete referral slip for Delete Me Prospect' }).click();
+  await page.getByRole('form', { name: 'Delete referral slip for Delete Me Prospect' }).getByRole('button', { name: 'Cancel' }).click();
+  expect(await rest(`referrals?id=eq.${slip?.id}&select=id`)).toHaveLength(1);
+  await page.getByRole('button', { name: 'Delete referral slip for Delete Me Prospect' }).click();
+  await expectAccessible(page);
+  await page.getByRole('button', { name: 'Yes, delete' }).click();
+  await expect(page.getByText('Delete Me Prospect')).toHaveCount(0);
+  await expect.poll(async () => (await rest(`referrals?id=eq.${slip?.id}&select=id`)).length).toBe(0);
+
+  await page.goto('/one-on-ones');
+  await page.getByRole('button', { name: /^Delete one-on-one on .* with Theo Marchetti$/ }).click();
+  await page.getByRole('button', { name: 'Yes, delete' }).click();
+  await expect(page.getByRole('row').filter({ hasText: 'Theo Marchetti' })).toHaveCount(0);
+  await expect.poll(async () => (await rest(`one_on_ones?id=eq.${ooo?.id}&select=id`)).length).toBe(0);
+
+  // Admin: Member activity lists everything and deletes any slip.
+  await page.context().clearCookies();
+  await login(page, users.admin, undefined, '/admin/activity');
+  await expect(page.getByRole('heading', { level: 1, name: 'Member activity' })).toBeVisible();
+  await page.getByRole('button', { name: 'Delete referral slip for Admin Removes This' }).click();
+  await page.getByRole('button', { name: 'Yes, delete' }).click();
+  await expect(page.getByText('Admin Removes This')).toHaveCount(0);
+  await expect.poll(async () => (await rest(`referrals?id=eq.${theirs?.id}&select=id`)).length).toBe(0);
+  await expectAccessible(page);
+});

@@ -14,7 +14,8 @@ import {
 import { formatShortDate, isoDateDaysAgo, localDateKey } from '@/lib/dates';
 import { periodRange } from '@/lib/periods';
 import { flagDuplicates } from '@/lib/stats';
-import { confirmOneOnOne, respondOneOnOneRequest } from '../actions/member';
+import { ConfirmDelete } from '@/components/ConfirmDelete';
+import { confirmOneOnOne, deleteOneOnOne, respondOneOnOneRequest } from '../actions/member';
 import { ReportForm } from './ReportForm';
 import { RequestForm } from './RequestForm';
 
@@ -257,6 +258,9 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                     <th scope="col">With</th>
                     <th scope="col">Reported by</th>
                     <th scope="col">Status</th>
+                    <th scope="col">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -277,6 +281,15 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                         </td>
                         <td>{o.reporter_id === me.id ? 'You' : `${o.reporter?.first_name} ${o.reporter?.last_name}`}</td>
                         <td>{o.confirmed_at ? 'Confirmed' : 'Awaiting confirmation'}</td>
+                        <td>
+                          {o.reporter_id === me.id || me.role === 'admin' ? (
+                            <ConfirmDelete
+                              action={deleteOneOnOne}
+                              id={o.id}
+                              what={`one-on-one on ${day(o.met_on)} with ${other?.first_name ?? ''} ${other?.last_name ?? ''}`}
+                            />
+                          ) : null}
+                        </td>
                       </tr>
                     );
                   })}

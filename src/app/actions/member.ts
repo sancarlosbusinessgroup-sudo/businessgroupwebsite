@@ -290,6 +290,27 @@ export async function removeProfileMedia(input: { kind: 'avatar' | 'logo' }): Pr
   return { status: 'success' };
 }
 
+// --- Deleting what you filed (owner, 2026-10-23) ------------------------------
+// Members delete the referral slips and one-on-ones they filed; admins delete any. The database enforces who may.
+
+export async function deleteReferral(formData: FormData): Promise<void> {
+  const id = z.uuid().safeParse(formData.get('id'));
+  if (!id.success) return;
+  const { supabase, user } = await session();
+  if (!user) return;
+  await supabase.from('referrals').delete().eq('id', id.data);
+  for (const p of ['/referrals', '/dashboard', '/admin/activity', '/admin/stats']) revalidatePath(p);
+}
+
+export async function deleteOneOnOne(formData: FormData): Promise<void> {
+  const id = z.uuid().safeParse(formData.get('id'));
+  if (!id.success) return;
+  const { supabase, user } = await session();
+  if (!user) return;
+  await supabase.from('one_on_ones').delete().eq('id', id.data);
+  for (const p of ['/one-on-ones', '/dashboard', '/admin/activity', '/admin/stats']) revalidatePath(p);
+}
+
 // --- Gallery ----------------------------------------------------------------
 
 const galleryInput = galleryMetaSchema.extend({ imagePath: z.string().max(200), thumbPath: z.string().max(200) });

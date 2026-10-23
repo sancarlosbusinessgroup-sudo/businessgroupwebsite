@@ -66,5 +66,7 @@ export async function deleteMemberEvent(formData: FormData): Promise<void> {
   await supabase.from('member_events').delete().eq('id', id.data);
   revalidatePath('/events');
   revalidatePath('/');
+  revalidatePath('/admin/activity');
+  if (formData.get('back') === '/admin/activity') redirect('/admin/activity');
   redirect('/events?deleted=1');
 }

@@ -5,6 +5,8 @@ import { referralStatusLabels } from '@/lib/content';
 import { getMemberOptions } from '@/lib/data/member';
 import { formatMoney, formatShortDate } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
+import { ConfirmDelete } from '@/components/ConfirmDelete';
+import { deleteReferral } from '../actions/member';
 import { SendReferralForm, UpdateReferralForm } from './ReferralForms';
 
 export const metadata: Metadata = { title: 'Referral tracker' };
@@ -62,6 +64,9 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
           </span>
         ) : null}
         {isReceived ? <UpdateReferralForm id={r.id} status={r.status} amount={r.amount} label={r.contact_name} /> : null}
+        {!isReceived || me.role === 'admin' ? (
+          <ConfirmDelete action={deleteReferral} id={r.id} what={`referral slip for ${r.contact_name}`} className="self-start" />
+        ) : null}
       </li>
     );
   };
