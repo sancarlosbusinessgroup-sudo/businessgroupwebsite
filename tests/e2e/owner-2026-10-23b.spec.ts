@@ -49,7 +49,7 @@ test('BARP Champion: ranking, override needs a reason, badge on profile and dire
 
     // Choosing someone other than the automatic pick needs a reason.
     const form = page.getByRole('form', { name: 'Choose the champion' });
-    await form.getByLabel('Champion').selectOption({ label: 'Riley Second · 0 pts' });
+    await form.getByLabel('Champion').selectOption(other);
     await form.getByRole('button', { name: 'Save champion' }).click();
     await expect(form.getByText(/Please explain why this member is the champion/)).toBeVisible();
     await form.getByLabel('Reason').fill('Hosted the holiday mixer for the whole group');
