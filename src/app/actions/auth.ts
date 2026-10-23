@@ -8,6 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { removeFromList } from '@/lib/email/brevo';
 import { deliver, loadAdmins, siteUrl } from '@/lib/email/notify';
 import { accountDeletedEmail } from '@/lib/email/templates';
+import { passwordErrorMessage } from '@/lib/password-errors';
 import { createClient } from '@/lib/supabase/server';
 import {
   type ActionState,
@@ -139,7 +140,7 @@ export async function updatePassword(_prev: ActionState, formData: FormData): Pr
   } = await supabase.auth.getUser();
   if (!user) return { status: 'error', message: 'Your reset link has expired. Please request a new one.' };
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
-  if (error) return { status: 'error', message: 'We could not update your password. Please try a different one.' };
+  if (error) return { status: 'error', message: passwordErrorMessage(error, 'We could not update your password. Please try a different one.') };
   await clearTemporaryPassword(user.id, user.app_metadata?.must_change_password === true).catch(() => undefined);
   redirect('/dashboard');
 }
@@ -164,7 +165,7 @@ export async function chooseOwnPassword(_prev: ActionState, formData: FormData):
   } = await supabase.auth.getUser();
   if (!user) return { status: 'error', message: 'Please log in again.' };
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
-  if (error) return { status: 'error', message: 'We could not save that password. Please try a different one.' };
+  if (error) return { status: 'error', message: passwordErrorMessage(error, 'We could not save that password. Please try a different one.') };
   try {
     await clearTemporaryPassword(user.id, user.app_metadata?.must_change_password === true);
   } catch {
@@ -232,7 +233,7 @@ export async function changePassword(_prev: ActionState, formData: FormData): Pr
   const check = await supabase.auth.signInWithPassword({ email: user.email, password: parsed.data.current });
   if (check.error) return { status: 'error', errors: { current: 'That isn’t your current password.' } };
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
-  if (error) return { status: 'error', message: 'We could not change your password. Please try a different one.' };
+  if (error) return { status: 'error', message: passwordErrorMessage(error, 'We could not change your password. Please try a different one.') };
   await clearTemporaryPassword(user.id, user.app_metadata?.must_change_password === true).catch(() => undefined);
   return { status: 'success', message: 'Your password has been changed.' };
 }

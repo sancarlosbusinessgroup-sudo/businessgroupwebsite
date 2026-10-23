@@ -170,6 +170,11 @@ test.describe('login, logout and password reset', () => {
     await expectAccessible(page);
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page).toHaveURL(/\/reset-password/);
+    // Re-entering the current password is refused with a clear reason (owner report 2026-10-24).
+    await page.getByLabel(/^New password/).fill(PASSWORD);
+    await page.getByLabel('Confirm new password').fill(PASSWORD);
+    await page.getByRole('button', { name: 'Save password' }).click();
+    await expect(page.getByText('That is already your password. Please choose a new one.')).toBeVisible();
     await page.getByLabel(/^New password/).fill('new-password-123');
     await page.getByLabel('Confirm new password').fill('different-123');
     await page.getByRole('button', { name: 'Save password' }).click();
