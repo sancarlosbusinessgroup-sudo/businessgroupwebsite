@@ -21,6 +21,8 @@ export async function submitGuestRequest(_prev: ActionState, formData: FormData)
     last_name: d.lastName,
     email: d.email,
     business_name: d.businessName ?? null,
+    phone: d.phone ?? null,
+    website: d.website ?? null,
     invited_by_text: d.invitedBy ?? null,
     referral_code: d.referralCode ?? null,
     meeting_id: d.meetingId ?? null,

@@ -348,6 +348,8 @@ export type Database = {
           invited_by_text: string | null;
           last_name: string;
           meeting_id: string | null;
+          phone: string | null;
+          website: string | null;
           referral_code: string | null;
           referrer_id: string | null;
           status: E['guest_status'];
@@ -361,6 +363,8 @@ export type Database = {
           invited_by_text?: string | null;
           last_name: string;
           meeting_id?: string | null;
+          phone?: string | null;
+          website?: string | null;
           referral_code?: string | null;
           referrer_id?: string | null;
           status?: E['guest_status'];
@@ -374,6 +378,8 @@ export type Database = {
           invited_by_text?: string | null;
           last_name?: string;
           meeting_id?: string | null;
+          phone?: string | null;
+          website?: string | null;
           referral_code?: string | null;
           referrer_id?: string | null;
           status?: E['guest_status'];

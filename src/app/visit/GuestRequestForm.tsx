@@ -41,6 +41,8 @@ export function GuestRequestForm({ meetings, referralCode, referrerName }: { mee
       <TextField name="lastName" label="Last name" autoComplete="family-name" required defaultValue={v.lastName} error={errors.lastName} />
       <TextField name="email" type="email" label="Email" autoComplete="email" required defaultValue={v.email} error={errors.email} />
       <TextField name="businessName" label="Business name" autoComplete="organization" defaultValue={v.businessName} error={errors.businessName} />
+      <TextField name="phone" type="tel" label="Phone" autoComplete="tel" defaultValue={v.phone} error={errors.phone} />
+      <TextField name="website" type="url" label="Website" autoComplete="url" placeholder="https://" defaultValue={v.website} error={errors.website} />
       <TextField
         name="invitedBy"
         label="Who invited you?"
@@ -64,7 +66,8 @@ export function GuestRequestForm({ meetings, referralCode, referrerName }: { mee
           Send my invite request
         </SubmitButton>
         <p id="guest-form-note" className="help m-0 mt-2">
-          We only use your details to send the meeting invite.
+          We use your details to send the meeting invite. After the meeting, we introduce visitors to our members by name, business and the contact details you
+          give here, so they can follow up with you.
         </p>
       </div>
     </form>

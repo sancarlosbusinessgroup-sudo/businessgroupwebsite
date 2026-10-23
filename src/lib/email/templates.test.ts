@@ -27,7 +27,15 @@ describe('email templates', () => {
       t.meetingReminderEmail({ siteUrl, firstName: 'Ana', when: 'Mon 8:15 AM', title: 'Regular meeting', joinUrl: 'https://zoom.example/j/1' }),
       t.visitorFollowupEmail({ siteUrl, firstName: 'Gus' }),
       t.memberFollowupEmail({ siteUrl, toFirstName: 'Ana', guests: ['Gus G'] }),
-      t.meetingRecapEmail({ siteUrl, firstName: 'Ana', meetingTitle: 'Regular meeting', slidesHref: `${siteUrl}/present/m1`, events: [] }),
+      t.meetingRecapEmail({
+        siteUrl,
+        firstName: 'Ana',
+        meetingTitle: 'Regular meeting',
+        slidesHref: `${siteUrl}/present/m1`,
+        visitors: [],
+        inviters: [],
+        events: [],
+      }),
       t.adminDigestEmail({
         siteUrl,
         firstName: 'Ana',
@@ -74,33 +82,87 @@ describe('email templates', () => {
     expect(t.guestThanksEmail({ siteUrl, firstName: 'G' }).text).not.toContain('/profile?tab=edit#email');
   });
 
-  it('meeting recap: slides link, presenters with topic and video, member events, next meeting with open slots', () => {
+  it('meeting recap: visitors with contacts and who invited them, slides, presenters with their materials, member events, next meeting', () => {
     const e = t.meetingRecapEmail({
       siteUrl,
       firstName: 'Ana',
       meetingTitle: 'Regular meeting',
       slidesHref: `${siteUrl}/present/m1`,
-      five: { name: 'Ranger Kielak', business: 'Within Range Coaching', topic: 'Communication <Styles>', description: 'How you communicate.' },
-      ten: { name: 'Will Strohl', business: 'Upendo Ventures', topic: 'What is runsonUpendo?', video: 'https://www.youtube.com/watch?v=abc' },
+      visitors: [
+        {
+          name: 'Sampada Deshpande',
+          business: 'Aashvi Smiles Dental Group',
+          email: 'dr@example.org',
+          website: 'https://www.aashvismiles.example',
+          phone: '650-495-0795',
+        },
+        { name: 'Kenia <Ibarra>', business: 'Peninsula Chem Dry', phone: '650-347-6972' },
+      ],
+      inviters: ['Shannon', 'Kristina'],
+      five: {
+        name: 'Ranger Kielak',
+        business: 'Within Range Coaching',
+        topic: 'Communication Styles',
+        materials: [['Presentation (PDF)', `${siteUrl}/present/m1/material/abc`]],
+      },
+      ten: {
+        name: 'Will Strohl',
+        business: 'Upendo Ventures',
+        topic: 'What is runsonUpendo?',
+        materials: [['Watch the video', 'https://www.youtube.com/watch?v=abc']],
+      },
       events: [{ when: 'Wed, Oct 28 · 4:00 PM', title: 'Networking mixer', href: `${siteUrl}/events/mixer`, where: 'San Carlos' }],
-      next: { when: 'Mon, Nov 2 at 8:15 AM', five: 'David Flaig', ten: null },
+      next: { date: '11/02', location: 'Online: Zoom (see separate calendar invite)', five: null, ten: 'Pia Co, Pia Presenter' },
     });
     expect(e.subject).toBe('Meeting recap: Regular meeting');
+    // Visitors, in the order the group writes them: name, business, email, website, phone.
+    expect(e.text).toMatch(/please take a moment to welcome today’s visitors!/i);
+    expect(e.text).toMatch(/Sampada Deshpande\nAashvi Smiles Dental Group\ndr@example.org\nhttps:\/\/www.aashvismiles.example\n650-495-0795/);
+    expect(e.html).toContain('href="mailto:dr@example.org"');
+    expect(e.html).toContain('href="https://www.aashvismiles.example"');
+    expect(e.html).toContain('Kenia &lt;Ibarra&gt;');
+    expect(e.text).toContain('Thanks to Shannon & Kristina for inviting our guests!');
+    expect(e.text).toContain('Here are the resources and presentations we had');
+    // Slides, reporting links, presentations as "Company, Person", title, materials.
     expect(e.html).toContain(`href="${siteUrl}/present/m1"`);
-    expect(e.html).toContain('Communication &lt;Styles&gt;');
+    expect(e.html).toContain(`href="${siteUrl}/referrals"`);
+    expect(e.html).toContain(`href="${siteUrl}/one-on-ones"`);
+    expect(e.text).toMatch(/5-Minute Education\nWithin Range Coaching, Ranger Kielak\nCommunication Styles/);
+    expect(e.html).toContain(`href="${siteUrl}/present/m1/material/abc"`);
     expect(e.html).toContain('href="https://www.youtube.com/watch?v=abc"');
+    expect(e.text).toMatch(/please be sure to support our member-hosted events/i);
     expect(e.html).toContain(`href="${siteUrl}/events/mixer"`);
-    expect(e.html).toContain(`href="${siteUrl}/dashboard"`);
-    expect(e.text).toContain('Ranger Kielak, Within Range Coaching');
-    expect(e.text).toContain('10-Minute Presentation: Open');
-    expect(e.text).toContain(`Claim a presentation slot: ${siteUrl}/meetings`);
+    // Next meeting.
+    expect(e.text).toMatch(/next meeting presenters on 11\/02/i);
+    expect(e.text).toContain('Location: Online: Zoom (see separate calendar invite)');
+    expect(e.text).toContain('5-Minute Educator: No one yet… Maybe YOU?');
+    expect(e.text).toContain('10-Minute Presenter: Pia Co, Pia Presenter');
+    expect(e.text).toContain(`Claim a spot for future presentations: ${siteUrl}/meetings`);
     expect(e.text).toContain('/profile?tab=edit#email');
-    expect(e.text).toContain('Communication <Styles>');
   });
 
-  it('meeting recap without presenters or events still reads well', () => {
-    const e = t.meetingRecapEmail({ siteUrl, firstName: 'Ana', meetingTitle: 'M', slidesHref: `${siteUrl}/present/m`, events: [] });
+  it('meeting recap with one visitor and one inviter, no presenters or events, still reads well', () => {
+    const e = t.meetingRecapEmail({
+      siteUrl,
+      firstName: 'Ana',
+      meetingTitle: 'M',
+      slidesHref: `${siteUrl}/present/m`,
+      visitors: [{ name: 'Jennifer McKay' }],
+      inviters: ['Shannon'],
+      events: [],
+    });
+    expect(e.text).toContain('Thanks to Shannon for inviting our guest!');
     expect(e.text).toContain('No member events are on the calendar');
-    expect(e.text).not.toContain('Next meeting'.toUpperCase());
+    expect(e.text).not.toMatch(/next meeting presenters/i);
+    const none = t.meetingRecapEmail({
+      siteUrl,
+      firstName: 'Ana',
+      meetingTitle: 'M',
+      slidesHref: `${siteUrl}/present/m`,
+      visitors: [],
+      inviters: [],
+      events: [],
+    });
+    expect(none.text).not.toMatch(/welcome today’s visitors/i);
   });
 });

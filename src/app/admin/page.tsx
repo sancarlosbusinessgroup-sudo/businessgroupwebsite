@@ -39,7 +39,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       .order('created_at'),
     supabase
       .from('guest_requests')
-      .select('id, first_name, last_name, email, business_name, invited_by_text, status, created_at')
+      .select('id, first_name, last_name, email, business_name, phone, website, invited_by_text, status, created_at')
       .order('created_at', { ascending: false })
       .limit(50),
     supabase
@@ -268,6 +268,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                       </td>
                       <td>
                         <a href={`mailto:${g.email}`}>{g.email}</a>
+                        {g.phone ? <div className="text-sm">{g.phone}</div> : null}
+                        {g.website ? (
+                          <div className="text-sm">
+                            <a href={g.website} target="_blank" rel="noopener noreferrer">
+                              {g.website.replace(/^https?:\/\//i, '')}
+                            </a>
+                          </div>
+                        ) : null}
                       </td>
                       <td>{g.invited_by_text ?? '—'}</td>
                       <td>{formatShortDate(new Date(g.created_at))}</td>

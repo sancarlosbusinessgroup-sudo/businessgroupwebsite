@@ -22,7 +22,13 @@ test('home, footer, about, bylaws and login offer "Request an invite"', async ({
 
   for (const path of ['/about', '/bylaws', '/login']) {
     await page.goto(path);
-    await expect(page.getByRole('main').getByRole('link', { name: /Request an invite/ }).first(), path).toHaveAttribute('href', '/visit#request');
+    await expect(
+      page
+        .getByRole('main')
+        .getByRole('link', { name: /Request an invite/ })
+        .first(),
+      path,
+    ).toHaveAttribute('href', '/visit#request');
   }
 });
 

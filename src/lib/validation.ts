@@ -68,6 +68,8 @@ export const guestRequestSchema = z.object({
   lastName: text(60, 'Last name'),
   email,
   businessName: optionalText(120, 'Business name'),
+  phone,
+  website,
   invitedBy: optionalText(120, 'Who invited you'),
   referralCode,
   meetingId: z

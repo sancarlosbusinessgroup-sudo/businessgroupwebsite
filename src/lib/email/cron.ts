@@ -250,7 +250,7 @@ export async function runRecaps(now: Date = new Date()): Promise<number> {
       .limit(3),
     db
       .from('meetings')
-      .select('starts_at, meeting_speakers(slot, display_name)')
+      .select('starts_at, is_online, location, meeting_speakers(slot, display_name, business)')
       .eq('category', 'Networking')
       .is('cancelled_reason', null)
       .gt('starts_at', nowIso)
@@ -266,12 +266,19 @@ export async function runRecaps(now: Date = new Date()): Promise<number> {
     const d = new Date(e.starts_at);
     return { when: `${formatMeetingDate(d)} · ${formatMeetingTime(d)}`, title: e.title, href: `${url}/events/${e.slug}`, where: e.location };
   });
-  const nextSpeakers = (next?.meeting_speakers ?? []) as { slot: string; display_name: string }[];
+  type NextSp = { slot: string; display_name: string; business: string | null };
+  const nextSpeakers = (next?.meeting_speakers ?? []) as NextSp[];
+  const nextBy = (slot: string) => {
+    const sp = nextSpeakers.find((x) => x.slot === slot);
+    return sp ? T.companyAndPerson(sp.display_name, sp.business) : null;
+  };
+  const zoom = 'Online: Zoom (see separate calendar invite)';
   const nextInfo = next
     ? {
-        when: `${formatMeetingDate(new Date(next.starts_at))} at ${formatMeetingTime(new Date(next.starts_at))}`,
-        five: nextSpeakers.find((x) => x.slot === 'education')?.display_name ?? null,
-        ten: nextSpeakers.find((x) => x.slot === 'presentation')?.display_name ?? null,
+        date: new Intl.DateTimeFormat('en-US', { month: '2-digit', day: '2-digit', timeZone: 'America/Los_Angeles' }).format(new Date(next.starts_at)),
+        location: next.is_online || !next.location ? zoom : next.location,
+        five: nextBy('education'),
+        ten: nextBy('presentation'),
       }
     : null;
 
@@ -279,22 +286,56 @@ export async function runRecaps(now: Date = new Date()): Promise<number> {
   for (const m of ended) {
     type Sp = { slot: string; display_name: string; business: string | null; topic: string | null; topic_description: string | null };
     const speakers = (m.meeting_speakers ?? []) as Sp[];
-    const { data: videos } = await db
-      .from('meeting_slide_media')
-      .select('youtube_id, start_seconds, after_slide')
-      .eq('meeting_id', m.id)
-      .eq('kind', 'youtube')
-      .order('sort');
-    const videoFor = (prefix: string) => {
-      const v = (videos ?? []).find((x) => x.youtube_id && x.after_slide.startsWith(prefix));
-      return v ? `https://www.youtube.com/watch?v=${v.youtube_id}${v.start_seconds ? `&t=${v.start_seconds}s` : ''}` : null;
-    };
-    const talk = (slot: string, prefix: string): T.RecapTalk | null => {
+    const [{ data: media }, { data: links }, { data: guests }] = await Promise.all([
+      db
+        .from('meeting_slide_media')
+        .select('id, kind, title, after_slide')
+        .eq('meeting_id', m.id)
+        .in('after_slide', ['five_minute', 'ten_minute'])
+        .order('sort'),
+      db.from('meeting_slide_links').select('title, url, after_slide').eq('meeting_id', m.id).in('after_slide', ['five_minute', 'ten_minute']).order('sort'),
+      db
+        .from('guest_requests')
+        .select('first_name, last_name, business_name, email, phone, website, referrer_id, invited_by_text, created_at')
+        .eq('meeting_id', m.id)
+        .in('status', ['visited', 'applied', 'joined'])
+        .order('created_at'),
+    ]);
+    const kindLabel = { pdf: 'Presentation (PDF)', image: 'Presentation image', youtube: 'Watch the video' } as const;
+    const materialsFor = (slide: string): [string, string][] => [
+      ...(media ?? [])
+        .filter((x) => x.after_slide === slide)
+        .map((x): [string, string] => [x.title || kindLabel[x.kind], `${url}/present/${m.slug}/material/${x.id}`]),
+      ...(links ?? []).filter((x) => x.after_slide === slide).map((x): [string, string] => [x.title || x.url.replace(/^https?:\/\//i, ''), x.url]),
+    ];
+    const talk = (slot: string, slide: string): T.RecapTalk | null => {
       const sp = speakers.find((x) => x.slot === slot);
-      return sp ? { name: sp.display_name, business: sp.business, topic: sp.topic, description: sp.topic_description, video: videoFor(prefix) } : null;
+      return sp ? { name: sp.display_name, business: sp.business, topic: sp.topic, description: sp.topic_description, materials: materialsFor(slide) } : null;
     };
-    const five = talk('education', 'five');
-    const ten = talk('presentation', 'ten');
+    const five = talk('education', 'five_minute');
+    const ten = talk('presentation', 'ten_minute');
+
+    // Today's visitors and the members who invited them (first names, as the group writes it).
+    const visitors: T.RecapVisitor[] = (guests ?? []).map((g) => ({
+      name: `${g.first_name} ${g.last_name}`,
+      business: g.business_name,
+      email: g.email,
+      website: g.website,
+      phone: g.phone,
+    }));
+    const referrerIds = [...new Set((guests ?? []).map((g) => g.referrer_id).filter((x): x is string => !!x))];
+    const { data: referrers } = referrerIds.length
+      ? await db.from('profiles').select('id, first_name').in('id', referrerIds)
+      : { data: [] as { id: string; first_name: string }[] };
+    const firstName = new Map((referrers ?? []).map((r) => [r.id, r.first_name]));
+    const inviters = [
+      ...new Set(
+        (guests ?? [])
+          .map((g) => (g.referrer_id ? firstName.get(g.referrer_id) : g.invited_by_text?.replace(/\s*\(via referral link\)\s*$/i, '').trim()))
+          .filter((x): x is string => !!x),
+      ),
+    ];
+
     for (const r of people.values()) {
       if (off.has(r.id)) continue;
       const s = await deliver({
@@ -306,6 +347,8 @@ export async function runRecaps(now: Date = new Date()): Promise<number> {
           firstName: r.firstName,
           meetingTitle: m.title,
           slidesHref: `${url}/present/${m.slug}`,
+          visitors,
+          inviters,
           five,
           ten,
           events: recapEvents,

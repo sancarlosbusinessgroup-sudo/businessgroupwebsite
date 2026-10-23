@@ -8,12 +8,15 @@ export type Email = { subject: string; html: string; text: string };
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 type Link = [label: string, href: string];
-type Item = { eyebrow: string; title: string; lines: string[]; links?: Link[] };
+type Item = { eyebrow?: string; title: string; lines: (string | Link)[]; links?: Link[] };
 type Block = { p: string } | { list: [string, string][] } | { quote: string } | { h: string } | { links: Link[] } | { item: Item } | { button: Link };
 
 const linkHtml = ([label, href]: Link) => `<a href="${esc(href)}" style="color:#0c7b74;font-weight:700">${esc(label)}</a>`;
 const linksHtml = (ls: Link[]) => ls.map(linkHtml).join(' &nbsp;·&nbsp; ');
 const linksText = (ls: Link[]) => ls.map(([l, h]) => `${l}: ${h}`).join('\n');
+/** A line inside an item: plain text, or a link (an address or website shows as itself in the plain-text email). */
+const lineHtml = (l: string | Link) => (typeof l === 'string' ? esc(l) : linkHtml(l));
+const lineText = (l: string | Link) => (typeof l === 'string' ? l : /^(mailto|tel):/.test(l[1]) || l[0] === l[1] ? l[0] : `${l[0]}: ${l[1]}`);
 
 /** Shared layout: logo header, white card, one call-to-action button, footer with the "why you got this" line. */
 export function layout(o: { siteUrl: string; preheader: string; heading: string; blocks: Block[]; cta?: { label: string; href: string }; footer: string }): {
@@ -30,8 +33,10 @@ export function layout(o: { siteUrl: string; preheader: string; heading: string;
       if ('button' in b)
         return `<p style="margin:4px 0 16px"><a href="${esc(b.button[1])}" style="display:inline-block;background:#0c7b74;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:10px 20px;border-radius:999px">${esc(b.button[0])}</a></p>`;
       if ('item' in b)
-        return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;width:100%;border-collapse:collapse"><tr><td style="border-left:4px solid #12a89d;padding:4px 0 4px 14px;font-size:15px;line-height:1.55;color:#1c2e2e"><p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#4f6464">${esc(b.item.eyebrow)}</p><p style="margin:2px 0 4px;font-size:17px;font-weight:700;color:#0b3b3b">${esc(b.item.title)}</p>${b.item.lines
-          .map((l) => `<p style="margin:0 0 4px">${esc(l)}</p>`)
+        return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;width:100%;border-collapse:collapse"><tr><td style="border-left:4px solid #12a89d;padding:4px 0 4px 14px;font-size:15px;line-height:1.55;color:#1c2e2e">${
+          b.item.eyebrow ? `<p style="margin:0;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#4f6464">${esc(b.item.eyebrow)}</p>` : ''
+        }<p style="margin:2px 0 4px;font-size:17px;font-weight:700;color:#0b3b3b">${esc(b.item.title)}</p>${b.item.lines
+          .map((l) => `<p style="margin:0 0 4px">${lineHtml(l)}</p>`)
           .join('')}${b.item.links?.length ? `<p style="margin:4px 0 0">${linksHtml(b.item.links)}</p>` : ''}</td></tr></table>`;
       return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px;width:100%;border-collapse:collapse">${b.list
         .map(
@@ -70,7 +75,12 @@ export function layout(o: { siteUrl: string; preheader: string; heading: string;
               : 'button' in b
                 ? linksText([b.button])
                 : 'item' in b
-                  ? [`${b.item.eyebrow}: ${b.item.title}`, ...b.item.lines, ...(b.item.links ? [linksText(b.item.links)] : [])].join('\n')
+                  ? [
+                      ...(b.item.eyebrow ? [b.item.eyebrow] : []),
+                      b.item.title,
+                      ...b.item.lines.map(lineText),
+                      ...(b.item.links ? [linksText(b.item.links)] : []),
+                    ].join('\n')
                   : b.list.map(([k, v]) => `${k}: ${v}`).join('\n'),
     ),
     ...(o.cta ? ['', `${o.cta.label}: ${o.cta.href}`] : []),
@@ -414,52 +424,72 @@ export function applyInviteEmail(o: { siteUrl: string; firstName: string; link: 
   };
 }
 
-export type RecapTalk = { name: string; business?: string | null; topic?: string | null; description?: string | null; video?: string | null };
+export type RecapVisitor = { name: string; business?: string | null; email?: string | null; website?: string | null; phone?: string | null };
+export type RecapTalk = { name: string; business?: string | null; topic?: string | null; description?: string | null; materials?: Link[] };
 export type RecapEvent = { when: string; title: string; href: string; where?: string | null };
 
-/** Sent to every member after a meeting ends: slides, presenters, member events and who's up next. */
+/** "A", "A & B", "A, B & C". */
+const andList = (xs: string[]) => (xs.length < 2 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} & ${xs[xs.length - 1]}`);
+/** "Company, Person" the way the group writes presenters (just the person when there is no company). */
+export const companyAndPerson = (name: string, business?: string | null) => (business ? `${business}, ${name}` : name);
+
+/**
+ * Sent to every member after a meeting ends, in the group's own recap order: today's visitors and who invited them,
+ * the slides and reporting links, today's presentations with their materials, member events, next meeting presenters.
+ */
 export function meetingRecapEmail(o: {
   siteUrl: string;
   firstName: string;
   meetingTitle: string;
   slidesHref: string;
+  visitors: RecapVisitor[];
+  inviters: string[];
   five?: RecapTalk | null;
   ten?: RecapTalk | null;
   events: RecapEvent[];
-  next?: { when: string; five?: string | null; ten?: string | null } | null;
+  next?: { date: string; location: string; five?: string | null; ten?: string | null } | null;
 }): Email {
+  const blocks: Block[] = [];
+  if (o.visitors.length) {
+    blocks.push({ h: 'Please take a moment to welcome today’s visitors!' });
+    for (const v of o.visitors) {
+      const lines: (string | Link)[] = [];
+      if (v.business) lines.push(v.business);
+      if (v.email) lines.push([v.email, `mailto:${v.email}`]);
+      if (v.website) lines.push([v.website, v.website]);
+      if (v.phone) lines.push([v.phone, `tel:${v.phone.replace(/[^0-9+]/g, '')}`]);
+      blocks.push({ item: { title: v.name, lines } });
+    }
+    if (o.inviters.length) blocks.push({ p: `Thanks to ${andList(o.inviters)} for inviting our guest${o.visitors.length > 1 ? 's' : ''}!` });
+  }
+  blocks.push({
+    p: 'Here are the resources and presentations we had, and other items we discussed this morning. Remember, there may be links in the presentations that could be helpful to you as well.',
+  });
+  blocks.push({ links: [['Main meeting presentation', o.slidesHref]] });
+  blocks.push({ h: 'Please report your networking activity' });
+  blocks.push({ p: 'Passed a referral or had a one-on-one? It takes under a minute, and it feeds the leaderboard and group totals we show at each meeting.' });
+  blocks.push({ button: ['Report my activity', `${o.siteUrl}/dashboard`] });
+  blocks.push({
+    links: [
+      ['Report a referral', `${o.siteUrl}/referrals`],
+      ['Report a one-on-one', `${o.siteUrl}/one-on-ones`],
+      ['Help & how-to', `${o.siteUrl}/support`],
+    ],
+  });
   const talk = (eyebrow: string, t: RecapTalk): Block => ({
     item: {
       eyebrow,
-      title: t.topic || `Presented by ${t.name}`,
-      lines: [[t.name, t.business].filter(Boolean).join(', '), ...(t.description ? [t.description] : [])],
-      links: t.video ? [['Watch the video', t.video]] : undefined,
+      title: companyAndPerson(t.name, t.business),
+      lines: [...(t.topic ? [t.topic] : []), ...(t.description ? [t.description] : [])],
+      links: t.materials?.length ? t.materials : undefined,
     },
   });
-  const blocks: Block[] = [
-    {
-      p: 'Thanks for showing up this morning. Every introduction, one-on-one and referral you passed today is the engine behind this group: when one of us grows, we all get more to work with.',
-    },
-    { h: 'Log today’s activity while it’s fresh' },
-    {
-      p: 'Passed a referral or had a one-on-one? Record it on the site. It takes under a minute, and it feeds the leaderboard and group totals we show at each meeting.',
-    },
-    { button: ['Open my dashboard', `${o.siteUrl}/dashboard`] },
-    {
-      links: [
-        ['Report a referral', `${o.siteUrl}/referrals`],
-        ['Report a one-on-one', `${o.siteUrl}/one-on-ones`],
-        ['Help & how-to', `${o.siteUrl}/support`],
-      ],
-    },
-    { h: 'Today’s meeting' },
-    { p: 'Missed something or want another look? The slides are on the site. Presenters’ materials often include extra links and offers.' },
-    { links: [['View today’s slides', o.slidesHref]] },
-  ];
-  if (o.five) blocks.push(talk(slotTitles.education, o.five));
-  if (o.ten) blocks.push(talk(slotTitles.presentation, o.ten));
-  blocks.push({ h: 'Show up for each other' });
-  blocks.push({ p: 'Member events are one of the easiest ways to give back to the group. Pop in, bring a guest, or put your own event on the calendar.' });
+  if (o.five || o.ten) {
+    blocks.push({ h: 'Today’s presentations' });
+    if (o.five) blocks.push(talk('5-Minute Education', o.five));
+    if (o.ten) blocks.push(talk('10-Minute Presentation', o.ten));
+  }
+  blocks.push({ h: 'Please be sure to support our member-hosted events' });
   for (const e of o.events) blocks.push({ item: { eyebrow: e.when, title: e.title, lines: e.where ? [e.where] : [], links: [['Details', e.href]] } });
   if (!o.events.length) blocks.push({ p: 'No member events are on the calendar for the next two weeks yet.' });
   blocks.push({
@@ -468,30 +498,31 @@ export function meetingRecapEmail(o: {
       ['Post your own event', `${o.siteUrl}/events/new`],
     ],
   });
+  if (o.next) {
+    const open = 'No one yet… Maybe YOU?';
+    blocks.push({ h: `Next meeting presenters on ${o.next.date}` });
+    blocks.push({
+      list: [
+        ['Location', o.next.location],
+        ['5-Minute Educator', o.next.five ?? open],
+        ['10-Minute Presenter', o.next.ten ?? open],
+      ],
+    });
+    blocks.push({ button: ['Claim a spot for future presentations', `${o.siteUrl}/meetings`] });
+  }
   blocks.push({ h: 'Is your profile pulling its weight?' });
   blocks.push({ p: 'Your profile is how members know who to send your way. Keep your services, ideal client, photo and this week’s ask up to date.' });
   blocks.push({ links: [['Update my profile', `${o.siteUrl}/profile?tab=edit`]] });
-  if (o.next) {
-    blocks.push({ h: 'Next meeting' });
-    blocks.push({
-      list: [
-        ['When', `${o.next.when} PT, on Zoom`],
-        [slotTitles.education, o.next.five ?? 'Open'],
-        [slotTitles.presentation, o.next.ten ?? 'Open'],
-      ],
-    });
-    blocks.push({ p: 'Your Zoom link comes in the meeting-day reminder that morning.' });
-  }
   blocks.push({ p: 'Go make it a great week. See you next meeting!' });
-  const open = o.next && (!o.next.five || !o.next.ten);
   return {
     subject: `Meeting recap: ${o.meetingTitle}`,
     ...layout({
       siteUrl: o.siteUrl,
-      preheader: 'Slides, presenters, member events and who’s up next. Plus: log your referrals while they’re fresh.',
+      preheader: o.visitors.length
+        ? 'Welcome today’s visitors, plus the slides, presentations, member events and who’s up next.'
+        : 'Slides, presentations, member events and who’s up next.',
       heading: `Thanks for coming, ${o.firstName}!`,
       blocks,
-      cta: open ? { label: 'Claim a presentation slot', href: `${o.siteUrl}/meetings` } : { label: 'Open Meetings', href: `${o.siteUrl}/meetings` },
       footer: prefsFooter(o.siteUrl),
     }),
   };

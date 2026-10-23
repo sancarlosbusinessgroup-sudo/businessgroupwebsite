@@ -212,7 +212,10 @@ test.describe('email notifications', () => {
     }
   });
 
-  test('after-meeting job: sends the meeting recap to members once, with presenters and slides; respects the opt-out', async ({ request, page }) => {
+  test('after-meeting job: sends the meeting recap to members once, with visitors, presenters, their materials and slides; respects the opt-out', async ({
+    request,
+    page,
+  }) => {
     expect((await request.get('/api/cron/after-meeting')).status()).toBe(401);
     // A regular meeting on Monday 8 March 2027 (8:15–9:30 AM PST), job run "as of" noon that day.
     const slug = `recap-test-${Date.now()}`;
@@ -231,6 +234,27 @@ test.describe('email notifications', () => {
       business: 'Pia Co',
       topic: 'Growing referrals',
     });
+    // The 10-minute presenter's materials: a video and a website.
+    const [video] = await rest('meeting_slide_media', 'POST', {
+      meeting_id: meetingId,
+      kind: 'youtube',
+      youtube_id: 'dQw4w9WgXcQ',
+      after_slide: 'ten_minute',
+      title: 'Pia’s video',
+    });
+    await rest('meeting_slide_links', 'POST', { meeting_id: meetingId, url: 'https://pia.example.org/deck', after_slide: 'ten_minute', title: 'Pia’s deck' });
+    // A visitor invited by Morgan, marked as visited.
+    const [morgan] = await rest('profiles?select=id&first_name=eq.Morgan&last_name=eq.Member', 'GET');
+    const [guest] = await rest('guest_requests', 'POST', {
+      first_name: 'Vera',
+      last_name: 'Visitor',
+      email: `vera.${Date.now()}@example.org`,
+      business_name: 'Vera Dental',
+      phone: '650-555-0100',
+      website: 'https://vera.example.org',
+      meeting_id: meetingId,
+    });
+    await rest(`guest_requests?id=eq.${guest?.id}`, 'PATCH', { status: 'visited', referrer_id: morgan?.id });
     try {
       // Riley turns the recap off.
       await login(page, users.member2, undefined, '/profile?tab=edit');
@@ -248,14 +272,23 @@ test.describe('email notifications', () => {
       const [recap] = await emailsTo(users.member, /^Meeting recap: Recap test meeting/);
       expect(recap?.htmlContent).toContain(`/present/${slug}"`);
       expect(recap?.textContent).toContain('Growing referrals');
-      expect(recap?.textContent).toContain('Pia Presenter, Pia Co');
+      expect(recap?.textContent).toContain('Pia Co, Pia Presenter');
+      expect(recap?.textContent).toMatch(/Vera Visitor\nVera Dental\nvera\.\d+@example\.org\nhttps:\/\/vera\.example\.org\n650-555-0100/);
+      expect(recap?.textContent).toContain('Thanks to Morgan for inviting our guest!');
+      expect(recap?.htmlContent).toContain(`/present/${slug}/material/${video?.id}"`);
+      expect(recap?.htmlContent).toContain('href="https://pia.example.org/deck"');
       expect(await emailsTo(users.member2, /^Meeting recap: Recap test meeting/, 1500)).toHaveLength(0);
+
+      // The material link opens the video for a signed-in member.
+      const material = await page.request.get(`/present/${slug}/material/${video?.id}`, { maxRedirects: 0 });
+      expect(material.headers().location).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 
       // The next morning's daily job does not send it again.
       const daily = await (await request.get('/api/cron/daily?now=2027-03-09T15:00:00Z', { headers: auth })).json();
       expect(daily.meetingRecaps).toBe(0);
       expect(await emailsTo(users.member, /^Meeting recap: Recap test meeting/)).toHaveLength(1);
     } finally {
+      await rest(`guest_requests?id=eq.${guest?.id}`, 'DELETE');
       await rest(`meetings?id=eq.${meetingId}`, 'DELETE');
       const [riley] = await rest(`profiles?select=id&first_name=eq.Riley&last_name=eq.Second`, 'GET');
       if (riley) await rest(`email_preferences?profile_id=eq.${riley.id}`, 'DELETE');

@@ -215,4 +215,22 @@ test.describe('guest invite form', () => {
     const rows = await db<{ referrer_id: string; status: string }>(`guest_requests?email=eq.${encodeURIComponent(email)}&select=referrer_id,status`);
     expect(rows).toEqual([{ referrer_id: '00000000-0000-4000-8000-000000000001', status: 'requested' }]);
   });
+
+  test('saves the optional phone and website, checks the website, and says members will see the details', async ({ page }) => {
+    const email = `guest.contact.${Date.now()}@example.org`;
+    await page.goto('/visit');
+    await expect(page.getByText('we introduce visitors to our members by name, business and the contact details you give here')).toBeVisible();
+    await page.getByLabel('First name').fill('Kenia');
+    await page.getByLabel('Last name').fill('Ibarra');
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Phone').fill('650-347-6972');
+    await page.getByLabel('Website').fill('peninsulachemdry.example');
+    await page.getByRole('button', { name: 'Send my invite request' }).click();
+    await expect(page.getByText('Website must start with http:// or https://')).toBeVisible();
+    await page.getByLabel('Website').fill('https://peninsulachemdry.example');
+    await page.getByRole('button', { name: 'Send my invite request' }).click();
+    await expect(page.getByText("You're on the list, Kenia!")).toBeVisible();
+    const rows = await db<{ phone: string; website: string }>(`guest_requests?email=eq.${encodeURIComponent(email)}&select=phone,website`);
+    expect(rows).toEqual([{ phone: '650-347-6972', website: 'https://peninsulachemdry.example' }]);
+  });
 });
