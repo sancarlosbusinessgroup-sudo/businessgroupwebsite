@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { safeNext } from '@/lib/auth';
 import { env } from '@/lib/env';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import {
   type ActionState,
@@ -73,12 +74,19 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
   return { status: 'success', message: data.session ? 'signed-in' : 'confirm-email', values: { email: d.email } };
 }
 
+/** Where to go after logging in: members with a temporary password choose their own first. */
+function afterLogin(user: { app_metadata?: Record<string, unknown> } | null, next: string | undefined) {
+  const target = safeNext(next);
+  if (user?.app_metadata?.must_change_password !== true) return target;
+  return target === '/dashboard' ? '/choose-password' : `/choose-password?next=${encodeURIComponent(target)}`;
+}
+
 export async function signInWithPassword(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const values = formToObject(formData);
   const parsed = loginSchema.safeParse(values);
   if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values: withoutSecrets(values) };
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
     const unconfirmed = /confirm/i.test(error.message);
     return {
@@ -87,7 +95,7 @@ export async function signInWithPassword(_prev: ActionState, formData: FormData)
       values: withoutSecrets(values),
     };
   }
-  redirect(safeNext(values.next));
+  redirect(afterLogin(data.user, values.next));
 }
 
 export async function sendLoginCode(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -111,11 +119,11 @@ export async function verifyLoginCode(_prev: ActionState, formData: FormData): P
   const parsed = otpSchema.safeParse(values);
   if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values: withoutSecrets(values) };
   const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({ email: parsed.data.email, token: parsed.data.code, type: 'email' });
+  const { data, error } = await supabase.auth.verifyOtp({ email: parsed.data.email, token: parsed.data.code, type: 'email' });
   if (error) {
     return { status: 'error', errors: { code: 'That code is wrong or has expired' }, values: withoutSecrets(values) };
   }
-  redirect(safeNext(values.next));
+  redirect(afterLogin(data.user, values.next));
 }
 
 export async function requestPasswordReset(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -141,7 +149,37 @@ export async function updatePassword(_prev: ActionState, formData: FormData): Pr
   if (!user) return { status: 'error', message: 'Your reset link has expired. Please request a new one.' };
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { status: 'error', message: 'We could not update your password. Please try a different one.' };
+  await clearTemporaryPassword(user.id, user.app_metadata?.must_change_password === true).catch(() => undefined);
   redirect('/dashboard');
+}
+
+/** Clears the "choose your own password" flag once a member has set a password of their own. */
+async function clearTemporaryPassword(userId: string, flagged: boolean) {
+  if (!flagged) return;
+  const admin = createAdminClient();
+  if (!admin) throw new Error('SUPABASE_SERVICE_ROLE_KEY is needed to clear the temporary-password flag');
+  const { error } = await admin.auth.admin.updateUserById(userId, { app_metadata: { must_change_password: false } });
+  if (error) throw new Error('Could not clear the temporary-password flag');
+}
+
+/** First login with a temporary password: the member chooses their own (owner, 2026-10-23). */
+export async function chooseOwnPassword(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formToObject(formData);
+  const parsed = newPasswordSchema.safeParse(values);
+  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error) };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: 'error', message: 'Please log in again.' };
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+  if (error) return { status: 'error', message: 'We could not save that password. Please try a different one.' };
+  try {
+    await clearTemporaryPassword(user.id, user.app_metadata?.must_change_password === true);
+  } catch {
+    return { status: 'error', message: 'Your password was saved, but something went wrong. Please try again.' };
+  }
+  redirect(safeNext(values.next));
 }
 
 /** My profile → Change password. Checks the current password first. */
@@ -158,6 +196,7 @@ export async function changePassword(_prev: ActionState, formData: FormData): Pr
   if (check.error) return { status: 'error', errors: { current: 'That isn’t your current password.' } };
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { status: 'error', message: 'We could not change your password. Please try a different one.' };
+  await clearTemporaryPassword(user.id, user.app_metadata?.must_change_password === true).catch(() => undefined);
   return { status: 'success', message: 'Your password has been changed.' };
 }
 

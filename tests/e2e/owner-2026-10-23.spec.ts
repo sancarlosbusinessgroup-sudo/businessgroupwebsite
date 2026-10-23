@@ -110,3 +110,55 @@ test('members change their password from My profile (current password checked)',
   await again.getByRole('button', { name: 'Change password' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Your password has been changed.' })).toBeVisible();
 });
+
+test('temporary password: the member must choose their own before using the site', async ({ page }) => {
+  // Same as the live change: password set in the database (bcrypt via pgcrypto) and the flag in app_metadata.
+  const pg = (await import('pg')).default;
+  const db = new pg.Client({ connectionString: process.env.TEST_DATABASE_URL ?? 'postgres://postgres@127.0.0.1:54322/postgres' });
+  await db.connect();
+  const setTemp = () =>
+    db.query(
+      `update auth.users set encrypted_password = crypt('BARP', gen_salt('bf')),
+         raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"must_change_password": true}'::jsonb where email = $1`,
+      [users.member2],
+    );
+  try {
+    await db.query('create extension if not exists pgcrypto');
+    await setTemp();
+    await login(page, users.member2, 'BARP', '/one-on-ones');
+    await expect(page).toHaveURL(/\/choose-password\?next=%2Fone-on-ones/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Choose your password' })).toBeVisible();
+    // Every other page sends them back here until they do.
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/choose-password/);
+    await page.goto('/support');
+    await expect(page).toHaveURL(/\/choose-password/);
+    await expectAccessible(page);
+
+    await page.getByLabel(/^New password/).fill('BARP');
+    await page.getByLabel(/^Confirm new password/).fill('BARP');
+    await page.getByRole('button', { name: 'Save and continue' }).click();
+    await expect(page.getByText('Use at least 8 characters')).toBeVisible();
+    await page.getByLabel(/^New password/).fill('my-own-password-1');
+    await page.getByLabel(/^Confirm new password/).fill('my-own-password-1');
+    await page.getByRole('button', { name: 'Save and continue' }).click();
+    // They continue to the page they last asked for.
+    await expect(page).toHaveURL('/support');
+    const flag = (await db.query(`select raw_app_meta_data->>'must_change_password' as f from auth.users where email = $1`, [users.member2])).rows[0]?.f;
+    expect(flag).toBe('false');
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL('/dashboard');
+
+    // The temporary password no longer works; the new one does.
+    await page.context().clearCookies();
+    await page.goto('/login');
+    await login(page, users.member2, 'my-own-password-1', '/dashboard');
+    await expect(page).toHaveURL('/dashboard');
+  } finally {
+    await db.query(
+      `update auth.users set encrypted_password = crypt($2, gen_salt('bf')), raw_app_meta_data = raw_app_meta_data - 'must_change_password' where email = $1`,
+      [users.member2, PASSWORD],
+    );
+    await db.end();
+  }
+});
