@@ -13,6 +13,8 @@ import { zoomConfigured } from '@/lib/zoom-api';
 import Link from 'next/link';
 import { resolveCorrection, setGuestStatus, setMemberStatus } from '../actions/admin';
 import { InviteToApplyButton } from './InviteToApplyButton';
+import { ResendEmailButton } from './ResendEmailButton';
+import { resendTarget } from '@/lib/email/resend-target';
 import { NewsletterSyncForm } from './NewsletterSyncForm';
 import { SeatForm } from './SeatForm';
 
@@ -57,7 +59,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       .select('profile_id, invited_at, reminded_at, completed_at, profile:profiles(first_name, last_name)')
       .order('invited_at', { ascending: false })
       .limit(30),
-    supabase.from('email_log').select('id, kind, recipient, subject, status, error, created_at').order('created_at', { ascending: false }).limit(25),
+    supabase
+      .from('email_log')
+      .select('id, kind, dedupe_key, recipient, subject, status, error, created_at')
+      .order('created_at', { ascending: false })
+      .limit(25),
     supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'apply_invite').eq('status', 'sent').order('created_at').limit(500),
   ]);
   const next = await getNextMeeting();
@@ -428,6 +434,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     <th scope="col">To</th>
                     <th scope="col">Subject</th>
                     <th scope="col">Status</th>
+                    <th scope="col">
+                      <span className="sr-only">Resend</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -441,6 +450,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                           {m.status === 'sent' ? 'Sent' : m.status === 'failed' ? 'Failed' : 'Not sent'}
                         </Pill>
                       </td>
+                      <td>{resendTarget(m.kind, m.dedupe_key) ? <ResendEmailButton id={m.id} to={m.recipient} failed={m.status === 'failed'} /> : null}</td>
                     </tr>
                   ))}
                 </tbody>

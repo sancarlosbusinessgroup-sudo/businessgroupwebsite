@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { onMemberStatus, sendApplyInvite, syncNewsletterList } from '@/lib/email/events';
 import { localDateKey } from '@/lib/dates';
+import { resendFailedEmail } from '@/lib/email/resend';
 import { safely } from '@/lib/email/notify';
 import { type ActionState, fieldErrors, formToObject, leadershipSchema, seatLimitSchema } from '@/lib/validation';
 
@@ -143,6 +144,35 @@ export async function syncNewsletter(): Promise<ActionState> {
       status: r.failed ? 'error' : 'success',
       message: `${r.synced} member${r.synced === 1 ? '' : 's'} synced to the Brevo list${r.failed ? `, ${r.failed} failed` : ''}.`,
     };
+  } catch {
+    return { status: 'error', message: GENERIC };
+  }
+}
+
+/** Admin "Resend" on a failed email in the Recent emails list. */
+export async function resendEmail(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const id = z.coerce.number().int().positive().safeParse(formData.get('id'));
+  if (!id.success) return { status: 'error', message: GENERIC };
+  const supabase = await createClient();
+  const { data: isAdmin } = await supabase.rpc('is_admin');
+  if (!isAdmin) return { status: 'error', message: 'Admins only.' };
+  try {
+    const r = await resendFailedEmail(id.data);
+    revalidatePath('/admin');
+    switch (r.outcome) {
+      case 'sent':
+        return { status: 'success', message: 'Sent.' };
+      case 'not_failed':
+        return { status: 'success', message: 'Already sent.' };
+      case 'not_resendable':
+        return { status: 'error', message: 'Scheduled emails can’t be resent.' };
+      case 'gone':
+        return { status: 'error', message: 'Can’t resend: what it was about has changed or been deleted, or the person turned these emails off.' };
+      case 'unavailable':
+        return { status: 'error', message: 'Email is not set up yet.' };
+      default:
+        return { status: 'error', message: `Still failing${r.error ? `: ${r.error.slice(0, 120)}` : '.'}` };
+    }
   } catch {
     return { status: 'error', message: GENERIC };
   }

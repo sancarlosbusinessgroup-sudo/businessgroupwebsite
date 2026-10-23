@@ -2,6 +2,7 @@
 // email preferences, send each notice only once (email_log unique key), and never throw.
 import 'server-only';
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { createAdminClient } from '../supabase/admin';
 import { env } from '../env';
 import { sendEmail } from './brevo';
@@ -50,9 +51,20 @@ export async function loadOptOuts(ids: string[], key: PrefKey): Promise<Set<stri
   return off;
 }
 
+/** Marker an admin's "Resend" puts on a failed email_log row (status stays 'failed' until it is sent again). */
+export const RETRY_MARK = 'retry requested';
+
+// While an admin resend runs, deliver() sends nothing new: it only re-sends the email_log row
+// marked RETRY_MARK, so re-running an event never reaches people who weren't on the original email.
+const retryScope = new AsyncLocalStorage<true>();
+export function inRetryScope<T>(fn: () => Promise<T>): Promise<T> {
+  return retryScope.run(true, fn);
+}
+
 /**
  * Send one email once. Claims (kind, dedupeKey, recipient) in email_log first; if the row already
- * exists the email went out before and nothing is sent. Returns the final status.
+ * exists the email went out before (or failed) and nothing is sent. Inside inRetryScope() it instead
+ * claims the existing failed row that an admin marked for resending. Returns the final status.
  */
 export async function deliver(o: {
   kind: string;
@@ -64,19 +76,31 @@ export async function deliver(o: {
     const db = createAdminClient();
     if (!db) return 'skipped';
     const recipient = o.to.email.toLowerCase().slice(0, 254);
-    const { data: claim, error } = await db
-      .from('email_log')
-      .insert({
-        kind: o.kind,
-        dedupe_key: o.dedupeKey.slice(0, 200),
-        recipient,
-        profile_id: o.to.profileId ?? null,
-        subject: o.email.subject.slice(0, 300),
-        status: 'skipped',
-        error: 'sending',
-      })
-      .select('id')
-      .single();
+    const dedupeKey = o.dedupeKey.slice(0, 200);
+    const { data: claim, error } = retryScope.getStore()
+      ? await db
+          .from('email_log')
+          .update({ status: 'skipped', error: 'sending' })
+          .eq('kind', o.kind)
+          .eq('dedupe_key', dedupeKey)
+          .eq('recipient', recipient)
+          .eq('status', 'failed')
+          .eq('error', RETRY_MARK)
+          .select('id')
+          .maybeSingle()
+      : await db
+          .from('email_log')
+          .insert({
+            kind: o.kind,
+            dedupe_key: dedupeKey,
+            recipient,
+            profile_id: o.to.profileId ?? null,
+            subject: o.email.subject.slice(0, 300),
+            status: 'skipped',
+            error: 'sending',
+          })
+          .select('id')
+          .single();
     if (error || !claim) return 'duplicate';
     const r = await sendEmail({ to: { email: o.to.email, name: o.to.name }, subject: o.email.subject, html: o.email.html, text: o.email.text, tag: o.kind });
     await db
