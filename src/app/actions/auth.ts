@@ -1,5 +1,6 @@
 'use server';
 
+import type { EmailOtpType } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 import { safeNext } from '@/lib/auth';
 import { env } from '@/lib/env';
@@ -110,6 +111,22 @@ export async function requestPasswordReset(_prev: ActionState, formData: FormDat
     return { status: 'error', message: 'Please wait a minute before trying again.', values };
   }
   return { status: 'success', values: { email: parsed.data.email } };
+}
+
+const CONFIRM_TYPES: EmailOtpType[] = ['recovery', 'signup', 'email', 'email_change', 'invite'];
+const CONFIRM_DEFAULT_NEXT: Partial<Record<EmailOtpType, string>> = { recovery: '/reset-password', signup: '/pending' };
+
+/** Runs when the member presses the button on /auth/confirm: uses the one-time token from the email link. */
+export async function confirmEmailLink(formData: FormData): Promise<void> {
+  const tokenHash = String(formData.get('token_hash') ?? '');
+  const type = String(formData.get('type') ?? '') as EmailOtpType;
+  const next = safeNext(String(formData.get('next') ?? ''), CONFIRM_DEFAULT_NEXT[type] ?? '/dashboard');
+  let ok = false;
+  if (tokenHash && CONFIRM_TYPES.includes(type)) {
+    const supabase = await createClient();
+    ok = !(await supabase.auth.verifyOtp({ token_hash: tokenHash, type })).error;
+  }
+  redirect(ok ? next : '/login?error=link');
 }
 
 export async function updatePassword(_prev: ActionState, formData: FormData): Promise<ActionState> {

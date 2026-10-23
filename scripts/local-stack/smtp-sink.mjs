@@ -62,6 +62,18 @@ net
 http
   .createServer((req, res) => {
     const u = new URL(req.url ?? '/', 'http://x');
+    if (u.pathname === '/templates/recovery' || u.pathname === '/templates/confirmation') {
+      // Same links we use in the hosted Supabase "Reset Password" / "Confirm signup" templates (see README):
+      // they open /auth/confirm, where only a button press uses the one-time token (email scanners don't press buttons).
+      const recovery = u.pathname === '/templates/recovery';
+      const type = recovery ? 'recovery' : 'signup';
+      const next = recovery ? '/reset-password' : '/pending';
+      res.writeHead(200, { 'content-type': 'text/html' });
+      res.end(
+        `<h2>${recovery ? 'Reset your password' : 'Confirm your email'}</h2><p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=${type}&amp;next=${next}">${recovery ? 'Choose a new password' : 'Confirm my email'}</a></p>`,
+      );
+      return;
+    }
     if (u.pathname === '/templates/magic-link') {
       // Same content we recommend for the hosted Supabase "Magic Link" template (see README).
       res.writeHead(200, { 'content-type': 'text/html' });

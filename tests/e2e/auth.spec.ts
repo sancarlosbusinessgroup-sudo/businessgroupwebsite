@@ -67,6 +67,8 @@ test.describe('sign up → admin approval → member access', () => {
     // Confirm email via the link
     const mail = await lastMail(email, before);
     await page.goto(linkIn(mail));
+    await expect(page).toHaveURL(/\/auth\/confirm/);
+    await page.getByRole('button', { name: 'Confirm my email' }).click();
     await expect(page).toHaveURL(/\/pending/);
     await expect(page.getByRole('heading', { name: 'Application received' })).toBeVisible();
 
@@ -157,7 +159,16 @@ test.describe('login, logout and password reset', () => {
     await page.getByLabel('Email').fill(users.pending);
     await page.getByRole('button', { name: 'Send reset link' }).click();
     await expect(page.getByText(/a reset link is on its way/)).toBeVisible();
-    await page.goto(linkIn(await lastMail(users.pending, before)));
+    const link = linkIn(await lastMail(users.pending, before));
+    // Email security scanners (e.g. Outlook Safe Links) open the link before the member does.
+    // Opening it must not use up the one-time token: only pressing the button does.
+    expect(new URL(link).pathname).toBe('/auth/confirm');
+    expect((await page.request.get(link)).ok()).toBe(true);
+    expect((await page.request.get(link)).ok()).toBe(true);
+    await page.goto(link);
+    await expect(page.getByRole('heading', { name: 'Reset your password' })).toBeVisible();
+    await expectAccessible(page);
+    await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page).toHaveURL(/\/reset-password/);
     await page.getByLabel(/^New password/).fill('new-password-123');
     await page.getByLabel('Confirm new password').fill('different-123');
@@ -175,5 +186,17 @@ test.describe('login, logout and password reset', () => {
     await page.goto('/auth/callback?code=bogus&next=/dashboard');
     await expect(page).toHaveURL(/\/login\?error=link/);
     await expect(page.getByText(/That link has expired/)).toBeVisible();
+
+    await page.goto('/auth/confirm?token_hash=bogus&type=recovery&next=/reset-password');
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page).toHaveURL(/\/login\?error=link/);
+    await expect(page.getByText(/That link has expired/)).toBeVisible();
+  });
+
+  test('an incomplete email link explains what to do', async ({ page }) => {
+    await page.goto('/auth/confirm?type=recovery');
+    await expect(page.getByText(/This link is incomplete/)).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Request a new reset link' })).toHaveAttribute('href', '/forgot-password');
+    await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0);
   });
 });

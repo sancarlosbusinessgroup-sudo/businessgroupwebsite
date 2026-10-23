@@ -83,12 +83,24 @@ Supabase's built-in email only sends a few messages per hour and is meant for te
 1. Create a free account at [resend.com](https://resend.com), verify your sending domain, and create an API key.
 2. Supabase → Authentication → Emails → SMTP Settings → enable custom SMTP: host `smtp.resend.com`, port `465`, user `resend`, password = the API key, sender e.g. `no-reply@yourdomain`.
 3. Supabase → Authentication → URL Configuration: set **Site URL** to the live URL and add `https://<your-site>/auth/callback` to **Redirect URLs**.
-4. Supabase → Authentication → Emails → **Magic Link** template: replace the body with the following so "Email me a code" works:
+4. Supabase → Authentication → Emails → **Reset Password** and **Confirm signup** templates: the link must open `/auth/confirm`, **not** `{{ .ConfirmationURL }}`. Email security scanners (Outlook / Microsoft Defender Safe Links and similar) open every link in an email; with `{{ .ConfirmationURL }}` that uses up the one-time token, so the member's own click then says the link has expired. `/auth/confirm` only uses the token when the person presses the button. Use these bodies (replace the domain with the live site URL):
+
+   Reset Password:
    ```html
-   <h2>Your sign-in code</h2>
-   <p>Your code is: <strong>{{ .Token }}</strong></p>
-   <p>Or <a href="{{ .ConfirmationURL }}">log in with this link</a>.</p>
+   <h2>Reset your password</h2>
+   <p>We received a request to reset the password for your Bay Area Referral Partners account.</p>
+   <p><a href="https://www.bayareareferralpartners.com/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password">Choose a new password</a></p>
+   <p>If you didn't ask for this, you can ignore this email. Your password stays the same.</p>
    ```
+
+   Confirm signup:
+   ```html
+   <h2>Confirm your email</h2>
+   <p>Thank you for applying to Bay Area Referral Partners. Please confirm your email address:</p>
+   <p><a href="https://www.bayareareferralpartners.com/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/pending">Confirm my email</a></p>
+   ```
+
+   The local test stack serves the same links (`scripts/local-stack/smtp-sink.mjs`, `/templates/recovery` and `/templates/confirmation`). `/auth/callback` still works for links in emails sent before the change.
 
 ## 5. Running tests
 
