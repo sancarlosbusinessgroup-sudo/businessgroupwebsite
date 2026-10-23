@@ -1,24 +1,22 @@
-// Browser-side helpers for the tawk.to widget. See ./chat.ts for configuration.
+// Browser-side helpers for the Tidio widget. See ./chat.ts for configuration.
 
-export type TawkApi = {
-  visitor?: { name: string; email?: string };
-  onLoad?: () => void;
-  maximize?: () => void;
-  hideWidget?: () => void;
-  showWidget?: () => void;
-  [key: string]: unknown;
+export type TidioApi = {
+  open?: () => void;
+  hide?: () => void;
+  show?: () => void;
+  getStatus?: () => 'online' | 'offline' | null;
+  on?: (event: string, handler: () => void) => void;
 };
 
-type TawkWindow = Window & { Tawk_API?: TawkApi; Tawk_LoadStart?: Date };
+type TidioWindow = Window & { tidioChatApi?: TidioApi };
 
-export function tawkApi(): TawkApi {
-  const w = window as TawkWindow;
-  w.Tawk_API = w.Tawk_API || {};
-  return w.Tawk_API;
+export function tidioApi(): TidioApi | undefined {
+  return (window as TidioWindow).tidioChatApi;
 }
 
-export function markTawkLoadStart() {
-  (window as TawkWindow).Tawk_LoadStart = new Date();
+/** Tidio has finished loading once it reports a status ('online' or 'offline'). */
+function ready(api: TidioApi | undefined): api is TidioApi & { open: () => void } {
+  return typeof api?.open === 'function' && typeof api.getStatus === 'function' && api.getStatus() !== null;
 }
 
 /**
@@ -29,9 +27,10 @@ export function openLiveChat(timeoutMs = 5000): Promise<boolean> {
   return new Promise((resolve) => {
     const started = Date.now();
     const attempt = () => {
-      const api = (window as TawkWindow).Tawk_API;
-      if (typeof api?.maximize === 'function') {
-        api.maximize();
+      const api = tidioApi();
+      if (ready(api)) {
+        api.show?.();
+        api.open();
         resolve(true);
         return;
       }

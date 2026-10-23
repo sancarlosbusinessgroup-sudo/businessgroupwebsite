@@ -6,47 +6,54 @@ vi.mock('next/navigation', () => ({ usePathname: () => pathname }));
 
 import { LiveChat } from './LiveChat';
 
-type TawkWindow = Window & { Tawk_API?: Record<string, unknown> };
-const ids = { propertyId: '64f1a2b3c4d5e6f708192a3b', widgetId: '1h9abc2de' };
-const tawkScripts = () => Array.from(document.querySelectorAll('script')).filter((s) => s.src.startsWith('https://embed.tawk.to/'));
+type TidioDoc = Document & { tidioIdentify?: Record<string, string> };
+type TidioWindow = Window & { tidioChatApi?: Record<string, unknown> };
+const KEY = 'tmit8jukbkhwergbpcrj6d7lrpfbghix';
+const tidioScripts = () => Array.from(document.querySelectorAll('script')).filter((s) => s.src.startsWith('https://code.tidio.co/'));
 
 afterEach(() => {
-  tawkScripts().forEach((s) => s.remove());
-  delete (window as TawkWindow).Tawk_API;
+  tidioScripts().forEach((s) => s.remove());
+  delete (document as TidioDoc).tidioIdentify;
+  delete (window as TidioWindow).tidioChatApi;
   pathname = '/';
 });
 
 describe('LiveChat', () => {
-  it('loads the tawk.to widget once with the configured IDs', () => {
-    const { rerender } = render(<LiveChat {...ids} />);
-    rerender(<LiveChat {...ids} />);
-    const scripts = tawkScripts();
+  it('loads the Tidio widget once with the configured key', () => {
+    const { rerender } = render(<LiveChat publicKey={KEY} />);
+    rerender(<LiveChat publicKey={KEY} />);
+    const scripts = tidioScripts();
     expect(scripts).toHaveLength(1);
-    expect(scripts[0]?.src).toBe('https://embed.tawk.to/64f1a2b3c4d5e6f708192a3b/1h9abc2de');
+    expect(scripts[0]?.src).toBe(`https://code.tidio.co/${KEY}.js`);
     expect(scripts[0]?.async).toBe(true);
   });
 
-  it('fills in a signed-in member’s name and email', () => {
-    render(<LiveChat {...ids} visitor={{ name: 'Laura Biche', email: 'laura@example.com' }} />);
-    expect((window as TawkWindow).Tawk_API?.visitor).toEqual({ name: 'Laura Biche', email: 'laura@example.com' });
+  it('fills in a signed-in member’s name and email before the widget loads', () => {
+    render(<LiveChat publicKey={KEY} visitor={{ id: 'u-1', name: 'Laura Biche', email: 'laura@example.com' }} />);
+    expect((document as TidioDoc).tidioIdentify).toEqual({ distinct_id: 'u-1', name: 'Laura Biche', email: 'laura@example.com' });
+  });
+
+  it('identifies nobody for guests', () => {
+    render(<LiveChat publicKey={KEY} />);
+    expect((document as TidioDoc).tidioIdentify).toBeUndefined();
   });
 
   it('does not load on the meeting slides', () => {
     pathname = '/present/next';
-    render(<LiveChat {...ids} />);
-    expect(tawkScripts()).toHaveLength(0);
+    render(<LiveChat publicKey={KEY} />);
+    expect(tidioScripts()).toHaveLength(0);
   });
 
   it('hides the bubble when moving to the slides and shows it again after', () => {
-    const hideWidget = vi.fn();
-    const showWidget = vi.fn();
-    const { rerender } = render(<LiveChat {...ids} />);
-    Object.assign((window as TawkWindow).Tawk_API!, { hideWidget, showWidget });
+    const hide = vi.fn();
+    const show = vi.fn();
+    const { rerender } = render(<LiveChat publicKey={KEY} />);
+    (window as TidioWindow).tidioChatApi = { hide, show, on: vi.fn() };
     pathname = '/present/next';
-    rerender(<LiveChat {...ids} />);
-    expect(hideWidget).toHaveBeenCalled();
+    rerender(<LiveChat publicKey={KEY} />);
+    expect(hide).toHaveBeenCalled();
     pathname = '/support';
-    rerender(<LiveChat {...ids} />);
-    expect(showWidget).toHaveBeenCalled();
+    rerender(<LiveChat publicKey={KEY} />);
+    expect(show).toHaveBeenCalled();
   });
 });

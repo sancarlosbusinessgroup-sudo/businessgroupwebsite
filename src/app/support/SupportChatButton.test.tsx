@@ -2,7 +2,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { SupportChatButton } from './SupportChatButton';
 
-type TawkWindow = Window & { Tawk_API?: Record<string, unknown> };
+type TidioWindow = Window & { tidioChatApi?: Record<string, unknown> };
+// Tidio reports 'online'/'offline' once the chat has loaded (null before).
+const loadedTidio = (open: () => void) => ({ open, getStatus: () => 'online' });
 
 beforeAll(() => {
   // jsdom has no modal dialogs; a minimal stand-in is enough to check which window opens.
@@ -12,7 +14,7 @@ beforeAll(() => {
 });
 
 afterEach(() => {
-  delete (window as TawkWindow).Tawk_API;
+  delete (window as TidioWindow).tidioChatApi;
   vi.useRealTimers();
 });
 
@@ -23,27 +25,32 @@ describe('SupportChatButton', () => {
     expect(screen.getByRole('dialog', { name: 'Live chat is coming soon' })).toBeInTheDocument();
   });
 
-  it('opens the tawk.to chat window when live chat is on and loaded', async () => {
-    const maximize = vi.fn();
-    (window as TawkWindow).Tawk_API = { maximize };
+  it('opens the Tidio chat window when live chat is on and loaded', async () => {
+    const open = vi.fn();
+    (window as TidioWindow).tidioChatApi = loadedTidio(open);
     render(<SupportChatButton chatEnabled />);
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Chat with support' }));
     });
-    expect(maximize).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('waits for the chat to finish loading, then opens it', async () => {
     vi.useFakeTimers();
-    const maximize = vi.fn();
+    const open = vi.fn();
     render(<SupportChatButton chatEnabled />);
     fireEvent.click(screen.getByRole('button', { name: 'Chat with support' }));
-    (window as TawkWindow).Tawk_API = { maximize };
+    (window as TidioWindow).tidioChatApi = { open, getStatus: () => null };
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+    expect(open).not.toHaveBeenCalled();
+    (window as TidioWindow).tidioChatApi = loadedTidio(open);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(600);
     });
-    expect(maximize).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 

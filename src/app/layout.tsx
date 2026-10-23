@@ -4,7 +4,7 @@ import { Footer } from '@/components/site/Footer';
 import { Header } from '@/components/site/Header';
 import { LiveChat } from '@/components/site/LiveChat';
 import { getViewer } from '@/lib/auth';
-import { chatVisitor, tawkConfigFromEnv } from '@/lib/chat';
+import { chatVisitor, tidioConfigFromEnv } from '@/lib/chat';
 import { site } from '@/lib/content';
 import { env } from '@/lib/env';
 import { jakarta, sourceSans } from './fonts';
@@ -24,7 +24,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const chat = tawkConfigFromEnv();
+  const chat = tidioConfigFromEnv();
   const viewer = chat ? await getViewer() : null;
   const approved = viewer?.profile?.status === 'approved';
   return (
@@ -33,7 +33,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <Header />
         <main id="main">{children}</main>
         <Footer />
-        {chat ? <LiveChat {...chat} visitor={approved ? chatVisitor(viewer?.profile ?? null, viewer?.email ?? null) : undefined} /> : null}
+        {chat ? (
+          <LiveChat {...chat} visitor={approved ? chatVisitor(viewer?.userId ?? null, viewer?.profile ?? null, viewer?.email ?? null) : undefined} />
+        ) : null}
       </body>
     </html>
   );

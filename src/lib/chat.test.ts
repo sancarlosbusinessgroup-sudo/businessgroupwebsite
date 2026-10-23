@@ -1,31 +1,37 @@
 import { describe, expect, it } from 'vitest';
-import { chatHiddenOn, chatVisitor, tawkConfig, tawkEmbedUrl } from './chat';
+import { chatHiddenOn, chatVisitor, tidioConfig, tidioScriptUrl } from './chat';
 
-describe('tawkConfig', () => {
-  it('returns the IDs when both are set and well-formed', () => {
-    expect(tawkConfig('64f1a2b3c4d5e6f708192a3b', '1h9abc2de')).toEqual({ propertyId: '64f1a2b3c4d5e6f708192a3b', widgetId: '1h9abc2de' });
+const KEY = 'tmit8jukbkhwergbpcrj6d7lrpfbghix';
+
+describe('tidioConfig', () => {
+  it('returns the public key when it is set and well-formed', () => {
+    expect(tidioConfig(KEY)).toEqual({ publicKey: KEY });
   });
 
-  it('trims spaces pasted with the IDs', () => {
-    expect(tawkConfig('  64f1a2b3c4d5e6f708192a3b ', ' default ')).toEqual({ propertyId: '64f1a2b3c4d5e6f708192a3b', widgetId: 'default' });
+  it('trims spaces pasted with the key', () => {
+    expect(tidioConfig(`  ${KEY} `)).toEqual({ publicKey: KEY });
   });
 
-  it('is off (null) when an ID is missing', () => {
-    expect(tawkConfig(undefined, '1h9abc2de')).toBeNull();
-    expect(tawkConfig('64f1a2b3c4d5e6f708192a3b', undefined)).toBeNull();
-    expect(tawkConfig('', '')).toBeNull();
+  it('accepts the whole embed address or script tag pasted by mistake', () => {
+    expect(tidioConfig(`//code.tidio.co/${KEY}.js`)).toEqual({ publicKey: KEY });
+    expect(tidioConfig(`<script src="//code.tidio.co/${KEY}.js" async></script>`)).toEqual({ publicKey: KEY });
   });
 
-  it('is off (null) when an ID is malformed, so nothing odd ends up in the script address', () => {
-    expect(tawkConfig('not-a-property', '1h9abc2de')).toBeNull();
-    expect(tawkConfig('64f1a2b3c4d5e6f708192a3b', '../evil')).toBeNull();
-    expect(tawkConfig('64f1a2b3c4d5e6f708192a3b', 'a b')).toBeNull();
+  it('is off (null) when the key is missing', () => {
+    expect(tidioConfig(undefined)).toBeNull();
+    expect(tidioConfig('')).toBeNull();
+  });
+
+  it('is off (null) when the key is malformed, so nothing odd ends up in the script address', () => {
+    expect(tidioConfig('short')).toBeNull();
+    expect(tidioConfig('../evil/tmit8jukbkhwergbpcrj6d7lrpfbghix')).toBeNull();
+    expect(tidioConfig('TMIT8JUKBKHWERGBPCRJ6D7LRPFBGHIX!')).toBeNull();
   });
 });
 
-describe('tawkEmbedUrl', () => {
-  it('builds the tawk.to embed address', () => {
-    expect(tawkEmbedUrl({ propertyId: '64f1a2b3c4d5e6f708192a3b', widgetId: '1h9abc2de' })).toBe('https://embed.tawk.to/64f1a2b3c4d5e6f708192a3b/1h9abc2de');
+describe('tidioScriptUrl', () => {
+  it('builds the Tidio script address', () => {
+    expect(tidioScriptUrl({ publicKey: KEY })).toBe(`https://code.tidio.co/${KEY}.js`);
   });
 });
 
@@ -41,16 +47,20 @@ describe('chatHiddenOn', () => {
 });
 
 describe('chatVisitor', () => {
-  it('passes a signed-in member’s name and email to the chat', () => {
-    expect(chatVisitor({ first_name: 'Laura', last_name: 'Biche' }, 'laura@example.com')).toEqual({ name: 'Laura Biche', email: 'laura@example.com' });
+  it('passes a signed-in member’s id, name and email to the chat', () => {
+    expect(chatVisitor('u-1', { first_name: 'Laura', last_name: 'Biche' }, 'laura@example.com')).toEqual({
+      id: 'u-1',
+      name: 'Laura Biche',
+      email: 'laura@example.com',
+    });
   });
 
   it('passes nothing for guests or when the name is unknown', () => {
-    expect(chatVisitor(null, null)).toBeUndefined();
-    expect(chatVisitor({ first_name: '', last_name: '' }, 'x@example.com')).toBeUndefined();
+    expect(chatVisitor(null, null, null)).toBeUndefined();
+    expect(chatVisitor('u-1', { first_name: '', last_name: '' }, 'x@example.com')).toBeUndefined();
   });
 
   it('passes the name without an email when there is none', () => {
-    expect(chatVisitor({ first_name: 'Bob', last_name: null }, null)).toEqual({ name: 'Bob' });
+    expect(chatVisitor('u-2', { first_name: 'Bob', last_name: null }, null)).toEqual({ id: 'u-2', name: 'Bob' });
   });
 });

@@ -4,7 +4,7 @@ import { useId, useRef, useState } from 'react';
 import { openLiveChat } from '@/lib/chat-client';
 
 /**
- * "Chat with support" button. With live chat on (tawk.to IDs set, see src/lib/chat.ts) it opens the chat window;
+ * "Chat with support" button. With live chat on (Tidio key set, see src/lib/chat.ts) it opens the chat window;
  * otherwise it shows a short coming-soon notice. If the chat can't load (ad blocker, offline) it says so.
  */
 export function SupportChatButton({ chatEnabled }: { chatEnabled: boolean }) {

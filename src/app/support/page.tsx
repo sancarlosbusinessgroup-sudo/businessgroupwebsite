@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Avatar, PageHero } from '@/components/ui';
 import { site, supportFaq, supportTeam, supportTopics } from '@/lib/content';
-import { tawkConfigFromEnv } from '@/lib/chat';
+import { tidioConfigFromEnv } from '@/lib/chat';
 import Image from 'next/image';
 import { requireMember } from '@/lib/auth';
 import { mediaUrl } from '@/lib/env';
@@ -24,7 +24,7 @@ export default async function SupportPage() {
       supportTeam.map((t) => t.slug),
     );
   const profiles = new Map((rows ?? []).map((r) => [r.slug, r]));
-  const chatEnabled = tawkConfigFromEnv() !== null;
+  const chatEnabled = tidioConfigFromEnv() !== null;
   return (
     <>
       <PageHero
