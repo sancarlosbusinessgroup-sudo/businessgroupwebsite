@@ -6,7 +6,7 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 import { pastInstances, reportParticipants, zoomConfigured, ZoomError } from './zoom-api';
-import { matchParticipant, mergeParticipants, parseZoomMeetingId, type GuestRef, type MemberRef, type Participant } from './zoom';
+import { matchParticipant, mergeParticipants, noSessionMessage, parseZoomMeetingId, type GuestRef, type MemberRef, type Participant } from './zoom';
 
 type Db = SupabaseClient<Database>;
 export type ImportResult = { ok: true; participants: number; matched: number; pending: number; guests: number } | { ok: false; error: string };
@@ -51,8 +51,9 @@ export async function importZoomAttendance(db: Db, meetingId: string, by: string
   let parts: Participant[];
   let uuid: string;
   try {
-    const inst = pickInstance(await pastInstances(zoomId), meeting.starts_at);
-    if (!inst) throw new ZoomError('Zoom has no session of this meeting on that day yet.');
+    const all = await pastInstances(zoomId);
+    const inst = pickInstance(all, meeting.starts_at);
+    if (!inst) throw new ZoomError(noSessionMessage(zoomId, all));
     uuid = inst.uuid;
     parts = mergeParticipants(await reportParticipants(uuid));
   } catch (e) {

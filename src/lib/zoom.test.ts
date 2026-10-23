@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { absenceSummary, lateEarly, matchParticipant, mergeParticipants, nameKey, normalizeName, parseZoomMeetingId } from './zoom';
+import { absenceSummary, lateEarly, matchParticipant, mergeParticipants, nameKey, noSessionMessage, normalizeName, parseZoomMeetingId } from './zoom';
 
 describe('parseZoomMeetingId', () => {
   it('reads the meeting ID from the usual join links', () => {
@@ -103,5 +103,20 @@ describe('absenceSummary', () => {
   });
   it('ignores meetings from before the member joined', () => {
     expect(absenceSummary(taken, [], { now, memberSince: '2026-11-01' })).toMatchObject({ counted: 2, missed: 2, atLimit: true, overLimit: false });
+  });
+});
+
+describe('noSessionMessage', () => {
+  it('lists the most recent days Zoom has (Pacific dates, newest first, at most five)', () => {
+    const msg = noSessionMessage('83818742413', [
+      { start_time: '2026-09-28T15:20:00Z' },
+      { start_time: '2026-10-05T15:14:00Z' },
+      { start_time: '2026-10-05T16:40:00Z' },
+      { start_time: '2026-10-20T02:00:00Z' }, // Oct 19 in California
+    ]);
+    expect(msg).toBe('Zoom has no session of meeting 838 1874 2413 on that day. Its most recent sessions were on Oct 19, 2026, Oct 5, 2026, Sep 28, 2026.');
+  });
+  it('says so when the meeting ID has never been used', () => {
+    expect(noSessionMessage('83818742413', [])).toMatch(/no past sessions of meeting 838 1874 2413 at all/);
   });
 });

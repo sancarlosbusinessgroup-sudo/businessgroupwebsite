@@ -3,12 +3,13 @@ import { AdminNav } from '@/components/AdminNav';
 import { EmptyState, Notice, Pill } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { guestStatusLabels } from '@/lib/content';
-import { getCategorySeats, getUpcomingMeetings } from '@/lib/data/public';
+import { getCategorySeats, getNextMeeting, getUpcomingMeetings } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime, formatShortDate } from '@/lib/dates';
 import { MeetingCancelForm } from './MeetingCancelForm';
 import { createClient } from '@/lib/supabase/server';
 import { absencesFor, memberSince } from '@/lib/data/attendance';
-import { ABSENCE_LIMIT } from '@/lib/zoom';
+import { ABSENCE_LIMIT, parseZoomMeetingId } from '@/lib/zoom';
+import { zoomConfigured } from '@/lib/zoom-api';
 import Link from 'next/link';
 import { resolveCorrection, setGuestStatus, setMemberStatus } from '../actions/admin';
 import { InviteToApplyButton } from './InviteToApplyButton';
@@ -22,8 +23,8 @@ const errors: Record<string, string> = {
   save: 'Something went wrong. Please try again.',
 };
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ error?: string; zoomError?: string }> }) {
+  const { error, zoomError } = await searchParams;
   await requireAdmin();
   const supabase = await createClient();
   const [pendingRes, guestsRes, corrRes, seats, downloadsRes, schedule, onboardRes, mailRes, invitesRes] = await Promise.all([
@@ -59,6 +60,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     supabase.from('email_log').select('id, kind, recipient, subject, status, error, created_at').order('created_at', { ascending: false }).limit(25),
     supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'apply_invite').eq('status', 'sent').order('created_at').limit(500),
   ]);
+  const next = await getNextMeeting();
+  const { data: nextLink } = next ? await supabase.from('meeting_links').select('join_url').eq('meeting_id', next.id).maybeSingle() : { data: null };
+  const nextZoomId = parseZoomMeetingId(nextLink?.join_url);
   const { data: approved } = await supabase
     .from('profiles')
     .select('id, first_name, last_name, approved_at, member_since, created_at')
@@ -83,6 +87,37 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </Notice>
         ) : null}
         {error && errors[error] ? <Notice tone="error">{errors[error]}</Notice> : null}
+
+        <section id="zoom" className="card flex flex-col gap-3 p-[22px]" aria-labelledby="zoom-h">
+          <h2 id="zoom-h" className="font-display m-0 text-[22px] font-extrabold">
+            Zoom
+          </h2>
+          {zoomError ? <Notice tone="error">{zoomError.slice(0, 300)}</Notice> : null}
+          {next ? (
+            <p className="m-0">
+              Next meeting: <strong>{formatMeetingDate(new Date(next.starts_at))}</strong>, {formatMeetingTime(new Date(next.starts_at))}
+              {nextZoomId ? ` · Zoom meeting ${nextZoomId.replace(/^(\d{3})(\d{4})(\d+)$/, '$1 $2 $3')}` : ' · no Zoom link saved'}
+            </p>
+          ) : (
+            <p className="m-0">There is no upcoming meeting on the calendar.</p>
+          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {zoomConfigured() && next && nextZoomId ? (
+              <a className="btn btn-primary" href="/admin/zoom/start">
+                Start meeting as host
+              </a>
+            ) : (
+              <span className="text-ink-muted text-sm">Starting the meeting from here needs the Zoom keys and a Zoom link on the next meeting.</span>
+            )}
+            <Link className="btn btn-outline btn-sm" href="/admin/attendance">
+              Attendance
+            </Link>
+          </div>
+          <p className="text-ink-muted m-0 text-sm">
+            Opens Zoom as the host. Sign in to Zoom with the group’s account if asked. Only one person can be host: the first manager starts it, then makes the
+            others co-hosts in Zoom (Participants → hover a name → More → Make co-host).
+          </p>
+        </section>
 
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="ap-h">
           <h2 id="ap-h" className="font-display m-0 text-[22px] font-extrabold">

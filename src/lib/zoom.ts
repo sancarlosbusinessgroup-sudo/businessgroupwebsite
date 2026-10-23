@@ -128,3 +128,20 @@ export function absenceSummary(
     overLimit: missed.length > ABSENCE_LIMIT,
   };
 }
+
+/** Explains a missing session, listing the most recent days Zoom does have for this meeting ID. */
+export function noSessionMessage(zoomId: string, instances: { start_time: string }[]) {
+  const days = [
+    ...new Set(
+      instances
+        .map((i) => i.start_time)
+        .sort()
+        .reverse()
+        .map((t) => new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })),
+    ),
+  ].slice(0, 5);
+  const id = zoomId.replace(/^(\d{3})(\d{4})(\d+)$/, '$1 $2 $3');
+  return days.length
+    ? `Zoom has no session of meeting ${id} on that day. Its most recent sessions were on ${days.join(', ')}.`
+    : `Zoom has no past sessions of meeting ${id} at all. Was this meeting held with a different Zoom link, or hosted from another Zoom account?`;
+}

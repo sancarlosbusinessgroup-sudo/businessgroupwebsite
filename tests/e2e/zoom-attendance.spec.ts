@@ -162,7 +162,13 @@ test.describe('Zoom attendance', () => {
       await rest('meeting_links', 'POST', { meeting_id: m?.id, join_url: `https://zoom.us/j/${ZOOM_ID}` });
       await login(page, users.admin, undefined, `/admin/attendance?m=${m?.id}`);
       await page.getByRole('button', { name: 'Fetch from Zoom' }).click();
-      await expect(page.getByRole('alert').filter({ hasText: 'Zoom has no session of this meeting on that day yet.' }).first()).toBeVisible();
+      // The message names the meeting ID and the days Zoom does have, so admins can see what went wrong.
+      await expect(
+        page
+          .getByRole('alert')
+          .filter({ hasText: /Zoom has no session of meeting 812 3456 7890 on that day\. Its most recent sessions were on \w{3} \d+, \d{4}/ })
+          .first(),
+      ).toBeVisible();
     } finally {
       await rest(`meetings?id=eq.${m?.id}`, 'DELETE');
     }

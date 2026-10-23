@@ -1,6 +1,7 @@
 // Zoom REST API (Server-to-Server OAuth). Server-only: the credentials are Vercel environment variables
 // and never reach the browser. Scopes needed on the Zoom app:
-//   meeting:read:list_past_instances:admin and report:read:list_meeting_participants:admin
+//   meeting:read:list_past_instances:admin and report:read:list_meeting_participants:admin (attendance)
+//   meeting:read:meeting:admin ("Start meeting as host")
 import 'server-only';
 
 import type { RawParticipant } from './zoom';
@@ -74,4 +75,23 @@ export async function reportParticipants(uuid: string): Promise<RawParticipant[]
     if (!next) break;
   }
   return out;
+}
+
+/**
+ * A fresh host link for a meeting ID. Zoom's start links expire after about two hours, so the site asks for a new one
+ * each time an admin presses "Start meeting as host"; the link is never stored or shown.
+ */
+export async function hostStartUrl(meetingId: string): Promise<string> {
+  const res = await fetch(`${API()}/meetings/${encodeURIComponent(meetingId)}`, { headers: { authorization: `Bearer ${await token()}` }, cache: 'no-store' });
+  if (res.status === 404) throw new ZoomError('Zoom can’t find this meeting in the group’s Zoom account. Check the meeting link saved on the site.', 404);
+  if (res.status === 401 || res.status === 403)
+    throw new ZoomError(
+      'The Zoom app is missing the “View a meeting” permission (meeting:read:meeting:admin). Add it in the Zoom app’s Scopes and try again.',
+      res.status,
+    );
+  if (!res.ok) throw new ZoomError(`Zoom request failed (${res.status}).`, res.status);
+  const body = (await res.json()) as { start_url?: string };
+  if (!body.start_url?.startsWith('https://') && !(process.env.ZOOM_API_URL && body.start_url?.startsWith('http://127.0.0.1')))
+    throw new ZoomError('Zoom did not return a host link for this meeting.');
+  return body.start_url!;
 }

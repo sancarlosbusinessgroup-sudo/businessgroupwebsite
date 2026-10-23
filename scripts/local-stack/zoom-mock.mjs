@@ -2,13 +2,16 @@
 //   POST /oauth/token?grant_type=account_credentials&account_id=…   → a token (needs Basic auth)
 //   GET  /v2/past_meetings/:id/instances                            → sessions of a meeting ID
 //   GET  /v2/report/meetings/:uuid/participants                     → participant report (2 per page, to test paging)
+//   GET  /v2/meetings/:id                                           → meeting details with a host start_url
+//   GET  /mock/start/:id                                            → stands in for Zoom's host start page
 // Test controls:
-//   POST /mock/meetings  {"meetingId": "...", "instances": [{"uuid": "...", "start_time": "...", "participants": [...]}]}
+//   POST /mock/meetings  {"meetingId": "...", "instances": [{"uuid": "...", "start_time": "...", "participants": [...]}], "noReadScope": false}
 //   POST /reset
 import http from 'node:http';
 
 const PORT = Number(process.env.ZOOM_MOCK_PORT ?? 54328);
 const meetings = new Map(); // meetingId -> instances
+const noReadScope = new Set(); // meeting IDs whose details answer 403 (app missing meeting:read:meeting:admin)
 const PAGE = 2;
 
 const json = (res, code, body) => {
@@ -31,12 +34,24 @@ http
         if (!id || !secret || !url.searchParams.get('account_id') || secret === 'wrong') return json(res, 400, { reason: 'Invalid client' });
         return json(res, 200, { access_token: 'mock-token', token_type: 'bearer', expires_in: 3600 });
       }
+      let s = url.pathname.match(/^\/mock\/start\/([^/]+)$/);
+      if (req.method === 'GET' && s) {
+        res.writeHead(200, { 'content-type': 'text/html' });
+        return res.end(`<!doctype html><title>Zoom host start</title><h1>Mock Zoom: starting meeting ${s[1]} as host</h1>`);
+      }
       if (url.pathname.startsWith('/v2/') && req.headers.authorization !== 'Bearer mock-token') return json(res, 401, { message: 'Invalid access token' });
       let m = url.pathname.match(/^\/v2\/past_meetings\/([^/]+)\/instances$/);
       if (req.method === 'GET' && m) {
         const inst = meetings.get(decodeURIComponent(m[1]));
         if (!inst) return json(res, 404, { code: 3001, message: 'Meeting does not exist' });
         return json(res, 200, { meetings: inst.map(({ uuid, start_time }) => ({ uuid, start_time })) });
+      }
+      m = url.pathname.match(/^\/v2\/meetings\/([^/]+)$/);
+      if (req.method === 'GET' && m) {
+        const id = decodeURIComponent(m[1]);
+        if (!meetings.has(id)) return json(res, 404, { code: 3001, message: 'Meeting does not exist' });
+        if (noReadScope.has(id)) return json(res, 403, { code: 4711, message: 'Invalid access token, does not contain scopes:[meeting:read:meeting:admin]' });
+        return json(res, 200, { id: Number(id), topic: 'BARP', type: 3, start_url: `http://127.0.0.1:${PORT}/mock/start/${id}?zak=mock` });
       }
       m = url.pathname.match(/^\/v2\/report\/meetings\/(.+)\/participants$/);
       if (req.method === 'GET' && m) {
@@ -51,10 +66,13 @@ http
       }
       if (req.method === 'POST' && url.pathname === '/mock/meetings') {
         meetings.set(String(body.meetingId), body.instances ?? []);
+        if (body.noReadScope) noReadScope.add(String(body.meetingId));
+        else noReadScope.delete(String(body.meetingId));
         return json(res, 204);
       }
       if (req.method === 'POST' && url.pathname === '/reset') {
         meetings.clear();
+        noReadScope.clear();
         return json(res, 204);
       }
       json(res, 404, { message: 'not mocked' });
