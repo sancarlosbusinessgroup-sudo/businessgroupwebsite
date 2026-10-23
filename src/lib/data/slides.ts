@@ -4,6 +4,8 @@ import { localDateKey } from '../dates';
 import { periodRange } from '../periods';
 import { resolveNotes, resolveSlides, resolveTimers, type SlideKey, type SlideNotes, type TimerSettings } from '../slides';
 import { getUpcomingMemberEvents, type CalendarItem, fromMeeting } from './events';
+import { getChampionAwards, getChampionRanking, type ChampionAward } from './champion';
+import { monthOf, monthRange, previousMonth } from '../champion';
 import { getGroupTotals, getLeaderboard, type GroupTotals, type LeaderRow } from './member';
 import { getCategorySeats, getLeadership, getMeetingBySlug, getUpcomingMeetings, type MeetingWithSpeakers, type Speaker } from './public';
 
@@ -42,6 +44,8 @@ export type DeckData = {
   leaders: LeaderRow[];
   events: CalendarItem[];
   next: (MeetingWithSpeakers & { five: SpeakerCard | null; ten: SpeakerCard | null }) | null;
+  /** BARP Champion slide: last month's champion at the month's first meeting, otherwise this month's leaders so far. */
+  champion: { award: ChampionAward | null; monthLabel: string; leaders: { id: string; name: string; points: number; avatar: string | null }[] };
 };
 
 function fail(what: string, error: { message: string } | null): never {
@@ -158,6 +162,8 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
   // Files, videos and links in the order they were added.
   const media = [...fileMedia, ...linkMedia].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
+  const champion = await loadChampionSlide(meeting.starts_at, meeting.id, settingsRes.data?.slides);
+
   return {
     meeting,
     number: countRes.count ?? 1,
@@ -186,6 +192,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     ],
     leaders,
     events,
+    champion,
     next: next
       ? {
           ...next,
@@ -194,4 +201,41 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
         }
       : null,
   };
+}
+
+/** Data for the BARP Champion slide (owner, 2026-10-23). Only loaded when the slide is in the deck. */
+async function loadChampionSlide(startsAt: string, meetingId: string, saved: readonly string[] | null | undefined): Promise<DeckData['champion']> {
+  const month = monthOf(new Date(startsAt));
+  const empty = { award: null, monthLabel: monthRange(month).label, leaders: [] };
+  if (!resolveSlides(saved).includes('champion')) return empty;
+  try {
+    const supabase = await createClient();
+    const { from } = monthRange(month);
+    const { count } = await supabase
+      .from('meetings')
+      .select('id', { count: 'exact', head: true })
+      .eq('category', 'Networking')
+      .is('cancelled_reason', null)
+      .gte('starts_at', from)
+      .lt('starts_at', startsAt)
+      .neq('id', meetingId);
+    const lastMonthKey = monthRange(previousMonth(month)).key;
+    const award = (await getChampionAwards(3)).find((a) => a.month === lastMonthKey) ?? null;
+    if (award && !count) return { ...empty, award };
+    const { rows } = await getChampionRanking(month);
+    const top = rows.filter((r) => r.eligible).slice(0, 3);
+    const { data: pics } = top.length
+      ? await supabase
+          .from('profiles')
+          .select('id, avatar_path')
+          .in(
+            'id',
+            top.map((t) => t.id),
+          )
+      : { data: [] };
+    const pic = new Map((pics ?? []).map((p) => [p.id, p.avatar_path]));
+    return { ...empty, leaders: top.map((t) => ({ id: t.id, name: t.name, points: t.points, avatar: pic.get(t.id) ?? null })) };
+  } catch {
+    return empty;
+  }
 }

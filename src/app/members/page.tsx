@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/server';
 import { filterDirectory, paginate } from '@/lib/directory';
 import { mediaUrl } from '@/lib/env';
 import { barpSheetUrl, site } from '@/lib/content';
+import { ChampionBadge } from '@/components/ChampionBadge';
+import { getCurrentChampion } from '@/lib/data/champion';
 
 export const metadata: Metadata = { title: 'Members' };
 
@@ -18,7 +20,7 @@ type Search = { q?: string; category?: string; sort?: string; page?: string };
 
 export default async function MembersPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
-  const [all, categories, total, viewer] = await Promise.all([getDirectory(), getCategories(), getMemberCount(), getViewer()]);
+  const [all, categories, total, viewer, champion] = await Promise.all([getDirectory(), getCategories(), getMemberCount(), getViewer(), getCurrentChampion()]);
   const member = isApproved(viewer);
   // Contact details: members only (RLS returns nothing to anyone else anyway).
   const contacts = new Map<string, { email: string; phone: string | null }>();
@@ -125,6 +127,7 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
                           <Avatar name={name} size={132} index={i} />
                         </span>
                       )}
+                      {champion?.profileId === p.id ? <ChampionBadge month={champion.label} compact className="absolute top-3 left-3" /> : null}
                     </span>
                     <div className="flex flex-1 flex-col gap-1.5 p-[18px]">
                       <span className="text-ink-muted text-xs font-bold tracking-[0.08em] uppercase">{p.categories?.name ?? 'Member'}</span>

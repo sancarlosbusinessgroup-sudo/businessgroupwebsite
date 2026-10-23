@@ -155,6 +155,57 @@ export type Database = {
           },
         ];
       };
+      champion_awards: {
+        Row: {
+          month: string;
+          profile_id: string;
+          auto_profile_id: string | null;
+          reason: string | null;
+          points: Json;
+          chosen_by: string | null;
+          chosen_at: string;
+        };
+        Insert: {
+          month: string;
+          profile_id: string;
+          auto_profile_id?: string | null;
+          reason?: string | null;
+          points?: Json;
+          chosen_by?: string | null;
+          chosen_at?: string;
+        };
+        Update: {
+          profile_id?: string;
+          auto_profile_id?: string | null;
+          reason?: string | null;
+          points?: Json;
+          chosen_by?: string | null;
+          chosen_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'champion_awards_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'champion_awards_auto_profile_id_fkey';
+            columns: ['auto_profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'champion_awards_chosen_by_fkey';
+            columns: ['chosen_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       categories: {
         Row: { id: number; name: string; seat_limit: number };
         Insert: { id?: never; name: string; seat_limit?: number };
@@ -786,7 +837,7 @@ export type Database = {
         ];
       };
       one_on_ones: {
-        Row: { confirmed_at: string | null; created_at: string; id: string; met_on: string; partner_id: string; reporter_id: string };
+        Row: { confirmed_at: string | null; created_at: string; id: string; met_on: string; partner_id: string | null; reporter_id: string | null };
         Insert: { confirmed_at?: string | null; created_at?: string; id?: string; met_on: string; partner_id: string; reporter_id: string };
         Update: { confirmed_at?: string | null; created_at?: string; id?: string; met_on?: string; partner_id?: string; reporter_id?: string };
         Relationships: [
@@ -923,14 +974,14 @@ export type Database = {
           closed_at: string | null;
           contact_name: string;
           created_at: string;
-          from_id: string;
+          from_id: string | null;
           id: string;
           notes: string | null;
           prospect_consent: boolean;
           prospect_email: string | null;
           prospect_phone: string | null;
           status: E['referral_status'];
-          to_id: string;
+          to_id: string | null;
           updated_at: string;
           warmth: E['referral_warmth'];
         };

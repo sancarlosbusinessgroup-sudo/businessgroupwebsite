@@ -8,7 +8,7 @@ export function barHeights(rows: { a: number; b: number }[]): { a: string; b: st
   return rows.map((r) => ({ a: `${Math.round((r.a / max) * 100)}%`, b: `${Math.round((r.b / max) * 100)}%` }));
 }
 
-type Pairable = { id: string; reporter_id: string; partner_id: string; met_on: string };
+type Pairable = { id: string; reporter_id: string | null; partner_id: string | null; met_on: string };
 
 /** Ids of later-listed rows that repeat the same pair within 3 days (likely reported by both people). */
 export function flagDuplicates(rows: Pairable[]): Set<string> {

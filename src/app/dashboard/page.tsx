@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { personName } from '@/lib/people';
 import Link from 'next/link';
 import { InviteCard } from '@/components/InviteCard';
 import { Leaderboard } from '@/components/Leaderboard';
@@ -80,9 +81,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 {pending.map((p) => (
                   <li key={p.id} className="border-line flex items-center justify-between gap-2.5 rounded-xl border p-3">
                     <div className="text-[15px]">
-                      <strong>
-                        {p.reporter?.first_name} {p.reporter?.last_name} had a one-on-one with you
-                      </strong>
+                      <strong>{personName(p.reporter)} had a one-on-one with you</strong>
                       <div className="text-ink-muted text-[13px]">{formatShortDate(new Date(p.met_on + 'T12:00:00Z'))}</div>
                     </div>
                     <form action={confirmOneOnOne}>
@@ -157,10 +156,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   {recent.map((o) => (
                     <li key={o.id} className="border-line-soft flex justify-between gap-3 border-t py-3 text-[15px]">
                       <span>
-                        <strong>
-                          {o.reporter?.first_name} {o.reporter?.last_name}
-                        </strong>{' '}
-                        had a one-on-one with {o.partner?.first_name} {o.partner?.last_name}
+                        <strong>{personName(o.reporter)}</strong> had a one-on-one with {personName(o.partner)}
                       </span>
                       <span className="text-ink-muted flex-none">{formatShortDate(new Date(o.met_on + 'T12:00:00Z')).replace(/, \d{4}$/, '')}</span>
                     </li>

@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { EventCard, NextMeetingCard } from '@/components/meetings';
-import { EmptyState, SectionHead } from '@/components/ui';
+import { EmptyState, Notice, SectionHead } from '@/components/ui';
 import { getViewer, isApproved } from '@/lib/auth';
 import { howItWorks, site } from '@/lib/content';
 import { getUpcomingCalendar } from '@/lib/data/events';
@@ -9,7 +9,8 @@ import { getGallery, getMemberCount, getNextMeeting } from '@/lib/data/public';
 import { formatShortDate } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ account?: string }> }) {
+  const { account } = await searchParams;
   const [viewer, next, meetings, events, photos, count] = await Promise.all([
     getViewer(),
     getNextMeeting(),
@@ -22,6 +23,11 @@ export default async function HomePage() {
 
   return (
     <>
+      {account === 'deleted' ? (
+        <div className="container-site pt-4">
+          <Notice tone="success">Your account has been deleted. Thank you for being part of {site.name}.</Notice>
+        </div>
+      ) : null}
       <section className="bg-band relative isolate overflow-hidden">
         <Image
           src="/images/hero-bridge.jpg"

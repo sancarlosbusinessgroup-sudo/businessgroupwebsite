@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { personName } from '@/lib/people';
 import Link from 'next/link';
 import { EmptyState } from '@/components/ui';
 import { requireMember } from '@/lib/auth';
@@ -100,7 +101,7 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                     <li key={p.id} className="border-line-soft flex items-center justify-between gap-2.5 border-t py-2.5">
                       <div>
                         <strong>
-                          {p.reporter?.first_name} {p.reporter?.last_name} had a one-on-one with {me.first_name} {me.last_name}.
+                          {personName(p.reporter)} had a one-on-one with {me.first_name} {me.last_name}.
                         </strong>
                         <div className="text-ink-muted text-[13px]">{day(p.met_on)}</div>
                       </div>
@@ -124,9 +125,7 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                   {incoming.map((r) => (
                     <li key={r.id} className="border-line-soft flex flex-wrap items-center justify-between gap-2.5 border-t py-2.5">
                       <div className="min-w-0">
-                        <strong>
-                          {r.requester?.first_name} {r.requester?.last_name}
-                        </strong>
+                        <strong>{personName(r.requester)}</strong>
                         <span className="text-ink-muted"> · {r.requester?.business_name}</span>
                         <div className="text-ink-muted text-[13px]">{r.proposed_on ? `Suggested date: ${day(r.proposed_on)}` : 'No date suggested yet'}</div>
                         {r.message ? <p className="text-ink-soft m-0 mt-1 text-[15px]">“{r.message}”</p> : null}
@@ -172,7 +171,7 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                       <li key={r.id} className="border-line flex flex-col gap-1 rounded-xl border px-3.5 py-3 text-[15px]">
                         <span className={`text-xs font-bold ${st.tone}`}>{st.label.toUpperCase()}</span>
                         <strong>
-                          {sent ? 'You asked' : 'Asked by'} {other?.first_name} {other?.last_name}
+                          {sent ? 'You asked' : 'Asked by'} {personName(other)}
                           {r.proposed_on ? ` · ${day(r.proposed_on)}` : ''}
                         </strong>
                         {sent && r.status === 'pending' ? (
@@ -201,7 +200,7 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                         {day(o.met_on).toUpperCase()} · {o.confirmed_at ? 'CONFIRMED' : 'AWAITING CONFIRMATION'}
                       </span>
                       <strong>
-                        {o.reporter?.first_name} {o.reporter?.last_name} had a one-on-one with {o.partner?.first_name} {o.partner?.last_name}.
+                        {personName(o.reporter)} had a one-on-one with {personName(o.partner)}.
                       </strong>
                     </li>
                   ))}
@@ -221,7 +220,7 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                     <li key={o.id} className="border-line flex flex-col gap-0.5 rounded-xl border px-3.5 py-3 text-[15px]">
                       <span className="text-teal-text text-xs font-bold">{day(o.met_on).toUpperCase()}</span>
                       <strong>
-                        {o.reporter?.first_name} {o.reporter?.last_name} had a one-on-one with {o.partner?.first_name} {o.partner?.last_name}.
+                        {personName(o.reporter)} had a one-on-one with {personName(o.partner)}.
                       </strong>
                       {dupes.has(o.id) ? <span className="text-amber text-[13px]">Potential duplicate</span> : null}
                     </li>
@@ -278,6 +277,14 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                             `${other?.first_name ?? ''} ${other?.last_name ?? ''}`
                           )}
                           {other?.business_name ? <span className="text-ink-muted"> · {other.business_name}</span> : null}
+                          {/* Your private note from the report: only you can see it (owner, 2026-10-23). */}
+                          {(o.one_on_one_feedback ?? [])
+                            .filter((f) => f.author_id === me.id && f.note)
+                            .map((f) => (
+                              <span key="note" className="text-ink-soft mt-1 block text-sm">
+                                <span className="font-semibold">My private note:</span> {f.note}
+                              </span>
+                            ))}
                         </td>
                         <td>{o.reporter_id === me.id ? 'You' : `${o.reporter?.first_name} ${o.reporter?.last_name}`}</td>
                         <td>{o.confirmed_at ? 'Confirmed' : 'Awaiting confirmation'}</td>

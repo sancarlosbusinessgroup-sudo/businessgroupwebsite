@@ -122,7 +122,7 @@ export async function getMyOneOnOneHistory(meId: string) {
   const { data, error } = await supabase
     .from('one_on_ones')
     .select(
-      'id, met_on, confirmed_at, reporter_id, partner_id, reporter:profiles!one_on_ones_reporter_id_fkey(first_name, last_name, business_name, slug), partner:profiles!one_on_ones_partner_id_fkey(first_name, last_name, business_name, slug)',
+      'id, met_on, confirmed_at, reporter_id, partner_id, reporter:profiles!one_on_ones_reporter_id_fkey(first_name, last_name, business_name, slug), partner:profiles!one_on_ones_partner_id_fkey(first_name, last_name, business_name, slug), one_on_one_feedback(note, author_id)',
     )
     .or(`reporter_id.eq.${meId},partner_id.eq.${meId}`)
     .order('met_on', { ascending: false })

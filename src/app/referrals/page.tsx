@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { personName } from '@/lib/people';
 import { EmptyState, Pill } from '@/components/ui';
 import { requireMember } from '@/lib/auth';
 import { referralStatusLabels } from '@/lib/content';
@@ -40,11 +41,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
       <li key={r.id} className="border-line flex flex-col gap-2 rounded-xl border p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span>
-            <span className="text-ink-muted text-sm">{isReceived ? '← From' : 'To →'}</span>{' '}
-            <strong>
-              {other?.first_name} {other?.last_name}
-            </strong>{' '}
-            · {r.contact_name}
+            <span className="text-ink-muted text-sm">{isReceived ? '← From' : 'To →'}</span> <strong>{personName(other)}</strong> · {r.contact_name}
           </span>
           <span className="text-ink-muted flex flex-wrap items-center gap-2 text-sm">
             {formatShortDate(new Date(r.created_at))}

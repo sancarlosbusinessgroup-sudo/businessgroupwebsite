@@ -133,7 +133,12 @@ test.describe('meeting slides follow the new agenda', () => {
     await goToSlide(deck, page, 'Leaderboards');
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('heading', { name: 'BARP Champion' })).toBeVisible();
-    await expect(deck.getByRole('group').filter({ visible: true }).getByText('Coming soon')).toBeVisible();
+    await expect(
+      deck
+        .getByRole('group')
+        .filter({ visible: true })
+        .getByText(/^(Announced soon|Leading .* so far)$/),
+    ).toBeVisible();
 
     // Presentation slides show the presentation title; no question slides after them by default (owner, 2026-10-23).
     await goToSlide(deck, page, '5-Minute Educational Presentation');

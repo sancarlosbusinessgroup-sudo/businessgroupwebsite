@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation';
 import { safeNext } from '@/lib/auth';
 import { env } from '@/lib/env';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { removeFromList } from '@/lib/email/brevo';
+import { deliver, loadAdmins, siteUrl } from '@/lib/email/notify';
+import { accountDeletedEmail } from '@/lib/email/templates';
 import { createClient } from '@/lib/supabase/server';
 import {
   type ActionState,
@@ -180,6 +183,52 @@ export async function chooseOwnPassword(_prev: ActionState, formData: FormData):
     return { status: 'error', message: 'Your password was saved, but something went wrong. Please try again.' };
   }
   redirect(safeNext(values.next));
+}
+
+/** My profile → Delete my account (owner chose "Option A", 2026-10-23): the person and their personal data are deleted;
+ *  referral slips and one-on-ones shared with others stay as "Former member". */
+export async function deleteMyAccount(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  if (String(formData.get('confirm') ?? '').trim() !== 'DELETE') return { status: 'error', errors: { confirm: 'Type DELETE in capitals to confirm' } };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: 'error', message: 'Please log in again.' };
+  const admin = createAdminClient();
+  if (!admin) return { status: 'error', message: 'Account deletion is not available right now. Please contact Support.' };
+  const { data: me } = await admin.from('profiles').select('first_name, last_name, business_name, role, status').eq('id', user.id).maybeSingle();
+  if (me?.role === 'admin' && me.status === 'approved') {
+    const { count } = await admin.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'admin').eq('status', 'approved');
+    if ((count ?? 0) <= 1) return { status: 'error', message: 'You are the only admin. Make someone else an admin first, then delete your account.' };
+  }
+  const admins = (await loadAdmins()).filter((a) => a.id !== user.id);
+  // Free any upcoming presentation slots; past ones keep the name for the meeting history.
+  const { data: future } = await admin.from('meetings').select('id').gte('starts_at', new Date().toISOString());
+  if (future?.length)
+    await admin
+      .from('meeting_speakers')
+      .delete()
+      .eq('profile_id', user.id)
+      .in(
+        'meeting_id',
+        future.map((m) => m.id),
+      );
+  // Photos and logo they uploaded.
+  const { data: files } = await admin.storage.from('profile-media').list(user.id, { limit: 100 });
+  if (files?.length) await admin.storage.from('profile-media').remove(files.map((f) => `${user.id}/${f.name}`));
+  if (user.email) await removeFromList(user.email).catch(() => undefined);
+  const { error } = await admin.auth.admin.deleteUser(user.id);
+  if (error) return { status: 'error', message: 'Your account could not be deleted. Please try again or contact Support.' };
+  await supabase.auth.signOut().catch(() => undefined);
+  const name = me ? `${me.first_name} ${me.last_name}` : 'A member';
+  for (const a of admins)
+    await deliver({
+      kind: 'account_deleted',
+      dedupeKey: user.id,
+      to: { email: a.email, name: `${a.firstName} ${a.lastName}`, profileId: a.id },
+      email: accountDeletedEmail({ siteUrl: siteUrl(), toFirstName: a.firstName, name, business: me?.business_name ?? '' }),
+    });
+  redirect('/?account=deleted');
 }
 
 /** My profile → Change password. Checks the current password first. */

@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { PublicProfile } from '@/lib/data/public';
 import { mediaUrl } from '@/lib/env';
+import { ChampionBadge } from './ChampionBadge';
 import { Avatar } from './ui';
 
 type Props = {
@@ -9,9 +10,11 @@ type Props = {
   contact: { email: string | null; phone: string | null; membersOnly: boolean };
   viewerIsMember: boolean;
   isSelf?: boolean;
+  /** BARP Champion months won, newest first; current = they hold the badge now. */
+  champion?: { current: string | null; past: string[] };
 };
 
-export function ProfileView({ profile: p, contact }: Props) {
+export function ProfileView({ profile: p, contact, champion }: Props) {
   const name = `${p.first_name} ${p.last_name}`;
   const avatar = mediaUrl('profile-media', p.avatar_path);
   const logo = mediaUrl('profile-media', p.logo_path);
@@ -39,6 +42,10 @@ export function ProfileView({ profile: p, contact }: Props) {
             <h1 className="font-display m-0 text-[32px] font-extrabold text-white">{name}</h1>
             <p className="m-0 text-lg font-semibold text-white">{p.business_name}</p>
             <p className="m-0 text-[15px] text-white/90">{[p.categories?.name, p.city, since ? `Member since ${since}` : null].filter(Boolean).join(' · ')}</p>
+            {champion?.current ? <ChampionBadge month={champion.current} className="mt-2" /> : null}
+            {champion && champion.past.filter((m) => m !== champion.current).length ? (
+              <p className="m-0 mt-1 text-sm text-white/90">BARP Champion: {champion.past.filter((m) => m !== champion.current).join(', ')}</p>
+            ) : null}
           </div>
         </div>
       </div>

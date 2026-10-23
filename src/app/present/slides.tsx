@@ -9,7 +9,7 @@ import { groupLeadership } from '@/lib/leadership';
 import { chunk, slideLabel, slideTime, type SlideKey } from '@/lib/slides';
 import type { DeckSlide } from './Deck';
 import { Icon, SilencePhone, type IconName } from './icons';
-import { PdfPageSlide, SlideTimer, WebsiteSlide, YouTubeSlide } from './SlideWidgets';
+import { Fireworks, PdfPageSlide, SlideTimer, WebsiteSlide, YouTubeSlide } from './SlideWidgets';
 
 // Meeting slides. Design (owner's references, 2026-10-22): clean white pages in the logo's blues, a cyan-to-blue
 // gradient band, soft raised cards, round icon badges, big numbers and a numbered flow for the path to membership.
@@ -767,24 +767,111 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         });
         break;
       }
-      case 'champion':
-        // Placeholder until the BARP Champion award is defined (owner, 2026-10-23).
-        page(key, {
-          title: 'BARP Champion',
-          center: true,
-          body: (
-            <div className="flex flex-col items-center gap-[1.6cqw]">
-              <Badge name="award" size={14} />
-              <p
-                className="font-display m-0 rounded-full px-[2.4cqw] py-[0.8cqw] text-[2.4cqw] font-extrabold tracking-[0.2em] text-white uppercase"
-                style={{ background: GRADIENT }}
-              >
-                Coming soon
-              </p>
-            </div>
-          ),
-        });
+      case 'champion': {
+        // BARP Champion (owner, 2026-10-23): last month's champion at the month's first meeting, otherwise the leaders so far.
+        const c = d.champion;
+        const award = c.award;
+        if (award) {
+          const pts = award.points;
+          const facts = (
+            [
+              ['share', pts.referrals, 'referrals'],
+              ['badgeCheck', pts.closed, 'closed business'],
+              ['chat', pts.oneOnOnes, 'one-on-ones'],
+              ['userPlus', pts.visitors, 'visitors'],
+              ['calendar', pts.meetings, 'meetings'],
+            ] as [IconName, number | undefined, string][]
+          ).filter(([, n]) => typeof n === 'number' && n > 0);
+          add(key, (ctx) => (
+            <Page ctx={ctx} title="BARP Champion" center>
+              <Fireworks />
+              <div className="flex flex-col items-center gap-[1.4cqw]">
+                <p className="font-display m-0 text-[1.8cqw] font-bold tracking-[0.18em] uppercase" style={{ color: BLUE }}>
+                  {award.label}
+                </p>
+                <div className="flex items-center gap-[2.4cqw]">
+                  <span className="rounded-[1.6cqw] shadow-[0_0.6cqw_2cqw_rgba(245,158,11,0.45)] ring-[0.4cqw] ring-[#fbbf24]">
+                    <Face name={award.name} path={award.avatar} size={14} square />
+                  </span>
+                  <div className="flex min-w-0 flex-col items-start gap-[0.5cqw] text-left">
+                    <p className="font-display m-0 text-[3.6cqw] leading-tight font-extrabold" style={{ color: NAVY }}>
+                      {award.name}
+                    </p>
+                    {award.business ? (
+                      <p className="m-0 text-[1.9cqw] font-semibold italic" style={{ color: BLUE }}>
+                        {award.business}
+                      </p>
+                    ) : null}
+                    {typeof pts.points === 'number' ? (
+                      <p className="m-0 text-[1.7cqw]" style={{ color: MUTED }}>
+                        {pts.points} points
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                {award.reason ? (
+                  <p className="m-0 max-w-[64cqw] text-[2cqw] leading-snug italic" style={{ color: INK }}>
+                    “{award.reason}”
+                  </p>
+                ) : null}
+                {facts.length ? (
+                  <ul className="m-0 flex list-none flex-wrap justify-center gap-[1cqw] p-0">
+                    {facts.map(([icon, n, l]) => (
+                      <li
+                        key={l}
+                        className={`${card(true)} flex items-center gap-[0.8cqw] px-[1.2cqw] py-[0.6cqw] text-[1.6cqw] font-bold`}
+                        style={{ color: INK }}
+                      >
+                        <Badge name={icon} size={2.8} />
+                        {n} {l}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </Page>
+          ));
+        } else {
+          page(key, {
+            title: 'BARP Champion',
+            center: true,
+            body: c.leaders.length ? (
+              <div className="flex flex-col items-center gap-[1.6cqw]">
+                <p className="font-display m-0 text-[1.8cqw] font-bold tracking-[0.18em] uppercase" style={{ color: BLUE }}>
+                  Leading {c.monthLabel} so far
+                </p>
+                <ol className="m-0 flex list-none items-end gap-[2.4cqw] p-0" aria-label={`Leading ${c.monthLabel} so far`}>
+                  {c.leaders.map((l, i) => (
+                    <li key={l.id} className={`${card()} flex flex-col items-center gap-[0.8cqw] px-[2cqw] py-[1.6cqw] ${i === 0 ? 'scale-110' : ''}`}>
+                      <span className="font-display text-[2.4cqw] font-extrabold" style={{ color: STEP_COLORS[i * 2] ?? BLUE }}>
+                        {i + 1}
+                      </span>
+                      <Face name={l.name} path={l.avatar} size={8} square />
+                      <span className="font-display text-[1.8cqw] font-extrabold" style={{ color: NAVY }}>
+                        {l.name}
+                      </span>
+                      <span className="text-[1.5cqw] font-semibold" style={{ color: MUTED }}>
+                        {l.points} points
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-[1.6cqw]">
+                <Badge name="award" size={14} />
+                <p
+                  className="font-display m-0 rounded-full px-[2.4cqw] py-[0.8cqw] text-[2.4cqw] font-extrabold tracking-[0.2em] text-white uppercase"
+                  style={{ background: GRADIENT }}
+                >
+                  Announced soon
+                </p>
+              </div>
+            ),
+          });
+        }
         break;
+      }
       case 'five_minute':
         page(key, {
           title: '5-Minute Educational Presentation',

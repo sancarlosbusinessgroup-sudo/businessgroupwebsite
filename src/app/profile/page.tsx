@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ProfileView } from '@/components/ProfileView';
+import { getChampionAwards, getCurrentChampion } from '@/lib/data/champion';
 import { Notice } from '@/components/ui';
 import { WeeklyAskForm } from '@/components/WeeklyAskForm';
 import { formatShortDate } from '@/lib/dates';
@@ -10,6 +11,7 @@ import { getCategories } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
 import { prefKeys, prefOn } from '@/lib/email/prefs';
 import { ChangePasswordForm } from './ChangePasswordForm';
+import { DeleteAccountForm } from './DeleteAccountForm';
 import { EmailPrefsForm } from './EmailPrefsForm';
 import { MediaUpload } from './MediaUpload';
 import { ProfileForm } from './ProfileForm';
@@ -32,6 +34,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     p.category_id ? supabase.from('categories').select('name').eq('id', p.category_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from('email_preferences').select('prefs').eq('profile_id', p.id).maybeSingle(),
   ]);
+  const [wins, currentChampion] = await Promise.all([getChampionAwards(24, p.id), getCurrentChampion()]);
+  const champion = { current: currentChampion?.profileId === p.id ? currentChampion.label : null, past: wins.map((w) => w.label) };
   const prefs = Object.fromEntries(prefKeys.map((k) => [k, prefOn(prefsRes.data?.prefs, k)])) as Record<(typeof prefKeys)[number], boolean>;
   const tabCls = (on: boolean) =>
     `flex min-h-11 items-center rounded-full px-5 font-display text-sm font-bold no-underline ${on ? 'bg-surface text-heading' : 'text-ink-muted'}`;
@@ -97,6 +101,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             />
             {approved ? <EmailPrefsForm on={prefs} isAdmin={p.role === 'admin'} /> : null}
             <ChangePasswordForm />
+            <DeleteAccountForm />
           </>
         ) : (
           <ProfileView
@@ -104,6 +109,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             contact={{ email: contactRes.data?.email ?? null, phone: contactRes.data?.phone ?? null, membersOnly: false }}
             viewerIsMember
             isSelf
+            champion={champion}
           />
         )}
       </div>

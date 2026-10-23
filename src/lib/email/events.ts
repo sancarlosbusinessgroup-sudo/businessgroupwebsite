@@ -42,7 +42,7 @@ export async function onReferralSent(referralId: string): Promise<void> {
     .select('id, from_id, to_id, contact_name, prospect_phone, prospect_email, amount, notes')
     .eq('id', referralId)
     .single();
-  if (!ref) return;
+  if (!ref || !ref.from_id || !ref.to_id) return;
   const { data: from } = await db.from('profiles').select('first_name, last_name').eq('id', ref.from_id).single();
   if (!from) return;
   await notifyMembers([ref.to_id], {
@@ -67,7 +67,7 @@ export async function onReferralUpdated(referralId: string): Promise<void> {
   const db = createAdminClient();
   if (!db) return;
   const { data: ref } = await db.from('referrals').select('id, from_id, to_id, contact_name, status, amount').eq('id', referralId).single();
-  if (!ref) return;
+  if (!ref || !ref.from_id || !ref.to_id) return;
   const { data: to } = await db.from('profiles').select('first_name, last_name').eq('id', ref.to_id).single();
   if (!to) return;
   const status = referralStatusLabels[ref.status] ?? ref.status;
@@ -92,7 +92,7 @@ export async function onOneOnOneReported(id: string): Promise<void> {
   const db = createAdminClient();
   if (!db) return;
   const { data: o } = await db.from('one_on_ones').select('id, reporter_id, partner_id, met_on, confirmed_at').eq('id', id).single();
-  if (!o || o.confirmed_at) return;
+  if (!o || o.confirmed_at || !o.reporter_id || !o.partner_id) return;
   const { data: rep } = await db.from('profiles').select('first_name, last_name').eq('id', o.reporter_id).single();
   if (!rep) return;
   await notifyMembers([o.partner_id], {

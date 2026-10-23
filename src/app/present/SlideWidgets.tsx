@@ -311,3 +311,67 @@ export function PdfPageSlide({ url, page, title }: { url: string; page: number; 
     </div>
   );
 }
+
+// --- Fireworks on the BARP Champion slide (owner, 2026-10-23) ------------------------------------
+
+/** Fireworks over the slide for a few seconds each time it comes on screen. Still for people who prefer reduced motion. */
+export function Fireworks({ seconds = 7 }: { seconds?: number }) {
+  const { ref, visible } = useVisible<HTMLCanvasElement>();
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!visible || !canvas) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const colors = ['#5ce1e6', '#1f7fd0', '#fbbf24', '#f472b6', '#34d399', '#ffffff', '#f59e0b'];
+    type P = { x: number; y: number; vx: number; vy: number; life: number; color: string };
+    let parts: P[] = [];
+    let raf = 0;
+    let last = 0;
+    const end = performance.now() + seconds * 1000;
+    const resize = () => {
+      canvas.width = canvas.clientWidth * devicePixelRatio;
+      canvas.height = canvas.clientHeight * devicePixelRatio;
+    };
+    resize();
+    const burst = () => {
+      const x = canvas.width * (0.15 + Math.random() * 0.7);
+      const y = canvas.height * (0.12 + Math.random() * 0.4);
+      const color = colors[Math.floor(Math.random() * colors.length)] ?? '#fbbf24';
+      const n = 70;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const v = (1.5 + Math.random() * 3) * devicePixelRatio;
+        parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, color });
+      }
+    };
+    const tick = (t: number) => {
+      if (t - last > 550 && t < end) {
+        burst();
+        last = t;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      parts = parts.filter((p) => p.life > 0);
+      for (const p of parts) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.045 * devicePixelRatio;
+        p.vx *= 0.985;
+        p.life -= 0.012;
+        ctx.globalAlpha = Math.max(p.life, 0);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2.4 * devicePixelRatio, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (t < end || parts.length) raf = requestAnimationFrame(tick);
+      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
+  }, [visible, seconds, ref]);
+  return <canvas ref={ref} className="pointer-events-none absolute inset-0 z-20 h-full w-full" aria-hidden="true" data-testid="fireworks" />;
+}

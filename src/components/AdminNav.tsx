@@ -4,6 +4,7 @@ const links = [
   { href: '/admin', label: 'Overview' },
   { href: '/admin/attendance', label: 'Attendance' },
   { href: '/admin/activity', label: 'Member activity' },
+  { href: '/admin/champion', label: 'BARP Champion' },
   { href: '/admin/stats', label: 'Member stats' },
   { href: '/admin/leadership', label: 'Management' },
   { href: '/present/next', label: 'Meeting slides' },

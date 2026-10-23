@@ -496,3 +496,23 @@ export function meetingRecapEmail(o: {
     }),
   };
 }
+
+/** To admins when a member deletes their own account (owner, 2026-10-23). */
+export function accountDeletedEmail(o: { siteUrl: string; toFirstName: string; name: string; business: string }): Email {
+  return {
+    subject: `${o.name} deleted their member account`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: `${o.name} (${o.business}) is no longer a member on the website.`,
+      heading: `${o.name} deleted their account`,
+      blocks: [
+        { p: `Hi ${o.toFirstName}, ${o.name} (${o.business}) deleted their account on the website today. Their profile, photo and contact details are gone.` },
+        {
+          p: 'Referral slips and one-on-ones they shared with other members are kept and now show as "Former member". If they were on the Management list or held a presentation slot, please update those.',
+        },
+      ],
+      cta: { label: 'Open Admin', href: `${o.siteUrl}/admin` },
+      footer: accountFooter,
+    }),
+  };
+}

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ProfileView } from '@/components/ProfileView';
+import { getChampionAwards, getCurrentChampion } from '@/lib/data/champion';
 import { getViewer, isApproved } from '@/lib/auth';
 import { getMemberBySlug, getPublicPhone } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
@@ -31,12 +32,21 @@ export default async function MemberProfilePage({ params }: Props) {
     phone = await getPublicPhone(slug);
   }
 
+  const [wins, current] = await Promise.all([getChampionAwards(24, profile.id), getCurrentChampion()]);
+  const champion = { current: current?.profileId === profile.id ? current.label : null, past: wins.map((w) => w.label) };
+
   return (
     <div className="container-site flex flex-col gap-4 py-8">
       <nav aria-label="Breadcrumb" className="text-ink-muted text-sm">
         <Link href="/">Home</Link> / <Link href="/members">Members</Link> / <span aria-current="page">{profile.business_name}</span>
       </nav>
-      <ProfileView profile={profile} contact={{ email, phone, membersOnly: !member }} viewerIsMember={member} isSelf={viewer?.userId === profile.id} />
+      <ProfileView
+        profile={profile}
+        contact={{ email, phone, membersOnly: !member }}
+        viewerIsMember={member}
+        isSelf={viewer?.userId === profile.id}
+        champion={champion}
+      />
     </div>
   );
 }
