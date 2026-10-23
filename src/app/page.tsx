@@ -178,8 +178,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             {site.name} is dedicated to growing Bay Area Peninsula businesses. Our group of business owners and leaders is here to support you.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link className="btn btn-primary" href="/join">
-              Visit or join
+            <Link className="btn btn-primary" href="/visit#request">
+              Request an invite
             </Link>
             <Link className="btn btn-outline" href="/members">
               Meet our members

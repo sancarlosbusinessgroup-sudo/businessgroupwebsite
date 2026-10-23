@@ -112,12 +112,8 @@ export function LoginForms({ next, linkError }: { next: string; linkError: boole
 
         <p className="border-line text-ink-muted m-0 border-t pt-4 text-[15px]">
           Not a member yet?{' '}
-          <Link href="/join" className="font-bold">
-            Apply to join
-          </Link>{' '}
-          or{' '}
-          <Link href="/visit" className="font-bold">
-            visit as a guest
+          <Link href="/visit#request" className="font-bold">
+            Request an invite
           </Link>
           .
         </p>

@@ -13,7 +13,7 @@ const quick = [
 ];
 const members = [
   { href: '/login', label: 'Log in' },
-  { href: '/join', label: 'Apply to join' },
+  { href: '/visit#request', label: 'Request an invite' },
   { href: '/dashboard', label: 'Growth dashboard' },
   { href: '/referrals', label: 'Referral tracker' },
 ];

@@ -163,8 +163,8 @@ export default async function AboutPage() {
           <Link className="btn btn-primary" href="/visit">
             Visit a meeting
           </Link>
-          <Link className="btn btn-outline" href="/join">
-            Apply to join
+          <Link className="btn btn-outline" href="/visit#request">
+            Request an invite
           </Link>
         </div>
       </section>

@@ -10,7 +10,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { JoinForm, type JoinPrefill } from './JoinForm';
 import { site } from '@/lib/content';
 
-export const metadata: Metadata = { title: `Join ${site.name}` };
+// Reached only from an admin's "Invite to apply" email, so search engines should not list it.
+export const metadata: Metadata = { title: `Join ${site.name}`, robots: { index: false, follow: false } };
 
 /** An admin's "Invite to apply" email links here with ?invite=<guest request id>: fill in what we already know. */
 async function invitePrefill(invite: string | undefined): Promise<{ prefill: JoinPrefill; code: string | null } | null> {

@@ -64,8 +64,8 @@ export default async function BylawsPage() {
           <a href="#agenda">Meeting agenda</a>
           <a href="#expectations">Member expectations</a>
           <a href="#definitions">Definitions</a>
-          <Link href="/join" className="mt-2 font-bold">
-            Apply to join →
+          <Link href="/visit#request" className="mt-2 font-bold">
+            Request an invite →
           </Link>
         </nav>
 
