@@ -161,9 +161,9 @@ export const barpSheetUrl = 'https://us02web.zoom.us/j/83818742413?pwd=MqjMJxuz7
 
 /** Support page (owner request, 2026-10-17). */
 export const supportTeam = [
-  { name: 'Cedrick Velasco', role: 'Support' },
-  { name: 'Shermaine Benolirao', role: 'Support' },
-  { name: 'Rachanee Munar', role: 'Support' },
+  { name: 'Cedrick Velasco', role: 'Support', slug: 'cedrick-admin' },
+  { name: 'Shermaine Benolirao', role: 'Support', slug: 'shermaine-admin' },
+  { name: 'Rachanee Munar', role: 'Support', slug: 'rachanee-admin' },
 ] as const;
 
 export const supportTopics = [

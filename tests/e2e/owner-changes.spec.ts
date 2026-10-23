@@ -229,7 +229,9 @@ test.describe('banners, directory, profile and support (second request of the da
         .first()
         .locator('img[src*="hero-bridge"]'),
     ).toBeAttached();
-    for (const n of ['Cedrick Velasco', 'Shermaine Benolirao', 'Rachanee Munar']) await expect(page.getByText(n, { exact: true })).toBeVisible();
+    // Profile boxes: photo (or initials) and name for each person (owner, 2026-10-23).
+    for (const n of ['Cedrick Velasco', 'Shermaine Benolirao', 'Rachanee Munar'])
+      await expect(page.getByRole('region', { name: 'Your support team' }).getByRole('heading', { level: 3, name: n })).toBeVisible();
     await page.getByText('How do I change my photo?').click();
     await expect(page.getByText(/open My profile and choose “Change photo”/)).toBeVisible();
     await page.getByRole('button', { name: 'Chat with support' }).first().click();
