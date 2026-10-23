@@ -59,7 +59,9 @@ describe('cancelled meetings', () => {
   it('stay on the schedule with a reason, and members cannot claim a speaker slot on them', async () => {
     await tx(async (c) => {
       const m = (
-        await c.query(`select id from meetings where category = 'Networking' and starts_at > now() and id not in (select meeting_id from meeting_speakers) order by starts_at limit 1`)
+        await c.query(
+          `select id from meetings where category = 'Networking' and starts_at > now() and id not in (select meeting_id from meeting_speakers) order by starts_at limit 1`,
+        )
       ).rows[0]?.id;
       expect(m).toBeTruthy();
       await actAs(c, ids.admin);
@@ -122,7 +124,8 @@ describe('one-on-one requests', () => {
   it('the requester can cancel a pending request; pending applicants and visitors cannot send requests', async () => {
     await tx(async (c) => {
       await actAs(c, ids.member);
-      const id = (await c.query(`insert into one_on_one_requests (requester_id, invitee_id) values ($1, $2) returning id`, [ids.member, ids.member3])).rows[0]?.id;
+      const id = (await c.query(`insert into one_on_one_requests (requester_id, invitee_id) values ($1, $2) returning id`, [ids.member, ids.member3])).rows[0]
+        ?.id;
       await c.query(`select respond_one_on_one_request($1, 'cancelled')`, [id]);
       expect((await c.query(`select status from one_on_one_requests where id = $1`, [id])).rows[0]?.status).toBe('cancelled');
     });

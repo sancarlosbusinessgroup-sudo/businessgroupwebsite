@@ -44,7 +44,7 @@ export const howItWorks = [
   { title: 'Visit twice, free', text: 'Get invited by a member and attend up to two meetings as a guest.' },
   { title: 'Meet the leadership team', text: "One-to-ones with three leadership team members. If it's a fit, welcome aboard." },
   { title: 'Refer and connect', text: 'Share warm introductions and invite guests. Your referral link tracks every one.' },
-  { title: 'Watch it grow', text: 'Report referrals, one-on-ones and closed deals. The leaderboard shows the whole group’s progress.' },
+  { title: 'Watch it grow', text: 'Report referrals, one-on-ones and closed business. The leaderboard shows the whole group’s progress.' },
 ];
 
 export const values = [
@@ -56,7 +56,7 @@ export const values = [
 export const metrics = [
   { title: 'Referrals', text: 'Members share leads, introductions and opportunities. A referral is any warm connection that may help another business grow.' },
   { title: 'One-on-ones', text: "Friendly, focused meetings between two members to learn each other's services, goals and ideal customers." },
-  { title: 'Closed deals', text: "When a referral turns into paid work, it's counted. It shows how conversations become real results." },
+  { title: 'Closed business', text: "When a referral turns into paid work, it's counted. It shows how conversations become real results." },
 ];
 
 export const timeline = [
@@ -128,14 +128,14 @@ export const referralStatusLabels = {
   new: 'New',
   contacted: 'Contacted',
   meeting_set: 'Meeting set',
-  closed_deal: 'Closed deal',
+  closed_deal: 'Closed business',
   not_a_fit: 'Not a fit',
 } as const;
 
 export const leaderboardMetrics = [
   { key: 'one_on_ones', label: 'One-on-ones' },
   { key: 'referrals', label: 'Referrals' },
-  { key: 'closed_deals', label: 'Closed deals' },
+  { key: 'closed_deals', label: 'Closed business' },
   { key: 'visitors', label: 'Visitors brought' },
 ] as const;
 

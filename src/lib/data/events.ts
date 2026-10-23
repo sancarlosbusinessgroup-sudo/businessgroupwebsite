@@ -102,10 +102,7 @@ export type CalendarKind = CalendarItem['kind'];
 
 /** Upcoming items, soonest first. The public site lists group meetings and member events on separate pages. */
 export async function getUpcomingCalendar(limit = 12, kind?: CalendarKind): Promise<CalendarItem[]> {
-  const [meetings, events] = await Promise.all([
-    kind === 'member' ? [] : getUpcomingMeetings(limit),
-    kind === 'group' ? [] : getUpcomingMemberEvents(limit),
-  ]);
+  const [meetings, events] = await Promise.all([kind === 'member' ? [] : getUpcomingMeetings(limit), kind === 'group' ? [] : getUpcomingMemberEvents(limit)]);
   return [...meetings.map(fromMeeting), ...events].sort(byStart).slice(0, limit);
 }
 

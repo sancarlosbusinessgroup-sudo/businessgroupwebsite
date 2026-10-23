@@ -168,8 +168,8 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
               Request a guest invite
             </h2>
             <p className="m-0">
-              {site.name} is a group of local business owners from across the Peninsula who meet every other Monday to build trusted relationships and pass
-              each other real referrals. We keep one member per profession, so every introduction counts. Come see how it works.
+              {site.name} is a group of local business owners from across the Peninsula who meet every other Monday to build trusted relationships and pass each
+              other real referrals. We keep one member per profession, so every introduction counts. Come see how it works.
             </p>
           </div>
           <GuestRequestForm meetings={meetingOptions} referralCode={referralCode} referrerName={referrerName} />

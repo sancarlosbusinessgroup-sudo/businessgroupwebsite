@@ -31,7 +31,7 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
         <AdminNav current="/admin/stats" />
         <p className="text-ink-muted m-0 max-w-[760px]">
           Per-member counts are visible to admins only. Members see the leaderboard and group totals. One-on-ones count for both members once confirmed;
-          referrals and closed deals count for the member who gave the referral. Business given and received add up the dollar value of closed deals.
+          referrals and closed business count for the member who gave the referral. Business given and received add up the dollar value of closed business.
         </p>
 
         <form action="/admin/stats" className="card flex flex-wrap items-end gap-4 p-5" aria-label="Choose a period">
@@ -132,7 +132,7 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
             </div>
           )}
           <p className="text-ink-muted m-0 text-sm">
-            Column totals add up each member’s count, so a confirmed one-on-one appears twice (once for each member). Referrals received and closed deals
+            Column totals add up each member’s count, so a confirmed one-on-one appears twice (once for each member). Referrals received and closed business
             received are the same referrals seen from the receiving side.
           </p>
         </section>

@@ -28,10 +28,15 @@ describe('added slides (images, PDFs, YouTube)', () => {
         [m],
       );
       expect(yt?.created_by).toBe(ids.admin);
-      await q(`insert into meeting_slide_media (meeting_id, kind, storage_path, page_count, after_slide) values ($1, 'pdf', $2, 3, 'ten_minute')`, [m, `${m}/a.pdf`]);
+      await q(`insert into meeting_slide_media (meeting_id, kind, storage_path, page_count, after_slide) values ($1, 'pdf', $2, 3, 'ten_minute')`, [
+        m,
+        `${m}/a.pdf`,
+      ]);
     });
     await expect(
-      as(user(ids.member), (q) => q(`insert into meeting_slide_media (meeting_id, kind, youtube_id, after_slide) values ($1, 'youtube', 'dQw4w9WgXcQ', 'welcome')`, [m])),
+      as(user(ids.member), (q) =>
+        q(`insert into meeting_slide_media (meeting_id, kind, youtube_id, after_slide) values ($1, 'youtube', 'dQw4w9WgXcQ', 'welcome')`, [m]),
+      ),
     ).rejects.toThrow(/row-level security/);
     await withClient(async (c) => {
       await c.query('begin');
@@ -61,12 +66,16 @@ describe('added slides (images, PDFs, YouTube)', () => {
     ];
     for (const [vals] of bad)
       await expect(
-        as(user(ids.admin), (q) => q(`insert into meeting_slide_media (meeting_id, kind, storage_path, youtube_id, page_count, after_slide) values ($1, ${vals}, 'welcome')`, [m])),
+        as(user(ids.admin), (q) =>
+          q(`insert into meeting_slide_media (meeting_id, kind, storage_path, youtube_id, page_count, after_slide) values ($1, ${vals}, 'welcome')`, [m]),
+        ),
       ).rejects.toThrow(/check constraint|violates/);
   });
 
   it('the private slide-media bucket exists, up to 20 MB, images and PDFs only', async () => {
-    const [b] = await withClient(async (c) => (await c.query(`select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'slide-media'`)).rows);
+    const [b] = await withClient(
+      async (c) => (await c.query(`select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'slide-media'`)).rows,
+    );
     expect(b).toMatchObject({ public: false, file_size_limit: '20971520' });
     expect(b?.allowed_mime_types).toContain('application/pdf');
   });
@@ -136,7 +145,10 @@ describe('timer switches', () => {
   it('admins save which timers are off for a meeting; only a small JSON object is accepted', async () => {
     const m = await aMeeting();
     await as(user(ids.admin), async (q) => {
-      const [row] = await q(`insert into meeting_slide_settings (meeting_id, slides, timers) values ($1, array['welcome'], '{"five_qa": false}') returning timers`, [m]);
+      const [row] = await q(
+        `insert into meeting_slide_settings (meeting_id, slides, timers) values ($1, array['welcome'], '{"five_qa": false}') returning timers`,
+        [m],
+      );
       expect(row?.timers).toEqual({ five_qa: false });
     });
     await expect(

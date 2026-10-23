@@ -11,7 +11,14 @@ import { idle } from '@/lib/validation';
 import { countPdfPages } from '../../SlideWidgets';
 
 type Option = { key: string; label: string };
-export type MediaRow = { id: string; kind: 'image' | 'pdf' | 'youtube' | 'link'; title: string | null; afterSlide: string; pageCount: number | null; url?: string | null };
+export type MediaRow = {
+  id: string;
+  kind: 'image' | 'pdf' | 'youtube' | 'link';
+  title: string | null;
+  afterSlide: string;
+  pageCount: number | null;
+  url?: string | null;
+};
 
 const kindLabel = { image: 'Image', pdf: 'PDF', youtube: 'YouTube video', link: 'Website' } as const;
 
@@ -27,7 +34,17 @@ function AfterSelect({ name, options, defaultValue, id, error }: { name: string;
   );
 }
 
-function UploadForm({ meetingId, options, fixedAfter, name = 'Upload an image or PDF' }: { meetingId: string; options: Option[]; fixedAfter?: string; name?: string }) {
+function UploadForm({
+  meetingId,
+  options,
+  fixedAfter,
+  name = 'Upload an image or PDF',
+}: {
+  meetingId: string;
+  options: Option[];
+  fixedAfter?: string;
+  name?: string;
+}) {
   const router = useRouter();
   const fileId = useId();
   const [msg, setMsg] = useState<{ tone: 'success' | 'error' | 'info'; text: string } | null>(null);
@@ -81,8 +98,8 @@ function UploadForm({ meetingId, options, fixedAfter, name = 'Upload an image or
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3" aria-label={name}>
       <h3 className="h3 m-0">{fixedAfter ? 'Upload an image or PDF' : name}</h3>
       <p className="text-ink-muted m-0 text-sm">
-        JPG, PNG, WebP, GIF or PDF, up to 20 MB. Each PDF page becomes its own slide (up to {PDF_MAX_PAGES} pages), so a presenter can step through it
-        with the clicker.
+        JPG, PNG, WebP, GIF or PDF, up to 20 MB. Each PDF page becomes its own slide (up to {PDF_MAX_PAGES} pages), so a presenter can step through it with the
+        clicker.
       </p>
       {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
       <div className="flex flex-col gap-1">
@@ -108,7 +125,17 @@ function UploadForm({ meetingId, options, fixedAfter, name = 'Upload an image or
   );
 }
 
-function LinkForm({ meetingId, options, fixedAfter, name = 'Add a YouTube video or website' }: { meetingId: string; options: Option[]; fixedAfter?: string; name?: string }) {
+function LinkForm({
+  meetingId,
+  options,
+  fixedAfter,
+  name = 'Add a YouTube video or website',
+}: {
+  meetingId: string;
+  options: Option[];
+  fixedAfter?: string;
+  name?: string;
+}) {
   const uid = useId();
   const [state, action] = useActionState(addVideoOrLink, idle);
   const errors = state.errors ?? {};
@@ -128,7 +155,14 @@ function LinkForm({ meetingId, options, fixedAfter, name = 'Add a YouTube video 
         help="YouTube videos play in the slide (a link with ?t=90 starts there). Other websites show in the slide too, with an “Open in a new window” button for sites that don’t allow it."
       />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <TextField name="title" id={`${uid}-title`} label="Title (optional)" maxLength={120} defaultValue={state.status === 'error' ? state.values?.title : ''} error={errors.title} />
+        <TextField
+          name="title"
+          id={`${uid}-title`}
+          label="Title (optional)"
+          maxLength={120}
+          defaultValue={state.status === 'error' ? state.values?.title : ''}
+          error={errors.title}
+        />
         {fixedAfter ? (
           <input type="hidden" name="afterSlide" value={fixedAfter} />
         ) : (
@@ -190,7 +224,9 @@ export function PresentationMaterials({ meetingId, options, media }: { meetingId
             <h2 id={`${p.slot}-h`} className="h2 m-0 text-2xl">
               Materials for the {p.title}
             </h2>
-            <p className="text-ink-muted m-0 mt-1">Image, PDF, YouTube video or website from the presenter. {p.help} The presentation’s timer shows on top of these slides.</p>
+            <p className="text-ink-muted m-0 mt-1">
+              Image, PDF, YouTube video or website from the presenter. {p.help} The presentation’s timer shows on top of these slides.
+            </p>
           </div>
           <MediaList media={media.filter((m) => m.afterSlide === p.slot)} label={label} name={`Materials for the ${p.title}`} />
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
@@ -227,7 +263,7 @@ export function SlideMediaManager({ meetingId, options, media }: { meetingId: st
               <form action={moveSlideMedia} className="flex items-end gap-2" aria-label={`Move ${m.title || kindLabel[m.kind]}`}>
                 <input type="hidden" name="id" value={m.id} />
                 <input type="hidden" name="kind" value={m.kind} />
-            <input type="hidden" name="kind" value={m.kind} />
+                <input type="hidden" name="kind" value={m.kind} />
                 <AfterSelect name="afterSlide" id={`after-${m.id}`} options={options} defaultValue={m.afterSlide} />
                 <SubmitButton pendingText="Moving…" className="btn btn-outline btn-sm">
                   Move
@@ -236,7 +272,7 @@ export function SlideMediaManager({ meetingId, options, media }: { meetingId: st
               <form action={removeSlideMedia}>
                 <input type="hidden" name="id" value={m.id} />
                 <input type="hidden" name="kind" value={m.kind} />
-            <input type="hidden" name="kind" value={m.kind} />
+                <input type="hidden" name="kind" value={m.kind} />
                 <SubmitButton pendingText="Removing…" className="btn btn-outline btn-sm">
                   Remove<span className="sr-only"> {m.title || kindLabel[m.kind]}</span>
                 </SubmitButton>

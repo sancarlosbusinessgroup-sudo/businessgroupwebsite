@@ -167,7 +167,7 @@ export function referralStatusEmail(o: {
       blocks: [
         { p: `${o.receiverName} updated the referral you gave them.` },
         { list: [['Prospect', o.prospect], ['Status', o.status], ...(o.amount ? ([['Value', o.amount]] as [string, string][]) : [])] },
-        ...(o.status === 'Closed deal' ? [{ p: 'Congratulations: your referral turned into business!' }] : []),
+        ...(o.status === 'Closed business' ? [{ p: 'Congratulations: your referral turned into business!' }] : []),
       ],
       cta: { label: 'See my referrals', href: `${o.siteUrl}/referrals` },
       footer: prefsFooter(o.siteUrl),
@@ -382,7 +382,7 @@ export function adminDigestEmail(o: {
             ['New guest requests', String(o.guests)],
             ['Referrals filed', String(o.referrals)],
             ['One-on-ones confirmed', String(o.oneOnOnes)],
-            ['Closed deals', `${o.closedDeals} (${o.closedAmount})`],
+            ['Closed business', `${o.closedDeals} (${o.closedAmount})`],
             ...(o.nextMeeting ? ([['Next meeting', o.nextMeeting]] as [string, string][]) : []),
             ...(o.openSlots ? ([['Open speaker slots', o.openSlots]] as [string, string][]) : []),
           ],

@@ -23,8 +23,8 @@ export function SlideSettingsForm({ meetingId, rows, deckHref, timers }: { meeti
       <form action={action} className="card flex flex-col gap-3 p-5" aria-label="Slides to show" key={formKey}>
         <input type="hidden" name="meetingId" value={meetingId} />
         <p className="text-ink-muted m-0 text-sm">
-          Untick a slide to skip it. Change the numbers to reorder (lower shows first). Use “Extra text” to add your own words to any slide, such as
-          shout-outs, reminders or announcements; it appears at the bottom of that slide.
+          Untick a slide to skip it. Change the numbers to reorder (lower shows first). Use “Extra text” to add your own words to any slide, such as shout-outs,
+          reminders or announcements; it appears at the bottom of that slide.
         </p>
         <ul className="m-0 flex list-none flex-col p-0">
           {rows.map((r) => (
@@ -77,7 +77,9 @@ export function SlideSettingsForm({ meetingId, rows, deckHref, timers }: { meeti
         </ul>
         <fieldset className="border-line-soft m-0 flex flex-col gap-1 border-t p-0 pt-4">
           <legend className="font-display text-heading float-left mb-1 w-full p-0 text-lg font-bold">Timers</legend>
-          <p className="text-ink-muted m-0 mb-1 text-sm">Timers are off unless you tick them here. Tick a timer to show it on that slide (or on the presenter’s added slides) for this meeting.</p>
+          <p className="text-ink-muted m-0 mb-1 text-sm">
+            Timers are off unless you tick them here. Tick a timer to show it on that slide (or on the presenter’s added slides) for this meeting.
+          </p>
           {TIMER_KEYS.map((k) => (
             <label key={k} className="flex min-h-9 items-center gap-2.5">
               <input

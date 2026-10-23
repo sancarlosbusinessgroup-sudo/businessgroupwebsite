@@ -84,7 +84,13 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
             </Link>
           </p>
         </aside>
-        <JoinForm categories={categories} referralCode={referralCode} referrerName={referrerName} today={formatShortDate(new Date(nowMs()))} prefill={invited?.prefill} />
+        <JoinForm
+          categories={categories}
+          referralCode={referralCode}
+          referrerName={referrerName}
+          today={formatShortDate(new Date(nowMs()))}
+          prefill={invited?.prefill}
+        />
       </section>
     </div>
   );

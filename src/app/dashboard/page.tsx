@@ -110,7 +110,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 {[
                   { href: '/one-on-ones', t: 'One-on-one', d: 'Log a meeting with another member' },
                   { href: '/referrals', t: 'Referral slip', d: 'Pass business to another member' },
-                  { href: '/referrals', t: 'Closed deal', d: 'Mark a referral you received as a closed deal' },
+                  { href: '/referrals', t: 'Closed business', d: 'Mark a referral you received as closed business' },
                   { href: '/meetings', t: 'Sign up to speak', d: '5-min education or 10-min presentation' },
                 ].map((a) => (
                   <Link
@@ -137,11 +137,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 {[
                   { k: 'One-on-ones', v: totals.one_on_ones },
                   { k: 'Referrals', v: totals.referrals },
-                  { k: 'Closed deals', v: totals.closed_deals },
+                  { k: 'Closed business', v: totals.closed_deals },
                   { k: 'Visitors', v: totals.visitors },
-                  { k: 'Business closed', v: formatMoney(totals.closed_amount) },
+                  { k: 'Closed business ($)', v: formatMoney(totals.closed_amount) },
                 ].map((t) => (
-                  <div key={t.k} className={`border-teal-tint flex flex-col-reverse rounded-xl border p-3 ${t.k === 'Business closed' ? 'col-span-2' : ''}`}>
+                  <div
+                    key={t.k}
+                    className={`border-teal-tint flex flex-col-reverse rounded-xl border p-3 ${t.k === 'Closed business ($)' ? 'col-span-2' : ''}`}
+                  >
                     <dt className="text-ink-muted text-xs font-bold tracking-[0.08em] uppercase">{t.k}</dt>
                     <dd className="font-display m-0 text-2xl font-extrabold tabular-nums">{t.v}</dd>
                   </div>

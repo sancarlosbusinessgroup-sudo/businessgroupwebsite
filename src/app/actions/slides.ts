@@ -56,7 +56,8 @@ const fileInput = z.object({
 /** Called after the browser has uploaded the file to the private slide-media storage. */
 export async function addSlideFile(input: z.input<typeof fileInput>): Promise<ActionState> {
   const parsed = fileInput.safeParse(input);
-  if (!parsed.success || !parsed.data.path.startsWith(`${parsed.data.meetingId}/`)) return { status: 'error', message: 'Something went wrong. Please try again.' };
+  if (!parsed.success || !parsed.data.path.startsWith(`${parsed.data.meetingId}/`))
+    return { status: 'error', message: 'Something went wrong. Please try again.' };
   const d = parsed.data;
   if (d.kind === 'pdf' && !d.pageCount) return { status: 'error', message: 'That PDF could not be read.' };
   const supabase = await createClient();
@@ -114,7 +115,10 @@ export async function moveSlideMedia(formData: FormData): Promise<void> {
   const after = afterSlide.safeParse(formData.get('afterSlide'));
   if (!id.success || !after.success) return;
   const supabase = await createClient();
-  await supabase.from(table(formData.get('kind'))).update({ after_slide: after.data }).eq('id', id.data);
+  await supabase
+    .from(table(formData.get('kind')))
+    .update({ after_slide: after.data })
+    .eq('id', id.data);
   revalidatePath('/present', 'layout');
 }
 

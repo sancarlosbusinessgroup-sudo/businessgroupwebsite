@@ -15,7 +15,10 @@ export function InviteToApplyButton({ id, name, sentOn }: { id: string; name: st
         <span className="sr-only"> ({name})</span>
       </SubmitButton>
       {state.status !== 'idle' && state.message ? (
-        <span role={state.status === 'error' ? 'alert' : 'status'} className={`text-sm font-semibold ${state.status === 'error' ? 'text-red' : 'text-green-ink'}`}>
+        <span
+          role={state.status === 'error' ? 'alert' : 'status'}
+          className={`text-sm font-semibold ${state.status === 'error' ? 'text-red' : 'text-green-ink'}`}
+        >
           {state.message}
         </span>
       ) : sentOn ? (

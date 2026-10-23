@@ -146,7 +146,7 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
           <aside className="flex min-w-0 flex-[2_1_320px] flex-col gap-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="card p-4">
-                <div className="text-ink-muted text-xs font-bold tracking-[0.08em]">CLOSED DEALS</div>
+                <div className="text-ink-muted text-xs font-bold tracking-[0.08em]">CLOSED BUSINESS</div>
                 <div className="font-display text-[26px] font-extrabold">{groupMonth.closed_deals}</div>
                 <div className="text-ink-muted text-[13px]">Group, this month</div>
               </div>

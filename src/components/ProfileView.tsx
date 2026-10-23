@@ -20,8 +20,17 @@ export function ProfileView({ profile: p, contact }: Props) {
   return (
     <div className="flex flex-col gap-5">
       <div className="bg-band relative isolate overflow-hidden rounded-[20px]">
-        <Image src="/images/hero-bridge.jpg" alt="" fill sizes="(min-width: 1200px) 1200px, 100vw" className="-z-20 object-cover object-[70%_center] brightness-110" />
-        <div className="bg-band/60 md:from-band/80 md:via-band/50 absolute inset-0 -z-10 md:bg-transparent md:bg-linear-to-r md:to-transparent" aria-hidden="true" />
+        <Image
+          src="/images/hero-bridge.jpg"
+          alt=""
+          fill
+          sizes="(min-width: 1200px) 1200px, 100vw"
+          className="-z-20 object-cover object-[70%_center] brightness-110"
+        />
+        <div
+          className="bg-band/60 md:from-band/80 md:via-band/50 absolute inset-0 -z-10 md:bg-transparent md:bg-linear-to-r md:to-transparent"
+          aria-hidden="true"
+        />
         <div className="flex flex-wrap items-end gap-6 px-7 pt-24 pb-7">
           <span className="relative flex h-[120px] w-[120px] flex-none items-center justify-center overflow-hidden rounded-full border-[6px] border-white bg-white">
             {avatar ? <Image src={avatar} alt="" fill sizes="120px" className="object-cover" /> : <Avatar name={name} size={108} />}

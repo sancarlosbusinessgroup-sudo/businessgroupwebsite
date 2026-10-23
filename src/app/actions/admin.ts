@@ -139,7 +139,10 @@ export async function syncNewsletter(): Promise<ActionState> {
   try {
     const r = await syncNewsletterList();
     if (r.skipped) return { status: 'error', message: 'Newsletter sync is not set up yet (Brevo key or list ID missing).' };
-    return { status: r.failed ? 'error' : 'success', message: `${r.synced} member${r.synced === 1 ? '' : 's'} synced to the Brevo list${r.failed ? `, ${r.failed} failed` : ''}.` };
+    return {
+      status: r.failed ? 'error' : 'success',
+      message: `${r.synced} member${r.synced === 1 ? '' : 's'} synced to the Brevo list${r.failed ? `, ${r.failed} failed` : ''}.`,
+    };
   } catch {
     return { status: 'error', message: GENERIC };
   }

@@ -129,7 +129,7 @@ test.describe('member area', () => {
     await form.getByRole('button', { name: 'Save' }).click();
     await expect(form.getByText('Saved')).toBeVisible();
     await page.reload();
-    await expect(page.getByRole('listitem').filter({ hasText: 'Wedding cake client' }).locator('.pill', { hasText: 'Closed deal' })).toBeVisible();
+    await expect(page.getByRole('listitem').filter({ hasText: 'Wedding cake client' }).locator('.pill', { hasText: 'Closed business' })).toBeVisible();
     const [row] = await db<{ status: string; closed_at: string | null; amount: number }>(
       'referrals?contact_name=eq.Wedding%20cake%20client&select=status,closed_at,amount',
     );

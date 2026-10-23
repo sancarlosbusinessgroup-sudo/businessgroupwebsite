@@ -29,7 +29,9 @@ export function RequestForm({ members, today }: Props) {
         <h2 id="request-h" className="font-display m-0 text-[22px]">
           Request a one-on-one
         </h2>
-        <p className="text-ink-muted m-0 text-sm">For a one-on-one that hasn&apos;t happened yet. The member sees your request on this page and can accept it.</p>
+        <p className="text-ink-muted m-0 text-sm">
+          For a one-on-one that hasn&apos;t happened yet. The member sees your request on this page and can accept it.
+        </p>
       </div>
       {state.status === 'success' ? <Notice tone="success">{state.message}</Notice> : null}
       {state.status === 'error' && state.message ? <Notice tone="error">{state.message}</Notice> : null}

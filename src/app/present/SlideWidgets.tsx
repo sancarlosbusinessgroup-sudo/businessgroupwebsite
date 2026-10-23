@@ -143,7 +143,10 @@ export function SlideTimer({ seconds, label, id, compact = false }: { seconds: n
   );
   if (compact)
     return (
-      <div ref={ref} className="flex items-center gap-[0.9cqw] rounded-full bg-white/95 py-[0.4cqw] pr-[0.6cqw] pl-[0.5cqw] shadow-[0_0.2cqw_0.8cqw_rgba(0,0,0,0.12)]">
+      <div
+        ref={ref}
+        className="flex items-center gap-[0.9cqw] rounded-full bg-white/95 py-[0.4cqw] pr-[0.6cqw] pl-[0.5cqw] shadow-[0_0.2cqw_0.8cqw_rgba(0,0,0,0.12)]"
+      >
         <span className="relative h-[3.2cqw] w-[3.2cqw]">{ring}</span>
         {time}
         {buttons}
@@ -181,7 +184,11 @@ export function WebsiteSlide({ url, title }: { url: string; title: string }) {
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
           />
-          <button type="button" onClick={open} className="btn btn-light absolute right-[1cqw] bottom-[1cqw] min-h-0 px-[1.2cqw] py-[0.5cqw] text-[1.2cqw] shadow">
+          <button
+            type="button"
+            onClick={open}
+            className="btn btn-light absolute right-[1cqw] bottom-[1cqw] min-h-0 px-[1.2cqw] py-[0.5cqw] text-[1.2cqw] shadow"
+          >
             Open in a new window<span className="sr-only"> ({title})</span>
           </button>
         </>
@@ -197,7 +204,9 @@ export function WebsiteSlide({ url, title }: { url: string; title: string }) {
               Open in a new window<span className="sr-only"> ({title})</span>
             </button>
           </div>
-          <p className="m-0 max-w-[60cqw] text-[1.3cqw] text-[#4f6464]">If the page stays blank, the website doesn’t allow being shown inside other pages. Use “Open in a new window” instead.</p>
+          <p className="m-0 max-w-[60cqw] text-[1.3cqw] text-[#4f6464]">
+            If the page stays blank, the website doesn’t allow being shown inside other pages. Use “Open in a new window” instead.
+          </p>
         </div>
       )}
     </div>

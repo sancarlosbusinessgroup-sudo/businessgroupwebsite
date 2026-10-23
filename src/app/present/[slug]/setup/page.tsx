@@ -19,18 +19,37 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
   const supabase = await createClient();
   const [{ data }, mediaRes, linksRes] = await Promise.all([
     supabase.from('meeting_slide_settings').select('slides, notes, timers').eq('meeting_id', meeting.id).maybeSingle(),
-    supabase.from('meeting_slide_media').select('id, kind, title, after_slide, page_count, created_at').eq('meeting_id', meeting.id).order('sort').order('created_at'),
+    supabase
+      .from('meeting_slide_media')
+      .select('id, kind, title, after_slide, page_count, created_at')
+      .eq('meeting_id', meeting.id)
+      .order('sort')
+      .order('created_at'),
     supabase.from('meeting_slide_links').select('id, title, url, after_slide, created_at').eq('meeting_id', meeting.id).order('created_at'),
   ]);
   const media = [
     ...(mediaRes.data ?? []).map((m) => ({ id: m.id, kind: m.kind, title: m.title, afterSlide: m.after_slide, pageCount: m.page_count, at: m.created_at })),
-    ...(linksRes.data ?? []).map((l) => ({ id: l.id, kind: 'link' as const, title: l.title, afterSlide: l.after_slide, pageCount: null, url: l.url, at: l.created_at })),
+    ...(linksRes.data ?? []).map((l) => ({
+      id: l.id,
+      kind: 'link' as const,
+      title: l.title,
+      afterSlide: l.after_slide,
+      pageCount: null,
+      url: l.url,
+      at: l.created_at,
+    })),
   ].sort((a, b) => a.at.localeCompare(b.at));
   const options = SLIDE_KEYS.map((k) => ({ key: k, label: `${slideTime(k) ? `${slideTime(k)} · ` : ''}${slideLabel(k)}` }));
   const shown = resolveSlides(data?.slides);
   const hidden = SLIDE_KEYS.filter((k) => !shown.includes(k));
   const notes = resolveNotes(data?.notes);
-  const rows = [...shown, ...hidden].map((k, n) => ({ key: k, label: `${slideTime(k) ? `${slideTime(k)} · ` : ''}${slideLabel(k)}`, shown: shown.includes(k), position: n + 1, note: notes[k] ?? '' }));
+  const rows = [...shown, ...hidden].map((k, n) => ({
+    key: k,
+    label: `${slideTime(k) ? `${slideTime(k)} · ` : ''}${slideLabel(k)}`,
+    shown: shown.includes(k),
+    position: n + 1,
+    note: notes[k] ?? '',
+  }));
 
   return (
     <div className="bg-canvas">
@@ -46,7 +65,11 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
         </div>
         <PresentationMaterials meetingId={meeting.id} options={options} media={media} />
         <SlideSettingsForm meetingId={meeting.id} rows={rows} deckHref={`/present/${slug}`} timers={resolveTimers(data?.timers)} />
-        <SlideMediaManager meetingId={meeting.id} options={options} media={media.filter((m) => m.afterSlide !== 'five_minute' && m.afterSlide !== 'ten_minute')} />
+        <SlideMediaManager
+          meetingId={meeting.id}
+          options={options}
+          media={media.filter((m) => m.afterSlide !== 'five_minute' && m.afterSlide !== 'ten_minute')}
+        />
       </div>
     </div>
   );

@@ -47,7 +47,7 @@ export function SendReferralForm({ members, defaultTo }: { members: Option[]; de
         placeholder="e.g. 2,500"
         defaultValue={v.amount}
         error={errors.amount}
-        help="Your best estimate of the business. The member who receives it can update it when the deal closes."
+        help="Your best estimate of the business. The member who receives it can update it when the business closes."
       />
       <TextArea name="notes" label="Notes" defaultValue={v.notes} error={errors.notes} />
       <SubmitButton pendingText="Sending…">Send referral slip</SubmitButton>

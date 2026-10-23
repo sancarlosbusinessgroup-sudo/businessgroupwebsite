@@ -135,7 +135,9 @@ describe('slide settings', () => {
       await c.query('rollback to savepoint a');
       await actAs(c, ids.admin);
       await c.query('savepoint b');
-      await expect(c.query(`insert into meeting_slide_settings (meeting_id, slides) values ($1, '{welcome,Bad-Name!}')`, [m])).rejects.toThrow(/check constraint/);
+      await expect(c.query(`insert into meeting_slide_settings (meeting_id, slides) values ($1, '{welcome,Bad-Name!}')`, [m])).rejects.toThrow(
+        /check constraint/,
+      );
       await c.query('rollback to savepoint b');
       await c.query(`insert into meeting_slide_settings (meeting_id, slides) values ($1, '{welcome,closing}')`, [m]);
       await actAs(c, ids.member);

@@ -31,10 +31,13 @@ export default async function HomePage() {
           sizes="100vw"
           className="-z-20 object-cover object-[70%_center] brightness-110 saturate-[1.15]"
         />
-        <div className="bg-band/60 absolute inset-0 -z-10 md:bg-transparent md:bg-linear-to-r md:from-band/70 md:via-band/35 md:to-transparent" aria-hidden="true" />
+        <div
+          className="bg-band/60 md:from-band/70 md:via-band/35 absolute inset-0 -z-10 md:bg-transparent md:bg-linear-to-r md:to-transparent"
+          aria-hidden="true"
+        />
         <div className="container-site flex flex-wrap items-center gap-12 py-16 md:py-24">
           <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
-            <h1 className="font-display text-on-band m-0 [text-shadow:0_2px_16px_rgb(0_0_0/0.5)] text-[clamp(38px,5vw,60px)] leading-[1.05] font-extrabold tracking-[-0.02em]">
+            <h1 className="font-display text-on-band m-0 text-[clamp(38px,5vw,60px)] leading-[1.05] font-extrabold tracking-[-0.02em] [text-shadow:0_2px_16px_rgb(0_0_0/0.5)]">
               Local businesses, growing through real referrals.
             </h1>
             <p className="text-on-band m-0 max-w-[560px] text-xl font-medium [text-shadow:0_1px_10px_rgb(0_0_0/0.6)]">

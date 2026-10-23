@@ -12,9 +12,9 @@ describe('email preferences', () => {
       await q(`update email_preferences set prefs = '{"referrals": false}' where profile_id = $1`, [ids.member]);
       expect((await q(`select prefs->>'referrals' as r from email_preferences`))[0]?.r).toBe('false');
     });
-    await expect(
-      as(user(ids.member), (q) => q(`insert into email_preferences (profile_id, prefs) values ($1, '{}')`, [ids.member3])),
-    ).rejects.toThrow(/row-level security/);
+    await expect(as(user(ids.member), (q) => q(`insert into email_preferences (profile_id, prefs) values ($1, '{}')`, [ids.member3]))).rejects.toThrow(
+      /row-level security/,
+    );
   });
 
   it('other members and visitors cannot read anyone’s preferences', async () => {
@@ -49,7 +49,9 @@ describe('email log', () => {
       try {
         await c.query(`insert into email_log (kind, dedupe_key, recipient) values ('welcome', 'k1', 'a@example.test')`);
         // The same notice to the same person cannot be logged twice.
-        await expect(c.query(`insert into email_log (kind, dedupe_key, recipient) values ('welcome', 'k1', 'a@example.test')`)).rejects.toThrow(/duplicate key/);
+        await expect(c.query(`insert into email_log (kind, dedupe_key, recipient) values ('welcome', 'k1', 'a@example.test')`)).rejects.toThrow(
+          /duplicate key/,
+        );
       } finally {
         await c.query('rollback');
       }
@@ -79,9 +81,7 @@ describe('onboarding', () => {
   it('pending applicants and visitors cannot complete onboarding; members cannot create rows directly', async () => {
     await expect(as(user(ids.pending), (q) => q(`select complete_onboarding(true, true)`))).rejects.toThrow(/members only/);
     await expect(as(anon, (q) => q(`select complete_onboarding(true, true)`))).rejects.toThrow(/permission denied/);
-    await expect(as(user(ids.member), (q) => q(`insert into member_onboarding (profile_id) values ($1)`, [ids.member]))).rejects.toThrow(
-      /row-level security/,
-    );
+    await expect(as(user(ids.member), (q) => q(`insert into member_onboarding (profile_id) values ($1)`, [ids.member]))).rejects.toThrow(/row-level security/);
     await as(user(ids.admin), async (q) => {
       await q(`insert into member_onboarding (profile_id) values ($1)`, [ids.member3]);
     });

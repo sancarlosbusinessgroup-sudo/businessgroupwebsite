@@ -35,7 +35,11 @@ export default async function EventDetail({ params }: Props) {
 
   return (
     <>
-      <PageHero crumb={m.kind === 'group' ? 'Meetings' : 'Member events'} title={m.title} lead={`${formatMeetingDate(start)} · ${formatMeetingTime(start)}–${formatMeetingTime(end)} PT · ${where}`}>
+      <PageHero
+        crumb={m.kind === 'group' ? 'Meetings' : 'Member events'}
+        title={m.title}
+        lead={`${formatMeetingDate(start)} · ${formatMeetingTime(start)}–${formatMeetingTime(end)} PT · ${where}`}
+      >
         {upcoming ? (
           <div className="card min-w-0 flex-[1_1_360px] p-5">
             <Countdown target={m.starts_at} />

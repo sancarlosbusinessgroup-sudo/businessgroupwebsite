@@ -18,7 +18,7 @@ describe('email templates', () => {
       t.welcomeEmail({ siteUrl, firstName: 'Ana' }),
       t.onboardingReminderEmail({ siteUrl, firstName: 'Ana' }),
       t.referralReceivedEmail({ siteUrl, toFirstName: 'Ana', fromName: 'Bo', prospect: 'P' }),
-      t.referralStatusEmail({ siteUrl, toFirstName: 'Ana', receiverName: 'Bo', prospect: 'P', status: 'Closed deal', amount: '$1,000' }),
+      t.referralStatusEmail({ siteUrl, toFirstName: 'Ana', receiverName: 'Bo', prospect: 'P', status: 'Closed business', amount: '$1,000' }),
       t.oneOnOneConfirmEmail({ siteUrl, toFirstName: 'Ana', reporterName: 'Bo', date: 'Oct 1' }),
       t.oneOnOneRequestEmail({ siteUrl, toFirstName: 'Ana', requesterName: 'Bo', business: 'Bo Co' }),
       t.oneOnOneAnswerEmail({ siteUrl, toFirstName: 'Ana', inviteeName: 'Bo', accepted: true }),
@@ -65,7 +65,7 @@ describe('email templates', () => {
   });
 
   it('closed-deal update congratulates the giver', () => {
-    expect(t.referralStatusEmail({ siteUrl, toFirstName: 'A', receiverName: 'B', prospect: 'P', status: 'Closed deal' }).text).toContain('Congratulations');
+    expect(t.referralStatusEmail({ siteUrl, toFirstName: 'A', receiverName: 'B', prospect: 'P', status: 'Closed business' }).text).toContain('Congratulations');
     expect(t.referralStatusEmail({ siteUrl, toFirstName: 'A', receiverName: 'B', prospect: 'P', status: 'Contacted' }).text).not.toContain('Congratulations');
   });
 

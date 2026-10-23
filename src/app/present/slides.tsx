@@ -648,8 +648,8 @@ export function buildSlides(d: DeckData): DeckSlide[] {
           ? [
               ['chat', String(cycle.one_on_ones), 'One-to-ones'],
               ['share', String(cycle.referrals), 'Referrals'],
-              ['badgeCheck', String(cycle.closed_deals), 'Closed deals'],
-              ['dollar', formatMoney(cycle.closed_amount), 'Closed business'],
+              ['badgeCheck', String(cycle.closed_deals), 'Closed business'],
+              ['dollar', formatMoney(cycle.closed_amount), 'Closed business ($)'],
             ]
           : [];
         page(key, {
@@ -687,7 +687,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                     <th scope="col" className="text-[1.5cqw]">
                       <span className="sr-only">Period</span>
                     </th>
-                    {['One-to-ones', 'Referrals', 'Closed deals', 'Closed business'].map((h) => (
+                    {['One-to-ones', 'Referrals', 'Closed business', 'Closed business ($)'].map((h) => (
                       <th key={h} scope="col" className="text-[1.3cqw] font-bold tracking-[0.08em] uppercase" style={{ color: BLUE }}>
                         {h}
                       </th>

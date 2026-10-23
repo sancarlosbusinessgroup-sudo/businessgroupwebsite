@@ -84,9 +84,9 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
   // Month view: the month in Pacific time; ±1 day margin, then bucket by local date
   const monthEvents =
     view === 'month'
-      ? (
-          await getCalendarBetween(new Date(Date.UTC(y, m, 1) - 86400000).toISOString(), new Date(Date.UTC(y, m + 1, 1) + 86400000).toISOString(), kind)
-        ).filter(matches)
+      ? (await getCalendarBetween(new Date(Date.UTC(y, m, 1) - 86400000).toISOString(), new Date(Date.UTC(y, m + 1, 1) + 86400000).toISOString(), kind)).filter(
+          matches,
+        )
       : [];
   const byDay = new Map<string, typeof monthEvents>();
   for (const e of monthEvents) {
@@ -316,7 +316,9 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
               </div>
               <div className="bg-band text-on-band flex flex-col gap-2.5 rounded-2xl p-5">
                 <h2 className="font-display text-on-band m-0 text-lg">Want to speak at a meeting?</h2>
-                <p className="text-on-band-muted m-0 text-[15px]">Members claim 5-minute and 10-minute presentation slots on the members&apos; Meetings page.</p>
+                <p className="text-on-band-muted m-0 text-[15px]">
+                  Members claim 5-minute and 10-minute presentation slots on the members&apos; Meetings page.
+                </p>
                 <Link className="btn btn-light btn-sm self-start" href={member ? '/meetings' : '/login?next=/meetings'}>
                   {member ? 'Claim a slot' : 'Log in to sign up'}
                 </Link>
