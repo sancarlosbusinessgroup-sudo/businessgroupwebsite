@@ -99,7 +99,7 @@ test.describe('members', () => {
 
     // The CSV button became a "BARP Google Sheet" link in a new tab (owner, 2026-10-23); the CSV export still works.
     const sheet = page.getByRole('link', { name: /^BARP Google Sheet/ });
-    await expect(sheet).toHaveAttribute('href', 'https://us02web.zoom.us/j/83818742413?pwd=MqjMJxuz7vkXXe05Eut0xHsoQ1FpSZ.1');
+    await expect(sheet).toHaveAttribute('href', 'https://docs.google.com/spreadsheets/d/12kjnHPKlKJUb8sxYQTpjfK0z9Ii7FgKE3US-5RgfNrI/edit?usp=sharing');
     await expect(sheet).toHaveAttribute('target', '_blank');
     await expect(page.getByRole('link', { name: 'Download spreadsheet (CSV)' })).toHaveCount(0);
     const res = await page.request.get('/members/export?format=csv');

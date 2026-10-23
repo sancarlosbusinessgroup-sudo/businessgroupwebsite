@@ -157,7 +157,7 @@ export const slotDescriptions = {
 } as const;
 
 /** "BARP Google Sheet" button on the directory (owner, 2026-10-23). Link as given by the owner. */
-export const barpSheetUrl = 'https://us02web.zoom.us/j/83818742413?pwd=MqjMJxuz7vkXXe05Eut0xHsoQ1FpSZ.1';
+export const barpSheetUrl = 'https://docs.google.com/spreadsheets/d/12kjnHPKlKJUb8sxYQTpjfK0z9Ii7FgKE3US-5RgfNrI/edit?usp=sharing';
 
 /** Support page (owner request, 2026-10-17). */
 export const supportTeam = [

@@ -330,3 +330,5 @@ All changes fixed test mistakes, not app behaviour. None weakened an assertion.
 ### Live chat moves from tawk.to to Tidio (2026-10-23, owner request)
 
 61. Requirement change: the chat provider is now Tidio (owner's choice: better phone app). The item 45 tests were rewritten for Tidio, not weakened: `chat.test.ts` (chat off unless the Tidio key is set and well-formed, spaces trimmed, a pasted embed code accepted, script address, bubble hidden on the slides only, member id/name/email passed); `LiveChat.test.tsx` (script loaded once with the key, `document.tidioIdentify` set before it loads for members and not for guests, not loaded on the slides, hidden/shown when moving to and from the slides); `SupportChatButton.test.tsx` (coming-soon window while off, opens Tidio when loaded, waits while Tidio is still loading, explains when the chat is blocked). The E2E Support test is unchanged (the local stack has no Tidio key, so chat is off).
+
+62. Requirement change (2026-10-23): the owner sent the real BARP Google Sheet link. `phase-a › directory…` now expects the "BARP Google Sheet" button to open that Sheet (it previously expected the Zoom link sent by mistake).
