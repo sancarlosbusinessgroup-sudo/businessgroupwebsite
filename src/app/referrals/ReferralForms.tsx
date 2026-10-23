@@ -25,7 +25,7 @@ export function SendReferralForm({ members, defaultTo }: { members: Option[]; de
       key={state.status === 'success' ? state.message : 'form'}
     >
       <h2 id="send-ref-h" className="h3">
-        File a referral slip
+        Give a referral
       </h2>
       {state.status === 'success' ? <Notice tone="success">{state.message}</Notice> : null}
       {state.status === 'error' && state.message ? <Notice tone="error">{state.message}</Notice> : null}

@@ -105,6 +105,7 @@ test.describe('member area', () => {
 
   test('file a referral slip with a dollar value (invalid then valid); receiver marks it a closed deal and updates the value', async ({ page }) => {
     await page.goto('/referrals');
+    await expect(page.getByRole('heading', { name: 'Give a referral' })).toBeVisible();
     await page.getByRole('button', { name: 'Send referral slip' }).click();
     await expect(page.getByText('Choose a member to refer to')).toBeVisible();
     await page.getByLabel('Refer to member').selectOption({ label: 'Riley Second · Second Test Bakery' });
