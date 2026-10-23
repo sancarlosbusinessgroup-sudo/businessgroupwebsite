@@ -68,8 +68,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             {approved ? (
               <div className="card flex flex-wrap items-center gap-4 p-5">
                 <span className="font-display text-heading font-bold">Photos</span>
-                <MediaUpload userId={p.id} kind="avatar" label="Change photo" />
-                <MediaUpload userId={p.id} kind="logo" label="Upload logo" />
+                <MediaUpload userId={p.id} kind="avatar" label="Change photo" hasFile={!!p.avatar_path} />
+                <MediaUpload userId={p.id} kind="logo" label={p.logo_path ? 'Change logo' : 'Upload logo'} hasFile={!!p.logo_path} />
                 <span className="text-ink-muted text-sm">Images are resized in your browser before upload.</span>
               </div>
             ) : null}

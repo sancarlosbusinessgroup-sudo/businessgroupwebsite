@@ -180,7 +180,10 @@ export const supportFaq = [
     q: 'How do I log in for the first time?',
     a: 'Go to Log in and choose “Forgot password”. Enter the email the group has for you and follow the link to set your password. If nothing arrives, check your spam folder or ask support.',
   },
-  { q: 'How do I change my photo?', a: 'Log in, open My profile and choose “Change photo”. Your photo is shown on your directory card and profile.' },
+  {
+    q: 'How do I change my photo?',
+    a: 'Log in, open My profile and choose “Change photo”. Your photo is shown on your directory card and profile. To take it off, choose “Remove photo”.',
+  },
   {
     q: 'How do I report a referral or a one-on-one?',
     a: 'Log in and open Report Activity in the menu. Choose Referrals to file a referral slip, or One-on-ones to report or request a one-on-one.',

@@ -272,6 +272,24 @@ export async function setProfileMedia(input: { kind: 'avatar' | 'logo'; path: st
   return { status: 'success' };
 }
 
+/** My profile → Remove photo / Remove logo (owner, 2026-10-23). The member's own uploaded file is deleted too. */
+export async function removeProfileMedia(input: { kind: 'avatar' | 'logo' }): Promise<ActionState> {
+  const kind = z.enum(['avatar', 'logo']).safeParse(input?.kind);
+  const { supabase, user } = await session();
+  if (!user || !kind.success) return { status: 'error', message: GENERIC };
+  const { data: me } = await supabase.from('profiles').select('avatar_path, logo_path').eq('id', user.id).maybeSingle();
+  const old = kind.data === 'avatar' ? me?.avatar_path : me?.logo_path;
+  const column = kind.data === 'avatar' ? { avatar_path: null } : { logo_path: null };
+  const { error } = await supabase.from('profiles').update(column).eq('id', user.id);
+  if (error) return { status: 'error', message: GENERIC };
+  // Files shipped with the site start with "/"; only the member's own upload is removed from storage.
+  if (old && old.startsWith(`${user.id}/`)) await supabase.storage.from('profile-media').remove([old]);
+  revalidatePath('/profile');
+  revalidatePath('/members');
+  revalidatePath('/dashboard');
+  return { status: 'success' };
+}
+
 // --- Gallery ----------------------------------------------------------------
 
 const galleryInput = galleryMetaSchema.extend({ imagePath: z.string().max(200), thumbPath: z.string().max(200) });

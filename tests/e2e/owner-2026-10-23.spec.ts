@@ -162,3 +162,27 @@ test('temporary password: the member must choose their own before using the site
     await db.end();
   }
 });
+
+test('My profile: remove photo (with a confirm step); the uploaded file is deleted too', async ({ page }) => {
+  await login(page, users.member, undefined, '/profile?tab=edit');
+  await expect(page.getByRole('button', { name: 'Remove photo' })).toHaveCount(0);
+  await page.getByLabel('Change photo').setInputFiles('tests/e2e/fixtures/slide-image.png');
+  await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible({ timeout: 20_000 });
+  const me = (await rest(`member_contacts?email=eq.${users.member}&select=profile_id`))[0]?.profile_id as string;
+  const path = (await rest(`profiles?id=eq.${me}&select=avatar_path`))[0]?.avatar_path as string;
+  expect(path).toMatch(new RegExp(`^${me}/avatar-`));
+
+  await page.getByRole('button', { name: 'Remove photo' }).click();
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  expect((await rest(`profiles?id=eq.${me}&select=avatar_path`))[0]?.avatar_path).toBe(path);
+  await page.getByRole('button', { name: 'Remove photo' }).click();
+  await expect(page.getByText('Remove your photo?')).toBeVisible();
+  await expectAccessible(page);
+  await page.getByRole('button', { name: 'Yes, remove' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Photo removed' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Remove photo' })).toHaveCount(0);
+  expect((await rest(`profiles?id=eq.${me}&select=avatar_path`))[0]?.avatar_path).toBeNull();
+  const key = await serviceKey();
+  const file = await fetch(`${STACK}/storage/v1/object/public/profile-media/${path}`, { headers: { apikey: key } });
+  expect(file.status).not.toBe(200);
+});
