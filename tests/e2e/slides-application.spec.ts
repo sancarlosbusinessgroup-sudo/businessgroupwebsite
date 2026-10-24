@@ -50,7 +50,9 @@ test.describe('meeting slides follow the new agenda', () => {
     for (let i = 0; i < total; i++) {
       const g = deck.getByRole('group').filter({ visible: true });
       labels.push(((await g.getAttribute('aria-label')) ?? '').replace(/ \(slide.*$/, ''));
-      await expect(g.locator('img[src*="logo-mark"]')).toBeAttached();
+      // The BARP Champion slide is the owner's artwork, which carries the logo itself (owner, 2026-10-24).
+      if (labels.at(-1) === 'BARP Champion') await expect(g.getByTestId('champion-background')).toBeAttached();
+      else await expect(g.locator('img[src*="logo-mark"]')).toBeAttached();
       // No date/time stamp in the corner and no timers unless an admin switches them on (owner, 2026-10-22).
       await expect(g.getByText(/^\d{1,2}:\d{2} AM$/)).toHaveCount(0);
       await expect(g.getByRole('timer')).toHaveCount(0);
@@ -63,6 +65,7 @@ test.describe('meeting slides follow the new agenda', () => {
       'Visitors (how to join)',
       'Meet the Management Team',
       '60-second infomercial and reporting',
+      'Introduction of Visitors',
       'Statistics',
       'Leaderboards',
       'BARP Champion',
@@ -127,6 +130,11 @@ test.describe('meeting slides follow the new agenda', () => {
     // No sentence under the title (owner, 2026-10-22).
     await expect(info.getByText(/Tells who you are/)).toHaveCount(0);
     await page.keyboard.press('ArrowRight');
+    // "Introduction of Visitors" between the infomercials and Statistics, title only, centred (owner, 2026-10-24).
+    const intro = deck.getByRole('group').filter({ visible: true });
+    await expect(intro.getByRole('heading', { name: 'Introduction of Visitors' })).toBeVisible();
+    await expect(intro.getByRole('listitem')).toHaveCount(0);
+    await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('heading', { name: 'Statistics' })).toBeVisible();
 
     // After the leaderboards: "BARP Champion", coming soon (owner, 2026-10-23).
@@ -137,8 +145,10 @@ test.describe('meeting slides follow the new agenda', () => {
       deck
         .getByRole('group')
         .filter({ visible: true })
-        .getByText(/^(Announced soon|Leading .* so far)$/),
-    ).toBeVisible();
+        .getByText(/^(Coming soon|Leading .* so far)$/),
+    ).toBeAttached();
+    // The owner's champion artwork is the slide's background (owner, 2026-10-24).
+    await expect(deck.getByRole('group').filter({ visible: true }).getByTestId('champion-background')).toHaveAttribute('src', /champion-/);
 
     // Presentation slides show the presentation title; no question slides after them by default (owner, 2026-10-23).
     await goToSlide(deck, page, '5-Minute Educational Presentation');

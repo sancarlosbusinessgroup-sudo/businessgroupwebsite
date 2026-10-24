@@ -19,6 +19,9 @@ import { Fireworks, PdfPageSlide, SlideTimer, WebsiteSlide, YouTubeSlide } from 
 const BRIDGE = '/images/hero-bridge.jpg';
 /** The Welcome slide's photo: the group's flag on the Golden Gate tower (owner, 2026-10-24). */
 const WELCOME_PHOTO = '/images/welcome-bridge.jpg';
+/** Owner's BARP Champion artwork (2026-10-24): logo, crown, title and confetti. "Coming soon" version for when nobody is named yet. */
+const CHAMPION_BG = '/images/champion-bg.webp';
+const CHAMPION_SOON = '/images/champion-coming-soon.webp';
 const NAVY = '#12346e';
 const BLUE = '#1f7fd0';
 const INK = '#1c2b4a';
@@ -177,6 +180,29 @@ function Page({
           {ctx.n} / {ctx.total}
         </span>
       </footer>
+    </div>
+  );
+}
+
+/** BARP Champion slide on the owner's artwork, which already carries the logo, crown and title (owner, 2026-10-24). */
+function ChampionPage({ ctx, soon, children }: { ctx: Ctx; soon?: boolean; children?: ReactNode }) {
+  return (
+    <div className="relative h-full overflow-hidden bg-white">
+      <Image
+        src={soon ? CHAMPION_SOON : CHAMPION_BG}
+        alt=""
+        fill
+        sizes="100vw"
+        className="object-cover"
+        data-testid="champion-background"
+        aria-hidden="true"
+      />
+      <h2 className="sr-only">BARP Champion</h2>
+      {soon ? <p className="sr-only">Coming soon</p> : null}
+      <div className="absolute inset-x-[8cqw] top-[16.5cqw] bottom-[9cqw] flex flex-col items-center justify-center text-center">{children}</div>
+      <p className="absolute right-[3cqw] bottom-[1.8cqw] m-0 text-[1.25cqw] font-semibold tabular-nums" style={{ color: NAVY }}>
+        {ctx.n} / {ctx.total}
+      </p>
     </div>
   );
 }
@@ -585,7 +611,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       }
       case 'guests':
-        page(key, { title: 'Introduction of Guests', center: true, body: null });
+        page(key, { title: 'Introduction of Visitors', center: true, body: null });
         break;
       case 'infomercials': {
         const items: [IconName, string][] = [
@@ -785,15 +811,15 @@ export function buildSlides(d: DeckData): DeckSlide[] {
             ] as [IconName, number | undefined, string][]
           ).filter(([, n]) => typeof n === 'number' && n > 0);
           add(key, (ctx) => (
-            <Page ctx={ctx} title="BARP Champion" center>
+            <ChampionPage ctx={ctx}>
               <Fireworks />
-              <div className="flex flex-col items-center gap-[1.4cqw]">
+              <div className="flex flex-col items-center gap-[1.1cqw]">
                 <p className="font-display m-0 text-[1.8cqw] font-bold tracking-[0.18em] uppercase" style={{ color: BLUE }}>
                   {award.label}
                 </p>
                 <div className="flex items-center gap-[2.4cqw]">
                   <span className="rounded-[1.6cqw] shadow-[0_0.6cqw_2cqw_rgba(245,158,11,0.45)] ring-[0.4cqw] ring-[#fbbf24]">
-                    <Face name={award.name} path={award.avatar} size={14} square />
+                    <Face name={award.name} path={award.avatar} size={11} square />
                   </span>
                   <div className="flex min-w-0 flex-col items-start gap-[0.5cqw] text-left">
                     <p className="font-display m-0 text-[3.6cqw] leading-tight font-extrabold" style={{ color: NAVY }}>
@@ -812,7 +838,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                   </div>
                 </div>
                 {award.reason ? (
-                  <p className="m-0 max-w-[64cqw] text-[2cqw] leading-snug italic" style={{ color: INK }}>
+                  <p className="m-0 max-w-[64cqw] text-[1.8cqw] leading-snug italic" style={{ color: INK }}>
                     “{award.reason}”
                   </p>
                 ) : null}
@@ -831,46 +857,42 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                   </ul>
                 ) : null}
               </div>
-            </Page>
+            </ChampionPage>
           ));
-        } else {
-          page(key, {
-            title: 'BARP Champion',
-            center: true,
-            body: c.leaders.length ? (
-              <div className="flex flex-col items-center gap-[1.6cqw]">
+        } else if (c.leaders.length) {
+          add(key, (ctx) => (
+            <ChampionPage ctx={ctx}>
+              <div className="flex flex-col items-center gap-[1.2cqw]">
                 <p className="font-display m-0 text-[1.8cqw] font-bold tracking-[0.18em] uppercase" style={{ color: BLUE }}>
                   Leading {c.monthLabel} so far
                 </p>
                 <ol className="m-0 flex list-none items-end gap-[2.4cqw] p-0" aria-label={`Leading ${c.monthLabel} so far`}>
                   {c.leaders.map((l, i) => (
-                    <li key={l.id} className={`${card()} flex flex-col items-center gap-[0.8cqw] px-[2cqw] py-[1.6cqw] ${i === 0 ? 'scale-110' : ''}`}>
-                      <span className="font-display text-[2.4cqw] font-extrabold" style={{ color: STEP_COLORS[i * 2] ?? BLUE }}>
+                    <li key={l.id} className={`${card()} flex flex-col items-center gap-[0.6cqw] px-[1.8cqw] py-[1.2cqw] ${i === 0 ? 'scale-110' : ''}`}>
+                      <span className="font-display text-[2.2cqw] font-extrabold" style={{ color: STEP_COLORS[i * 2] ?? BLUE }}>
                         {i + 1}
                       </span>
-                      <Face name={l.name} path={l.avatar} size={8} square />
-                      <span className="font-display text-[1.8cqw] font-extrabold" style={{ color: NAVY }}>
+                      <Face name={l.name} path={l.avatar} size={7} square />
+                      <span className="font-display text-[1.7cqw] font-extrabold" style={{ color: NAVY }}>
                         {l.name}
                       </span>
-                      <span className="text-[1.5cqw] font-semibold" style={{ color: MUTED }}>
+                      <span className="text-[1.4cqw] font-semibold" style={{ color: MUTED }}>
                         {l.points} points
                       </span>
                     </li>
                   ))}
                 </ol>
+                {d.notes.champion ? <Note text={d.notes.champion} /> : null}
               </div>
-            ) : (
-              <div className="flex flex-col items-center gap-[1.6cqw]">
-                <Badge name="award" size={14} />
-                <p
-                  className="font-display m-0 rounded-full px-[2.4cqw] py-[0.8cqw] text-[2.4cqw] font-extrabold tracking-[0.2em] text-white uppercase"
-                  style={{ background: GRADIENT }}
-                >
-                  Announced soon
-                </p>
-              </div>
-            ),
-          });
+            </ChampionPage>
+          ));
+        } else {
+          // Nobody named yet: the owner's artwork with its "Coming soon" banner.
+          add(key, (ctx) => (
+            <ChampionPage ctx={ctx} soon>
+              {d.notes.champion ? <Note text={d.notes.champion} /> : null}
+            </ChampionPage>
+          ));
         }
         break;
       }

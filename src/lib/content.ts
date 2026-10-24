@@ -163,7 +163,7 @@ export const barpSheetUrl = 'https://docs.google.com/spreadsheets/d/12kjnHPKlKJU
 export const supportTeam = [
   { name: 'Cedrick Velasco', role: 'Operations Manager', photo: '/support/cedrick-velasco.webp' },
   { name: 'Shermaine Benolirao', role: 'Operations Director', photo: '/support/shermaine-benolirao.webp' },
-  { name: 'Rachanee Munar', role: 'Web Developer', photo: '/support/rachanee-munar.webp' },
+  { name: 'Rachanee Munar', role: 'Web Support', photo: '/support/rachanee-munar.webp' },
 ] as const;
 
 /** Support team introduction, shown under the team photos (owner's text, 2026-10-24). */
