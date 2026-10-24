@@ -41,20 +41,40 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
       <li key={r.id} className="border-line flex flex-col gap-2 rounded-xl border p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span>
-            <span className="text-ink-muted text-sm">{isReceived ? '← From' : 'To →'}</span> <strong>{personName(other)}</strong> · {r.contact_name}
+            <span className="text-ink-muted text-sm">{isReceived ? '← From' : 'To →'}</span> <strong>{personName(other)}</strong>
           </span>
           <span className="text-ink-muted flex flex-wrap items-center gap-2 text-sm">
             {formatShortDate(new Date(r.created_at))}
             <Pill tone={refTone[r.status]}>{referralStatusLabels[r.status]}</Pill>
           </span>
         </div>
-        {r.prospect_phone || r.prospect_email || r.notes ? (
-          <div className="text-ink-soft flex flex-wrap gap-x-4 gap-y-1 text-[15px]">
-            {r.prospect_phone ? <a href={`tel:${r.prospect_phone.replace(/[^0-9+]/g, '')}`}>{r.prospect_phone}</a> : null}
-            {r.prospect_email ? <a href={`mailto:${r.prospect_email}`}>{r.prospect_email}</a> : null}
-            {r.notes ? <span>{r.notes}</span> : null}
-          </div>
-        ) : null}
+        {/* Labelled details, the same for the giver and the receiver (owner, 2026-10-24). */}
+        <dl className="text-ink-soft m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[15px]">
+          <dt className="text-ink-muted">Name of Referral:</dt>
+          <dd className="m-0 font-semibold">{r.contact_name}</dd>
+          {r.prospect_phone ? (
+            <>
+              <dt className="text-ink-muted">Phone:</dt>
+              <dd className="m-0">
+                <a href={`tel:${r.prospect_phone.replace(/[^0-9+]/g, '')}`}>{r.prospect_phone}</a>
+              </dd>
+            </>
+          ) : null}
+          {r.prospect_email ? (
+            <>
+              <dt className="text-ink-muted">Email:</dt>
+              <dd className="m-0 break-all">
+                <a href={`mailto:${r.prospect_email}`}>{r.prospect_email}</a>
+              </dd>
+            </>
+          ) : null}
+          {r.notes ? (
+            <>
+              <dt className="text-ink-muted">Note:</dt>
+              <dd className="m-0 whitespace-pre-line">{r.notes}</dd>
+            </>
+          ) : null}
+        </dl>
         {r.amount !== null ? (
           <span className="text-ink-soft text-[15px]">
             Value: <strong>{formatMoney(r.amount)}</strong>

@@ -9,12 +9,12 @@ import { type LoginNotice, loginNotices } from '@/lib/approval';
 import { idle, loginSchema } from '@/lib/validation';
 import { signInWithPassword } from '../actions/auth';
 
-export function LoginForms({ next, linkError, notice }: { next: string; linkError: boolean; notice: LoginNotice | null }) {
+export function LoginForms({ next, linkError, notice, className = '' }: { next: string; linkError: boolean; notice: LoginNotice | null; className?: string }) {
   const [pwState, pwAction] = useActionState(signInWithPassword, idle);
   const pwV = useClientValidation(loginSchema);
 
   return (
-    <div className="border-line bg-surface min-w-0 flex-[1_1_400px] overflow-hidden rounded-[20px] border">
+    <div className={`border-line bg-surface min-w-0 flex-[1_1_400px] overflow-hidden rounded-[20px] border ${className}`}>
       <div className="flex flex-col gap-4 p-7">
         <h2 className="font-display m-0 text-2xl">Welcome back</h2>
         {notice && !pwState.message ? <Notice tone={notice === 'confirmed' ? 'success' : 'info'}>{loginNotices[notice]}</Notice> : null}

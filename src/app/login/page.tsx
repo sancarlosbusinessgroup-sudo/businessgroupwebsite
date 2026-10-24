@@ -42,7 +42,13 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             ))}
           </ul>
         </div>
-        <LoginForms next={next} linkError={sp.error === 'link'} notice={isLoginNotice(sp.notice) ? sp.notice : null} />
+        {/* On phones (stacked layout) the login box comes first, so nobody has to scroll to log in (owner, 2026-10-24). */}
+        <LoginForms
+          next={next}
+          linkError={sp.error === 'link'}
+          notice={isLoginNotice(sp.notice) ? sp.notice : null}
+          className="max-[899px]:-order-1"
+        />
       </section>
       <section className="bg-band">
         <div className="text-on-band-muted mx-auto flex max-w-[820px] flex-col gap-3 px-6 py-14 text-center">

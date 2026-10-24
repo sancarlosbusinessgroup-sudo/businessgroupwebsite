@@ -346,6 +346,12 @@
     font-weight: 600;
     color: var(--ink-soft);
   }
+  /* Wide tables scroll inside their box on phones. The box must be a containing block, or screen-reader-only text
+     (position: absolute) inside the table escapes it and makes the whole page wider than the phone, so mobile browsers
+     zoom out and the page looks squeezed into a narrow column (owner report, 2026-10-24). */
+  .overflow-x-auto {
+    position: relative;
+  }
   .data-table {
     border-collapse: collapse;
     width: 100%;

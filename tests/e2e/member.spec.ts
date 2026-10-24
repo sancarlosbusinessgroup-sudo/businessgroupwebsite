@@ -122,6 +122,8 @@ test.describe('member area', () => {
     await page.getByLabel('Refer to member').selectOption({ label: 'Riley Second · Second Test Bakery' });
     await page.getByLabel('Prospect name').fill('Wedding cake client');
     await page.getByLabel('Prospect phone').fill('(650) 555-0199');
+    await page.getByLabel('Prospect email').fill('bride@example.org');
+    await page.getByLabel('Notes').fill('Wants a three-tier cake for June.');
     await expect(page.getByLabel('Temperature')).toHaveCount(0);
     await expect(page.getByLabel('The prospect has agreed to be contacted')).toHaveCount(0);
     await page.getByLabel('Referral value ($)').fill('abc');
@@ -130,9 +132,21 @@ test.describe('member area', () => {
     await page.getByLabel('Referral value ($)').fill('3,000');
     await page.getByRole('button', { name: 'Send referral slip' }).click();
     await expect(page.getByText('Referral slip sent.')).toBeVisible();
+    // Labelled details, including the note, on the giver's record (owner, 2026-10-24).
+    const labelled = async (slip: import('@playwright/test').Locator) => {
+      await expect(slip.getByText('Name of Referral:')).toBeVisible();
+      await expect(slip.getByText('Phone:')).toBeVisible();
+      await expect(slip.getByText('Email:')).toBeVisible();
+      await expect(slip.getByText('Note:')).toBeVisible();
+      await expect(slip.getByText('Wants a three-tier cake for June.')).toBeVisible();
+      await expect(slip.getByRole('link', { name: 'bride@example.org' })).toBeVisible();
+    };
+    await labelled(page.getByRole('region', { name: 'Referrals I gave' }).getByRole('listitem').filter({ hasText: 'Wedding cake client' }));
 
     await page.getByRole('button', { name: 'Log out' }).click();
     await login(page, users.member2, undefined, '/referrals');
+    await labelled(page.getByRole('region', { name: 'Referrals I received' }).getByRole('listitem').filter({ hasText: 'Wedding cake client' }));
+    await expectAccessible(page);
     const form = page.getByRole('form', { name: 'Update referral: Wedding cake client' });
     await expect(page.getByText('(650) 555-0199')).toBeVisible();
     await expect(page.getByRole('listitem').filter({ hasText: 'Wedding cake client' }).getByText('$3,000')).toBeVisible();
