@@ -36,6 +36,7 @@ describe('email templates', () => {
         inviters: [],
         events: [],
       }),
+      t.guestZoomLinkEmail({ siteUrl, firstName: 'Gus', when: 'Mon, Oct 26 at 8:15 AM PT', joinUrl: 'https://zoom.example/j/1' }),
       t.adminDigestEmail({
         siteUrl,
         firstName: 'Ana',
@@ -164,5 +165,22 @@ describe('email templates', () => {
       events: [],
     });
     expect(none.text).not.toMatch(/welcome today’s visitors/i);
+  });
+
+  it('guest Zoom link email: the join button, meeting time, passcode when there is one, what to bring', () => {
+    const e = t.guestZoomLinkEmail({
+      siteUrl,
+      firstName: 'Kenia',
+      when: 'Mon, Oct 26 at 8:15 AM PT',
+      joinUrl: 'https://zoom.example/j/1?pwd=x',
+      passcode: '123456',
+    });
+    expect(e.subject).toBe('Your Zoom link for Bay Area Referral Partners, Mon, Oct 26 at 8:15 AM PT');
+    expect(e.html).toContain('href="https://zoom.example/j/1?pwd=x"');
+    expect(e.text).toContain('Join on Zoom: https://zoom.example/j/1?pwd=x');
+    expect(e.text).toContain('Passcode: 123456');
+    expect(e.text).toContain('60-second introduction');
+    expect(e.text).not.toContain('/profile?tab=edit#email');
+    expect(t.guestZoomLinkEmail({ siteUrl, firstName: 'K', when: 'W', joinUrl: 'https://zoom.example/j/1' }).text).not.toContain('Passcode');
   });
 });

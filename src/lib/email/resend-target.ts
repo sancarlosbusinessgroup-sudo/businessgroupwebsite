@@ -2,7 +2,15 @@
 // Pure (no database) so it can be unit-tested; the resend itself is in resend.ts.
 
 export type ResendEvent =
-  'referral_sent' | 'referral_updated' | 'one_on_one_reported' | 'one_on_one_requested' | 'one_on_one_answered' | 'guest_request' | 'welcome' | 'apply_invite';
+  | 'referral_sent'
+  | 'referral_updated'
+  | 'one_on_one_reported'
+  | 'one_on_one_requested'
+  | 'one_on_one_answered'
+  | 'guest_request'
+  | 'welcome'
+  | 'apply_invite'
+  | 'guest_zoom_link';
 
 export type ResendTarget = { event: ResendEvent; id: string; extra?: string };
 
@@ -29,5 +37,6 @@ export function resendTarget(kind: string, dedupeKey: string): ResendTarget | nu
   if (rest.length || !id || !extra || !UUID.test(id)) return null;
   if (kind === 'referral_status' && /^[a-z_]+$/.test(extra)) return { event: 'referral_updated', id, extra };
   if (kind === 'apply_invite' && /^\d{4}-\d{2}-\d{2}$/.test(extra)) return { event: 'apply_invite', id, extra };
+  if (kind === 'guest_zoom_link' && /^\d{4}-\d{2}-\d{2}$/.test(extra)) return { event: 'guest_zoom_link', id, extra };
   return null;
 }

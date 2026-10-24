@@ -241,3 +241,49 @@ export async function sendApplyInvite(guestId: string, day: string): Promise<'se
     email: T.applyInviteEmail({ siteUrl: siteUrl(), firstName: g.first_name, link }),
   });
 }
+
+export type ZoomLinkResult = 'sent' | 'skipped' | 'failed' | 'duplicate' | 'not_found' | 'no_meeting' | 'no_link';
+
+/**
+ * Admin "Send Zoom link" on the guest list (owner, 2026-10-24): email the guest the Zoom link for the meeting they
+ * chose, or the next regular meeting if they chose none or it has passed. At most once a day per guest.
+ */
+export async function sendGuestZoomLink(guestId: string, day: string): Promise<ZoomLinkResult> {
+  const db = createAdminClient();
+  if (!db) return 'skipped';
+  const { data: g } = await db.from('guest_requests').select('id, first_name, last_name, email, meeting_id').eq('id', guestId).maybeSingle();
+  if (!g) return 'not_found';
+  const nowIso = new Date().toISOString();
+  const fields = 'id, starts_at, ends_at, cancelled_reason';
+  const { data: chosen } = g.meeting_id ? await db.from('meetings').select(fields).eq('id', g.meeting_id).maybeSingle() : { data: null };
+  const meeting =
+    chosen && !chosen.cancelled_reason && chosen.ends_at > nowIso
+      ? chosen
+      : (
+          await db
+            .from('meetings')
+            .select(fields)
+            .eq('category', 'Networking')
+            .is('cancelled_reason', null)
+            .gt('ends_at', nowIso)
+            .order('starts_at')
+            .limit(1)
+            .maybeSingle()
+        ).data;
+  if (!meeting) return 'no_meeting';
+  const { data: link } = await db.from('meeting_links').select('join_url, passcode').eq('meeting_id', meeting.id).maybeSingle();
+  if (!link?.join_url) return 'no_link';
+  const start = new Date(meeting.starts_at);
+  return deliver({
+    kind: 'guest_zoom_link',
+    dedupeKey: `${g.id}:${day}`,
+    to: { email: g.email, name: `${g.first_name} ${g.last_name}` },
+    email: T.guestZoomLinkEmail({
+      siteUrl: siteUrl(),
+      firstName: g.first_name,
+      when: `${formatMeetingDate(start)} at ${formatMeetingTime(start)} PT`,
+      joinUrl: link.join_url,
+      passcode: link.passcode,
+    }),
+  });
+}

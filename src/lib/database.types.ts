@@ -348,6 +348,7 @@ export type Database = {
           invited_by_text: string | null;
           last_name: string;
           meeting_id: string | null;
+          one_on_ones_done_at: string | null;
           phone: string | null;
           website: string | null;
           referral_code: string | null;
@@ -363,6 +364,7 @@ export type Database = {
           invited_by_text?: string | null;
           last_name: string;
           meeting_id?: string | null;
+          one_on_ones_done_at?: string | null;
           phone?: string | null;
           website?: string | null;
           referral_code?: string | null;
@@ -378,6 +380,7 @@ export type Database = {
           invited_by_text?: string | null;
           last_name?: string;
           meeting_id?: string | null;
+          one_on_ones_done_at?: string | null;
           phone?: string | null;
           website?: string | null;
           referral_code?: string | null;

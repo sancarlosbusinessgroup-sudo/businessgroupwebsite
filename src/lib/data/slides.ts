@@ -44,7 +44,7 @@ export type DeckData = {
   leaders: LeaderRow[];
   events: CalendarItem[];
   next: (MeetingWithSpeakers & { five: SpeakerCard | null; ten: SpeakerCard | null }) | null;
-  /** BARP Champion slide: last month's champion at the month's first meeting, otherwise this month's leaders so far. */
+  /** BARP Champion slide: the chosen champion (this month's, else last month's) at every meeting; otherwise this month's leaders so far. */
   champion: { award: ChampionAward | null; monthLabel: string; leaders: { id: string; name: string; points: number; avatar: string | null }[] };
 };
 
@@ -210,18 +210,11 @@ async function loadChampionSlide(startsAt: string, meetingId: string, saved: rea
   if (!resolveSlides(saved).includes('champion')) return empty;
   try {
     const supabase = await createClient();
-    const { from } = monthRange(month);
-    const { count } = await supabase
-      .from('meetings')
-      .select('id', { count: 'exact', head: true })
-      .eq('category', 'Networking')
-      .is('cancelled_reason', null)
-      .gte('starts_at', from)
-      .lt('starts_at', startsAt)
-      .neq('id', meetingId);
-    const lastMonthKey = monthRange(previousMonth(month)).key;
-    const award = (await getChampionAwards(3)).find((a) => a.month === lastMonthKey) ?? null;
-    if (award && !count) return { ...empty, award };
+    // A champion chosen by an admin always wins: this month's if one is already chosen, otherwise last month's
+    // (the reigning champion). Only when neither exists does the slide show this month's automatic leaders.
+    const awards = await getChampionAwards(3);
+    const award = awards.find((a) => a.month === monthRange(month).key) ?? awards.find((a) => a.month === monthRange(previousMonth(month)).key) ?? null;
+    if (award) return { ...empty, award };
     const { rows } = await getChampionRanking(month);
     const top = rows.filter((r) => r.eligible).slice(0, 3);
     const { data: pics } = top.length

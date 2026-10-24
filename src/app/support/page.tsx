@@ -1,11 +1,8 @@
 import type { Metadata } from 'next';
-import { Avatar, PageHero } from '@/components/ui';
-import { site, supportFaq, supportTeam, supportTopics } from '@/lib/content';
+import { PageHero } from '@/components/ui';
+import { site, supportFaq, supportIntro, supportTeam, supportTopics } from '@/lib/content';
 import { tidioConfigFromEnv } from '@/lib/chat';
-import Image from 'next/image';
 import { requireMember } from '@/lib/auth';
-import { mediaUrl } from '@/lib/env';
-import { createClient } from '@/lib/supabase/server';
 import { SupportChatButton } from './SupportChatButton';
 
 const bands = ['bg-teal-tint', 'bg-green-tint', 'bg-amber-tint'];
@@ -15,15 +12,6 @@ export const metadata: Metadata = { title: 'Support' };
 export default async function SupportPage() {
   // Members only (owner, 2026-10-23).
   await requireMember('/support');
-  const supabase = await createClient();
-  const { data: rows } = await supabase
-    .from('profiles')
-    .select('slug, avatar_path, about')
-    .in(
-      'slug',
-      supportTeam.map((t) => t.slug),
-    );
-  const profiles = new Map((rows ?? []).map((r) => [r.slug, r]));
   const chatEnabled = tidioConfigFromEnv() !== null;
   return (
     <>
@@ -53,30 +41,28 @@ export default async function SupportPage() {
             Your support team
           </h2>
         </div>
-        {/* Profile boxes with each person's photo and description from their member profile (owner, 2026-10-23). */}
-        <ul className="m-0 grid list-none grid-cols-1 gap-5 p-0 md:grid-cols-3">
-          {supportTeam.map((t, i) => {
-            const prof = profiles.get(t.slug);
-            const photo = mediaUrl('profile-media', prof?.avatar_path);
-            return (
-              <li key={t.name} className="card flex flex-col overflow-hidden">
-                <span className={`relative flex aspect-[4/3] items-center justify-center overflow-hidden ${bands[i % bands.length]}`}>
-                  {photo ? (
-                    <Image src={photo} alt="" fill sizes="(max-width: 768px) 100vw, 380px" className="object-cover object-top" />
-                  ) : (
-                    <span className="bg-surface flex h-[130px] w-[130px] items-center justify-center rounded-full">
-                      <Avatar name={t.name} size={116} index={i} />
-                    </span>
-                  )}
-                </span>
-                <div className="flex flex-1 flex-col gap-1.5 p-5">
-                  <h3 className="font-display text-heading m-0 text-xl font-bold">{t.name}</h3>
-                  <p className="text-teal-text m-0 font-semibold">{t.role}</p>
-                  {prof?.about ? <p className="text-ink-soft m-0 text-[15px] leading-relaxed whitespace-pre-line">{prof.about}</p> : null}
-                </div>
-              </li>
-            );
-          })}
+        <p className="text-ink-soft m-0 max-w-[68ch] text-[17px] leading-relaxed">{supportIntro}</p>
+        {/* Photo placeholders until the owner sends the team's photos (owner, 2026-10-24). */}
+        <ul className="m-0 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-3">
+          {supportTeam.map((t, i) => (
+            <li key={t.name} className="flex flex-col gap-3">
+              <figure
+                role="img"
+                aria-label={`Photo of ${t.name} coming soon`}
+                className={`border-line-strong text-ink-muted m-0 flex aspect-[4/5] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed ${bands[i % bands.length]}`}
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-12 w-12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+                </svg>
+                <span className="text-sm font-semibold">Photo coming soon</span>
+              </figure>
+              <div className="flex flex-col gap-0.5">
+                <h3 className="font-display text-heading m-0 text-xl font-bold">{t.name}</h3>
+                <p className="text-teal-text m-0 font-semibold">{t.role}</p>
+              </div>
+            </li>
+          ))}
         </ul>
       </section>
 

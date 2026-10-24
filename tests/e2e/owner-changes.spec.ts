@@ -229,9 +229,18 @@ test.describe('banners, directory, profile and support (second request of the da
         .first()
         .locator('img[src*="hero-bridge"]'),
     ).toBeAttached();
-    // Profile boxes: photo (or initials) and name for each person (owner, 2026-10-23).
-    for (const n of ['Cedrick Velasco', 'Shermaine Benolirao', 'Rachanee Munar'])
-      await expect(page.getByRole('region', { name: 'Your support team' }).getByRole('heading', { level: 3, name: n })).toBeVisible();
+    // Introduction and a photo placeholder, name and role for each person (owner, 2026-10-24; profile boxes removed).
+    const team = page.getByRole('region', { name: 'Your support team' });
+    await expect(team.getByText(/^Lorem ipsum dolor sit amet/)).toBeVisible();
+    for (const [n, role] of [
+      ['Cedrick Velasco', 'Operations Manager'],
+      ['Shermaine Benolirao', 'Operations Director'],
+      ['Rachanee Munar', 'Web Developer'],
+    ] as const) {
+      await expect(team.getByRole('heading', { level: 3, name: n })).toBeVisible();
+      await expect(team.getByRole('img', { name: `Photo of ${n} coming soon` })).toBeVisible();
+      await expect(team.getByText(role, { exact: true })).toBeVisible();
+    }
     await page.getByText('How do I change my photo?').click();
     await expect(page.getByText(/open My profile and choose “Change photo”/)).toBeVisible();
     await page.getByRole('button', { name: 'Chat with support' }).first().click();

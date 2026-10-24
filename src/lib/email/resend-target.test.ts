@@ -19,6 +19,7 @@ describe('resendTarget', () => {
   it('keeps the extra part of keyed notices (referral status, invite day)', () => {
     expect(resendTarget('referral_status', `${ID}:closed_deal`)).toEqual({ event: 'referral_updated', id: ID, extra: 'closed_deal' });
     expect(resendTarget('apply_invite', `${ID}:2026-10-23`)).toEqual({ event: 'apply_invite', id: ID, extra: '2026-10-23' });
+    expect(resendTarget('guest_zoom_link', `${ID}:2026-10-24`)).toEqual({ event: 'guest_zoom_link', id: ID, extra: '2026-10-24' });
   });
 
   it('refuses scheduled emails (a late reminder or digest is no use) and malformed keys', () => {
@@ -27,5 +28,6 @@ describe('resendTarget', () => {
     expect(resendTarget('referral_received', 'not-an-id')).toBeNull();
     expect(resendTarget('referral_status', ID)).toBeNull();
     expect(resendTarget('apply_invite', `${ID}:yesterday`)).toBeNull();
+    expect(resendTarget('guest_zoom_link', ID)).toBeNull();
   });
 });

@@ -5,7 +5,7 @@ import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { onMemberStatus, sendApplyInvite, syncNewsletterList } from '@/lib/email/events';
+import { onMemberStatus, sendApplyInvite, sendGuestZoomLink, syncNewsletterList } from '@/lib/email/events';
 import { localDateKey } from '@/lib/dates';
 import { resendFailedEmail } from '@/lib/email/resend';
 import { safely } from '@/lib/email/notify';
@@ -191,4 +191,42 @@ export async function inviteToApply(_prev: ActionState, formData: FormData): Pro
   if (r === 'duplicate') return { status: 'success', message: 'Already sent today.' };
   if (r === 'skipped') return { status: 'error', message: 'Email is not set up yet.' };
   return { status: 'error', message: 'Could not send. Try again.' };
+}
+
+/** Admin "Send Zoom link" on the guest list (owner, 2026-10-24). */
+export async function sendZoomLink(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const id = z.uuid().safeParse(formData.get('id'));
+  if (!id.success) return { status: 'error', message: GENERIC };
+  const supabase = await createClient();
+  const { data: isAdmin } = await supabase.rpc('is_admin');
+  if (!isAdmin) return { status: 'error', message: 'Admins only.' };
+  const r = await sendGuestZoomLink(id.data, localDateKey(new Date()));
+  revalidatePath('/admin');
+  switch (r) {
+    case 'sent':
+      return { status: 'success', message: 'Zoom link sent.' };
+    case 'duplicate':
+      return { status: 'success', message: 'Already sent today.' };
+    case 'skipped':
+      return { status: 'error', message: 'Email is not set up yet.' };
+    case 'no_meeting':
+      return { status: 'error', message: 'No upcoming meeting to send a link for.' };
+    case 'no_link':
+      return { status: 'error', message: 'That meeting has no Zoom link saved yet.' };
+    default:
+      return { status: 'error', message: 'Could not send. Try again.' };
+  }
+}
+
+/** Admin "Done?" in the guest list's One-on-ones column: the guest's one-on-ones with leadership are done (or undo). */
+export async function setGuestOneOnOnes(formData: FormData): Promise<void> {
+  const id = z.uuid().safeParse(formData.get('id'));
+  if (!id.success) return;
+  const done = formData.get('done') === 'true';
+  const supabase = await createClient();
+  await supabase
+    .from('guest_requests')
+    .update({ one_on_ones_done_at: done ? new Date().toISOString() : null })
+    .eq('id', id.data);
+  revalidatePath('/admin');
 }

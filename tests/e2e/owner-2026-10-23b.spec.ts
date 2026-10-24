@@ -106,6 +106,55 @@ test('champion slide: at the first meeting of a month it shows last month’s ch
   }
 });
 
+test('champion slide: a champion chosen by an admin shows at every meeting of the month, not the automatic leaders (owner, 2026-10-24)', async ({ page }) => {
+  const riley = await idOf(users.member2);
+  const morgan = await idOf(users.member);
+  // Two meetings in March 2028; the second is not the month's first meeting.
+  const made = [
+    ...(await rest('meetings', 'POST', {
+      slug: `champion-first-${Date.now()}`,
+      title: 'Champion first meeting',
+      category: 'Networking',
+      starts_at: '2028-03-06T16:15:00Z',
+      ends_at: '2028-03-06T17:30:00Z',
+    })),
+    ...(await rest('meetings', 'POST', {
+      slug: `champion-later-${Date.now()}`,
+      title: 'Champion later meeting',
+      category: 'Networking',
+      starts_at: '2028-03-20T15:15:00Z',
+      ends_at: '2028-03-20T16:30:00Z',
+    })),
+  ];
+  await rest('champion_awards', 'POST', { month: '2028-02-01', profile_id: riley, reason: 'Chosen for February', points: { points: 12 } });
+  const champion = async () => {
+    await page.goto(`/present/${made[1]?.slug}`);
+    const deck = page.getByRole('region', { name: 'Meeting slides' });
+    for (let i = 0; i < 20; i++) {
+      if (await deck.getByRole('heading', { name: 'BARP Champion' }).isVisible()) break;
+      await page.keyboard.press('ArrowRight');
+    }
+    return deck.getByRole('group').filter({ visible: true });
+  };
+  try {
+    await login(page, users.member, undefined, '/dashboard');
+    // Later in March: February's chosen champion, not "Leading March so far".
+    let slide = await champion();
+    await expect(slide.getByText('February 2028')).toBeVisible();
+    await expect(slide.getByText('Riley Second')).toBeVisible();
+    await expect(slide.getByText(/Leading .* so far/)).toHaveCount(0);
+    await expect(slide.getByTestId('fireworks')).toBeAttached();
+    // A champion chosen for March itself takes over.
+    await rest('champion_awards', 'POST', { month: '2028-03-01', profile_id: morgan, reason: 'Chosen for March', points: { points: 20 } });
+    slide = await champion();
+    await expect(slide.getByText('March 2028')).toBeVisible();
+    await expect(slide.getByText('Morgan Member')).toBeVisible();
+  } finally {
+    await rest('champion_awards?month=in.(2028-02-01,2028-03-01)', 'DELETE');
+    for (const m of made) await rest(`meetings?id=eq.${m.id}`, 'DELETE');
+  }
+});
+
 test('a member deletes their own account; shared referral slips stay as “Former member”', async ({ page }) => {
   const key = await serviceKey();
   const email = `leaving.${Date.now()}@example.test`;

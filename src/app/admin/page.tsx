@@ -11,7 +11,8 @@ import { absencesFor, memberSince } from '@/lib/data/attendance';
 import { ABSENCE_LIMIT, parseZoomMeetingId } from '@/lib/zoom';
 import { zoomConfigured } from '@/lib/zoom-api';
 import Link from 'next/link';
-import { resolveCorrection, setGuestStatus, setMemberStatus } from '../actions/admin';
+import { resolveCorrection, setGuestOneOnOnes, setGuestStatus, setMemberStatus } from '../actions/admin';
+import { SendZoomLinkButton } from './SendZoomLinkButton';
 import { InviteToApplyButton } from './InviteToApplyButton';
 import { ResendEmailButton } from './ResendEmailButton';
 import { resendTarget } from '@/lib/email/resend-target';
@@ -29,7 +30,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { error, zoomError } = await searchParams;
   await requireAdmin();
   const supabase = await createClient();
-  const [pendingRes, guestsRes, corrRes, seats, downloadsRes, schedule, onboardRes, mailRes, invitesRes] = await Promise.all([
+  const [pendingRes, guestsRes, corrRes, seats, downloadsRes, schedule, onboardRes, mailRes, invitesRes, zoomSentRes] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -39,7 +40,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       .order('created_at'),
     supabase
       .from('guest_requests')
-      .select('id, first_name, last_name, email, business_name, phone, website, invited_by_text, status, created_at')
+      .select('id, first_name, last_name, email, business_name, phone, website, invited_by_text, status, created_at, one_on_ones_done_at')
       .order('created_at', { ascending: false })
       .limit(50),
     supabase
@@ -65,6 +66,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       .order('created_at', { ascending: false })
       .limit(25),
     supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'apply_invite').eq('status', 'sent').order('created_at').limit(500),
+    supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'guest_zoom_link').eq('status', 'sent').order('created_at').limit(500),
   ]);
   const next = await getNextMeeting();
   const { data: nextLink } = next ? await supabase.from('meeting_links').select('join_url').eq('meeting_id', next.id).maybeSingle() : { data: null };
@@ -79,7 +81,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   );
   const atLimit = (approved ?? []).filter((p) => absences.get(p.id)?.atLimit);
   const invitedOn = new Map((invitesRes.data ?? []).map((r) => [r.dedupe_key.split(':')[0], formatShortDate(new Date(r.created_at))]));
+  const zoomSentOn = new Map((zoomSentRes.data ?? []).map((r) => [r.dedupe_key.split(':')[0], formatShortDate(new Date(r.created_at))]));
   if (pendingRes.error || guestsRes.error || corrRes.error || downloadsRes.error) throw new Error('Could not load admin data');
+  // Guests who have applied: their pending membership application, matched by email (for "Application approval").
+  const pendingByEmail = new Map(
+    pendingRes.data.flatMap((p) => {
+      const c = Array.isArray(p.member_contacts) ? p.member_contacts[0] : p.member_contacts;
+      return c?.email ? [[c.email.toLowerCase(), { id: p.id, name: `${p.first_name} ${p.last_name}` }] as const] : [];
+    }),
+  );
 
   return (
     <div className="bg-canvas">
@@ -238,8 +248,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             Guest invite requests
           </h2>
           <p className="text-ink-muted m-0 text-sm">
-            After a guest has visited and the leadership team agrees, use <strong>Invite to apply</strong> to email them the membership application form,
-            already filled in with their name and email.
+            <strong>Send Zoom link</strong> emails the guest the Zoom link for their meeting. After they have visited and the leadership team agrees, use{' '}
+            <strong>Invite to apply</strong> to email them the membership application form, already filled in with their name and email. Mark their one-on-ones
+            with the leadership team as done, then <strong>Approved</strong> approves their application and emails them their welcome.
           </p>
           {guestsRes.data.length === 0 ? (
             <EmptyState title="No guest requests yet" />
@@ -251,10 +262,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   <tr>
                     <th scope="col">Guest</th>
                     <th scope="col">Email</th>
+                    <th scope="col">Phone</th>
                     <th scope="col">Invited by</th>
                     <th scope="col">Requested</th>
+                    <th scope="col">Zoom link</th>
                     <th scope="col">Status</th>
                     <th scope="col">Application</th>
+                    <th scope="col">One-on-ones</th>
+                    <th scope="col">Application approval</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -265,10 +280,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                           {g.first_name} {g.last_name}
                         </strong>
                         <div className="text-ink-muted text-sm">{g.business_name}</div>
-                      </td>
-                      <td>
-                        <a href={`mailto:${g.email}`}>{g.email}</a>
-                        {g.phone ? <div className="text-sm">{g.phone}</div> : null}
                         {g.website ? (
                           <div className="text-sm">
                             <a href={g.website} target="_blank" rel="noopener noreferrer">
@@ -277,8 +288,19 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                           </div>
                         ) : null}
                       </td>
+                      <td>
+                        <a href={`mailto:${g.email}`}>{g.email}</a>
+                      </td>
+                      <td className="whitespace-nowrap">{g.phone ?? '—'}</td>
                       <td>{g.invited_by_text ?? '—'}</td>
-                      <td>{formatShortDate(new Date(g.created_at))}</td>
+                      <td className="whitespace-nowrap">{formatShortDate(new Date(g.created_at))}</td>
+                      <td>
+                        {g.status === 'joined' ? (
+                          '—'
+                        ) : (
+                          <SendZoomLinkButton id={g.id} name={`${g.first_name} ${g.last_name}`} sentOn={zoomSentOn.get(g.id) ?? null} />
+                        )}
+                      </td>
                       <td>
                         {g.status === 'requested' ? (
                           <form action={setGuestStatus}>
@@ -302,6 +324,56 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                         ) : (
                           '—'
                         )}
+                      </td>
+                      <td>
+                        {g.one_on_ones_done_at ? (
+                          <div className="flex flex-col items-start gap-1">
+                            <Pill tone="green">Done</Pill>
+                            <form action={setGuestOneOnOnes}>
+                              <input type="hidden" name="id" value={g.id} />
+                              <input type="hidden" name="done" value="false" />
+                              <button type="submit" className="text-teal-text cursor-pointer border-0 bg-transparent p-0 text-sm underline">
+                                Undo
+                                <span className="sr-only">
+                                  {' '}
+                                  one-on-ones for {g.first_name} {g.last_name}
+                                </span>
+                              </button>
+                            </form>
+                          </div>
+                        ) : (
+                          <form action={setGuestOneOnOnes}>
+                            <input type="hidden" name="id" value={g.id} />
+                            <input type="hidden" name="done" value="true" />
+                            <button type="submit" className="btn btn-outline btn-sm">
+                              Done?
+                              <span className="sr-only">
+                                {' '}
+                                Mark one-on-ones done for {g.first_name} {g.last_name}
+                              </span>
+                            </button>
+                          </form>
+                        )}
+                      </td>
+                      <td>
+                        {(() => {
+                          if (g.status === 'joined') return <Pill tone="green">Approved</Pill>;
+                          const applicant = pendingByEmail.get(g.email.toLowerCase());
+                          if (!applicant) return <span className="text-ink-muted text-sm">Waiting for their application</span>;
+                          return (
+                            <form action={setMemberStatus}>
+                              <input type="hidden" name="id" value={applicant.id} />
+                              <input type="hidden" name="status" value="approved" />
+                              <button type="submit" className="btn btn-primary btn-sm">
+                                Approved
+                                <span className="sr-only">
+                                  {' '}
+                                  (approve the application of {g.first_name} {g.last_name})
+                                </span>
+                              </button>
+                            </form>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))}

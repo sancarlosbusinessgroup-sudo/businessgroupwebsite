@@ -768,7 +768,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       }
       case 'champion': {
-        // BARP Champion (owner, 2026-10-23): last month's champion at the month's first meeting, otherwise the leaders so far.
+        // BARP Champion (owner, 2026-10-23/24): the chosen champion at every meeting (this month's, else last month's), otherwise the leaders so far.
         const c = d.champion;
         const award = c.award;
         if (award) {

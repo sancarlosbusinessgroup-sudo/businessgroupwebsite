@@ -161,6 +161,7 @@ test.describe('email notifications', () => {
     await page.getByLabel('First name').fill('Gail');
     await page.getByLabel('Last name').fill('Visitor');
     await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Phone').fill('650-555-0124');
     await page.getByRole('button', { name: 'Send my invite request' }).click();
     await expect(page.getByText("You're on the list, Gail!")).toBeVisible();
     expect(await emailsTo(email, /^Thanks for your interest/)).toHaveLength(1);

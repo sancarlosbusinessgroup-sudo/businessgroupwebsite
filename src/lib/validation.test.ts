@@ -50,7 +50,7 @@ const okJoin = {
 
 describe('guestRequestSchema', () => {
   it('accepts a valid request and normalises the email', () => {
-    const r = guestRequestSchema.safeParse({ firstName: 'A', lastName: 'B', email: ' A@Example.org ', company: '' });
+    const r = guestRequestSchema.safeParse({ firstName: 'A', lastName: 'B', email: ' A@Example.org ', phone: '650-555-0100', company: '' });
     expect(r.success).toBe(true);
     expect(r.success && r.data.email).toBe('a@example.org');
   });
@@ -60,6 +60,13 @@ describe('guestRequestSchema', () => {
     const errs = fieldErrors(r.error!);
     expect(errs.email).toBeDefined();
     expect(errs.company).toBeDefined();
+  });
+  it('requires a phone number and checks the optional website (owner, 2026-10-24)', () => {
+    const r = guestRequestSchema.safeParse({ firstName: 'A', lastName: 'B', email: 'a@example.org', website: 'example.org' });
+    const errs = fieldErrors(r.error!);
+    expect(errs.phone).toBe('Phone is required');
+    expect(errs.website).toBeDefined();
+    expect(guestRequestSchema.safeParse({ firstName: 'A', lastName: 'B', email: 'a@example.org', phone: 'call me' }).success).toBe(false);
   });
 });
 

@@ -161,10 +161,14 @@ export const barpSheetUrl = 'https://docs.google.com/spreadsheets/d/12kjnHPKlKJU
 
 /** Support page (owner request, 2026-10-17). */
 export const supportTeam = [
-  { name: 'Cedrick Velasco', role: 'Support', slug: 'cedrick-admin' },
-  { name: 'Shermaine Benolirao', role: 'Support', slug: 'shermaine-admin' },
-  { name: 'Rachanee Munar', role: 'Support', slug: 'rachanee-admin' },
+  { name: 'Cedrick Velasco', role: 'Operations Manager' },
+  { name: 'Shermaine Benolirao', role: 'Operations Director' },
+  { name: 'Rachanee Munar', role: 'Web Developer' },
 ] as const;
+
+/** Support page introduction. Placeholder text until the owner sends the real paragraph (2026-10-24). */
+export const supportIntro =
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.';
 
 export const supportTopics = [
   { title: 'Logging in', text: 'First-time sign-in, forgotten passwords and email codes.' },

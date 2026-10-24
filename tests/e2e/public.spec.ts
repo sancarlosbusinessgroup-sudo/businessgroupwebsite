@@ -196,6 +196,7 @@ test.describe('guest invite form', () => {
     await page.getByRole('button', { name: 'Send my invite request' }).click();
     await expect(page.getByText('First name is required')).toBeVisible();
     await expect(page.getByText('Last name is required')).toBeVisible();
+    await expect(page.getByText('Phone is required')).toBeVisible();
     await page.getByLabel('Email').fill('not-an-email');
     await page.getByRole('button', { name: 'Send my invite request' }).click();
     await expect(page.getByText('Enter a valid email address')).toBeVisible();
@@ -209,6 +210,7 @@ test.describe('guest invite form', () => {
     await page.getByLabel('First name').fill('Gina');
     await page.getByLabel('Last name').fill('Guest');
     await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Phone').fill('650-555-0123');
     await page.getByLabel('Business name').fill('Guest Co');
     await page.getByRole('button', { name: 'Send my invite request' }).click();
     await expect(page.getByText("You're on the list, Gina!")).toBeVisible();
@@ -216,7 +218,7 @@ test.describe('guest invite form', () => {
     expect(rows).toEqual([{ referrer_id: '00000000-0000-4000-8000-000000000001', status: 'requested' }]);
   });
 
-  test('saves the optional phone and website, checks the website, and says members will see the details', async ({ page }) => {
+  test('saves the phone and optional website, checks the website, and says members will see the details', async ({ page }) => {
     const email = `guest.contact.${Date.now()}@example.org`;
     await page.goto('/visit');
     await expect(page.getByText('we introduce visitors to our members by name, business and the contact details you give here')).toBeVisible();

@@ -3,9 +3,12 @@ import type { ReactNode } from 'react';
 import { Footer } from '@/components/site/Footer';
 import { Header } from '@/components/site/Header';
 import { LiveChat } from '@/components/site/LiveChat';
+import { MobileMeetingBar } from '@/components/site/MobileMeetingBar';
 import { getViewer } from '@/lib/auth';
 import { chatVisitor, tidioConfigFromEnv } from '@/lib/chat';
 import { site } from '@/lib/content';
+import { getNextMeeting } from '@/lib/data/public';
+import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
 import { env } from '@/lib/env';
 import { jakarta, sourceSans } from './fonts';
 import './globals.css';
@@ -25,14 +28,18 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const chat = tidioConfigFromEnv();
-  const viewer = chat ? await getViewer() : null;
+  const [viewer, next] = await Promise.all([getViewer(), getNextMeeting().catch(() => null)]);
   const approved = viewer?.profile?.status === 'approved';
+  const nextStart = next ? new Date(next.starts_at) : null;
   return (
     <html lang="en" className={`${jakarta.variable} ${sourceSans.variable}`}>
       <body>
         <Header />
         <main id="main">{children}</main>
         <Footer />
+        {next && nextStart ? (
+          <MobileMeetingBar meetingId={next.id} when={`${formatMeetingDate(nextStart)} · ${formatMeetingTime(nextStart)} PT`} member={approved} />
+        ) : null}
         {chat ? (
           <LiveChat {...chat} visitor={approved ? chatVisitor(viewer?.userId ?? null, viewer?.profile ?? null, viewer?.email ?? null) : undefined} />
         ) : null}

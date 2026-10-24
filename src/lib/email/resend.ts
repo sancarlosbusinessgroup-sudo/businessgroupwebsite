@@ -12,6 +12,7 @@ import {
   onReferralSent,
   onReferralUpdated,
   sendApplyInvite,
+  sendGuestZoomLink,
 } from './events';
 import { RETRY_MARK, inRetryScope } from './notify';
 import { type ResendTarget, resendTarget } from './resend-target';
@@ -52,6 +53,8 @@ async function rerun(t: ResendTarget): Promise<boolean> {
     }
     case 'apply_invite':
       return (await sendApplyInvite(t.id, t.extra ?? '')) !== 'not_found';
+    case 'guest_zoom_link':
+      return ['sent', 'failed', 'duplicate', 'skipped'].includes(await sendGuestZoomLink(t.id, t.extra ?? ''));
   }
 }
 

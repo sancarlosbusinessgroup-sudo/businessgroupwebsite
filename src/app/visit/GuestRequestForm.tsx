@@ -41,7 +41,7 @@ export function GuestRequestForm({ meetings, referralCode, referrerName }: { mee
       <TextField name="lastName" label="Last name" autoComplete="family-name" required defaultValue={v.lastName} error={errors.lastName} />
       <TextField name="email" type="email" label="Email" autoComplete="email" required defaultValue={v.email} error={errors.email} />
       <TextField name="businessName" label="Business name" autoComplete="organization" defaultValue={v.businessName} error={errors.businessName} />
-      <TextField name="phone" type="tel" label="Phone" autoComplete="tel" defaultValue={v.phone} error={errors.phone} />
+      <TextField name="phone" type="tel" label="Phone" autoComplete="tel" required defaultValue={v.phone} error={errors.phone} />
       <TextField name="website" type="url" label="Website" autoComplete="url" placeholder="https://" defaultValue={v.website} error={errors.website} />
       <TextField
         name="invitedBy"

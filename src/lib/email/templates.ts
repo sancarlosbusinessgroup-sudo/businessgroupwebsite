@@ -332,6 +332,28 @@ export function meetingReminderEmail(o: {
   };
 }
 
+/** Admin "Send Zoom link" on the guest list: the meeting's Zoom link for someone who requested an invite. */
+export function guestZoomLinkEmail(o: { siteUrl: string; firstName: string; when: string; joinUrl: string; passcode?: string | null }): Email {
+  return {
+    subject: `Your Zoom link for ${site.name}, ${o.when}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: 'Here is your link to join us as a guest.',
+      heading: `See you soon, ${o.firstName}!`,
+      blocks: [
+        { p: `Here is your link to join ${site.name} as our guest.` },
+        { list: [['When', o.when], ...(o.passcode ? ([['Passcode', o.passcode]] as [string, string][]) : [])] },
+        {
+          p: 'Please join a few minutes early with your camera on, and come ready with a 60-second introduction: your name, your business and who you help.',
+        },
+        { links: [['What to expect at the meeting', `${o.siteUrl}/visit`]] },
+      ],
+      cta: { label: 'Join on Zoom', href: o.joinUrl },
+      footer: `You get this email because you asked to visit ${site.name}.`,
+    }),
+  };
+}
+
 export function visitorFollowupEmail(o: { siteUrl: string; firstName: string }): Email {
   return {
     subject: `Thanks for visiting ${site.name}`,
