@@ -59,6 +59,17 @@ test.describe('member area', () => {
     await claim.getByLabel('Topic').fill('Three pricing mistakes');
     await claim.getByRole('button', { name: 'Claim' }).click();
     await expect(page.getByText('Three pricing mistakes').first()).toBeVisible();
+    // The presenter can change the title later; it is what the slides show (owner, 2026-10-24).
+    const edit = page.getByRole('form', { name: /^Topic of my 5-minute presentation/ }).first();
+    await expect(edit.getByLabel('Topic')).toHaveValue('Three pricing mistakes');
+    await edit.getByLabel('Topic').fill('x');
+    await edit.getByRole('button', { name: 'Save topic' }).click();
+    await expect(edit.getByText('Use at least 3 characters')).toBeVisible();
+    await edit.getByLabel('Topic').fill('Four pricing mistakes');
+    await edit.getByRole('button', { name: 'Save topic' }).click();
+    await expect(edit.getByText('Topic saved.')).toBeVisible();
+    await expect(page.getByText('“Four pricing mistakes”').first()).toBeVisible();
+    await expectAccessible(page);
     const release = page.getByRole('button', { name: /^Release my / }).first();
     await expect(release).toBeVisible();
     await release.click();

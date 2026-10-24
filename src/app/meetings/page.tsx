@@ -12,6 +12,7 @@ import { attendancePct } from '@/lib/stats';
 import { createClient } from '@/lib/supabase/server';
 import { joinMeeting, releaseSpeakerSlot } from '../actions/member';
 import { ClaimSlotForm } from './ClaimSlotForm';
+import { SpeakerTopicForm } from './SpeakerTopicForm';
 import { slotDescriptions, slotShort, slotTitles } from '@/lib/content';
 import { CorrectionForm } from './CorrectionForm';
 import { RsvpSelect } from './RsvpSelect';
@@ -169,6 +170,21 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                       ? (['education', 'presentation'] as const)
                           .filter((slot) => !speakerFor(m, slot))
                           .map((slot) => <ClaimSlotForm key={slot} meetingId={m.id} slot={slot} when={formatMeetingDate(start)} />)
+                      : null}
+                    {m.category === 'Networking' && !cancelled && start.getTime() > now.getTime()
+                      ? (['education', 'presentation'] as const)
+                          .map((slot) => ({ slot, s: speakerFor(m, slot) }))
+                          .filter(({ s }) => s?.profile_id === me.id)
+                          .map(({ slot, s }) => (
+                            <SpeakerTopicForm
+                              key={`topic-${slot}`}
+                              meetingId={m.id}
+                              slot={slot}
+                              when={formatMeetingDate(start)}
+                              topic={s?.topic ?? null}
+                              description={s?.topic_description ?? null}
+                            />
+                          ))
                       : null}
                   </li>
                 );

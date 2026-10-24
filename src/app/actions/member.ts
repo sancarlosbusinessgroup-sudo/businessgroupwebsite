@@ -94,6 +94,30 @@ export async function claimSpeakerSlot(_prev: ActionState, formData: FormData): 
   return { status: 'success' };
 }
 
+/** The presenter writes or changes the title of their own presentation; the slides show it (owner, 2026-10-24). */
+export async function updateSpeakerTopic(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formToObject(formData);
+  const id = uuid.safeParse(values.meetingId);
+  const slot = z.enum(['education', 'presentation']).safeParse(values.slot);
+  const topic = speakerTopicSchema.safeParse(values);
+  if (!id.success || !slot.success) return { status: 'error', message: GENERIC };
+  if (!topic.success) return { status: 'error', errors: fieldErrors(topic.error), values };
+  const { supabase, user } = await session();
+  if (!user) return { status: 'error', message: 'Please log in again.' };
+  const { error } = await supabase.rpc('set_speaker_topic', {
+    p_meeting: id.data,
+    p_slot: slot.data,
+    p_topic: topic.data.topic,
+    p_description: topic.data.topicDescription ?? '',
+  });
+  if (error) return { status: 'error', message: 'The topic could not be saved. Please refresh the page and try again.', values };
+  revalidatePath('/meetings');
+  revalidatePath('/events');
+  revalidatePath('/group-meetings');
+  revalidatePath('/dashboard');
+  return { status: 'success', values };
+}
+
 export async function releaseSpeakerSlot(formData: FormData): Promise<void> {
   const id = uuid.safeParse(formData.get('meetingId'));
   const slot = z.enum(['education', 'presentation']).safeParse(formData.get('slot'));

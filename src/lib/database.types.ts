@@ -1128,6 +1128,7 @@ export type Database = {
         Returns: { profile_id: string; closed_amount_given: number; closed_amount_received: number }[];
       };
       respond_one_on_one_request: { Args: { p_id: string; p_status: string }; Returns: undefined };
+      set_speaker_topic: { Args: { p_meeting: string; p_slot: string; p_topic: string; p_description: string }; Returns: undefined };
       admin_member_stats: { Args: { p_from?: string | null; p_to?: string | null }; Returns: MemberPeriodStats[] };
       confirm_one_on_one: { Args: { p_id: string }; Returns: undefined };
       complete_onboarding: { Args: { p_share_contacts: boolean; p_agreed: boolean }; Returns: undefined };
