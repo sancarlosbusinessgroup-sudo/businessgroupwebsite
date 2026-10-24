@@ -435,4 +435,8 @@
   body:has([data-mobile-meeting-bar]) #tidio-chat-iframe {
     bottom: 72px !important;
   }
+  /* Members' bar has a second row (Referrals, One-on-ones). */
+  body:has([data-mobile-meeting-bar='member']) #tidio-chat-iframe {
+    bottom: 136px !important;
+  }
 }
