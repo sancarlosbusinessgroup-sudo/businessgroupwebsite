@@ -13,6 +13,16 @@ describe('email templates', () => {
     expect(e.text).toContain('Prospect: X & Y');
   });
 
+  it('a one-on-one message and a decline carry the invitee’s message, escaped (owner, 2026-10-24)', () => {
+    const m = t.oneOnOneMessageEmail({ siteUrl, toFirstName: 'Ana', inviteeName: 'Bo', message: 'Away <until> the 10th' });
+    expect(m.subject).toBe('Bo sent you a message about your one-on-one request');
+    expect(m.html).toContain('Away &lt;until&gt; the 10th');
+    expect(m.text).toContain('Away <until> the 10th');
+    const d = t.oneOnOneAnswerEmail({ siteUrl, toFirstName: 'Ana', inviteeName: 'Bo', accepted: false, message: 'Busy this month' });
+    expect(d.text).toContain('Busy this month');
+    expect(t.oneOnOneAnswerEmail({ siteUrl, toFirstName: 'Ana', inviteeName: 'Bo', accepted: false }).text).not.toContain('Their message');
+  });
+
   it('every template has a subject, a lang attribute, a link to the site and a plain-text twin', () => {
     const all: t.Email[] = [
       t.welcomeEmail({ siteUrl, firstName: 'Ana' }),
@@ -22,6 +32,7 @@ describe('email templates', () => {
       t.oneOnOneConfirmEmail({ siteUrl, toFirstName: 'Ana', reporterName: 'Bo', date: 'Oct 1' }),
       t.oneOnOneRequestEmail({ siteUrl, toFirstName: 'Ana', requesterName: 'Bo', business: 'Bo Co' }),
       t.oneOnOneAnswerEmail({ siteUrl, toFirstName: 'Ana', inviteeName: 'Bo', accepted: true }),
+      t.oneOnOneMessageEmail({ siteUrl, toFirstName: 'Ana', inviteeName: 'Bo', message: 'Travelling, sorry!' }),
       t.guestThanksEmail({ siteUrl, firstName: 'Gus' }),
       t.guestNoticeEmail({ siteUrl, toFirstName: 'Ana', forAdmins: true, guestName: 'Gus G', guestEmail: 'g@example.test' }),
       t.meetingReminderEmail({ siteUrl, firstName: 'Ana', when: 'Mon 8:15 AM', title: 'Regular meeting', joinUrl: 'https://zoom.example/j/1' }),

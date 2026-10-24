@@ -17,6 +17,7 @@ import { periodRange } from '@/lib/periods';
 import { flagDuplicates } from '@/lib/stats';
 import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { confirmOneOnOne, deleteOneOnOne, respondOneOnOneRequest } from '../actions/member';
+import { ReplyToRequest } from './ReplyToRequest';
 import { ReportForm } from './ReportForm';
 import { RequestForm } from './RequestForm';
 
@@ -129,10 +130,12 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                         <span className="text-ink-muted"> · {r.requester?.business_name}</span>
                         <div className="text-ink-muted text-[13px]">{r.proposed_on ? `Suggested date: ${day(r.proposed_on)}` : 'No date suggested yet'}</div>
                         {r.message ? <p className="text-ink-soft m-0 mt-1 text-[15px]">“{r.message}”</p> : null}
+                        {r.reply ? <p className="text-ink-muted m-0 mt-1 text-[14px]">Your message: “{r.reply}”</p> : null}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <RespondButton id={r.id} status="accepted" label="Accept" tone="btn-primary" />
                         <RespondButton id={r.id} status="declined" label="Decline" tone="btn-outline" />
+                        <ReplyToRequest id={r.id} requesterName={personName(r.requester)} />
                       </div>
                     </li>
                   ))}
@@ -174,6 +177,11 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                           {sent ? 'You asked' : 'Asked by'} {personName(other)}
                           {r.proposed_on ? ` · ${day(r.proposed_on)}` : ''}
                         </strong>
+                        {r.reply ? (
+                          <span className="text-ink-soft text-[14px]">
+                            {sent ? `Their message: ` : 'Your message: '}“{r.reply}”
+                          </span>
+                        ) : null}
                         {sent && r.status === 'pending' ? (
                           <div>
                             <RespondButton id={r.id} status="cancelled" label="Cancel request" tone="btn-outline" />

@@ -223,7 +223,14 @@ export function oneOnOneRequestEmail(o: {
   };
 }
 
-export function oneOnOneAnswerEmail(o: { siteUrl: string; toFirstName: string; inviteeName: string; accepted: boolean }): Email {
+export function oneOnOneAnswerEmail(o: {
+  siteUrl: string;
+  toFirstName: string;
+  inviteeName: string;
+  accepted: boolean;
+  /** The latest message the invitee sent with "Send a message" (owner, 2026-10-24). */
+  message?: string | null;
+}): Email {
   return {
     subject: o.accepted ? `${o.inviteeName} accepted your one-on-one request` : `${o.inviteeName} declined your one-on-one request`,
     ...layout({
@@ -236,7 +243,23 @@ export function oneOnOneAnswerEmail(o: { siteUrl: string; toFirstName: string; i
             ? `${o.inviteeName} accepted your request, ${o.toFirstName}. Reach out to set a time, then report it on the One-on-ones page once you’ve met.`
             : `${o.inviteeName} can’t meet right now, ${o.toFirstName}. There are plenty of other members to get to know.`,
         },
+        ...(o.message ? [{ p: `Their message:` }, { quote: o.message }] : []),
       ],
+      cta: { label: 'Open One-on-ones', href: `${o.siteUrl}/one-on-ones` },
+      footer: prefsFooter(o.siteUrl),
+    }),
+  };
+}
+
+/** The invitee pressed "Send a message" on a one-on-one request, e.g. to explain why they need to decline (owner, 2026-10-24). */
+export function oneOnOneMessageEmail(o: { siteUrl: string; toFirstName: string; inviteeName: string; message: string }): Email {
+  return {
+    subject: `${o.inviteeName} sent you a message about your one-on-one request`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: `A note from ${o.inviteeName} about your request.`,
+      heading: `A message from ${o.inviteeName}`,
+      blocks: [{ p: `${o.inviteeName} replied to your one-on-one request, ${o.toFirstName}:` }, { quote: o.message }],
       cta: { label: 'Open One-on-ones', href: `${o.siteUrl}/one-on-ones` },
       footer: prefsFooter(o.siteUrl),
     }),

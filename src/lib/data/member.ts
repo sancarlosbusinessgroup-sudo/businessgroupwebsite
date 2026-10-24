@@ -140,6 +140,8 @@ export type OneOnOneRequest = {
   status: 'pending' | 'accepted' | 'declined' | 'cancelled';
   created_at: string;
   responded_at: string | null;
+  reply: string | null;
+  replied_at: string | null;
   requester: { first_name: string; last_name: string; business_name: string; slug: string } | null;
   invitee: { first_name: string; last_name: string; business_name: string; slug: string } | null;
 };
