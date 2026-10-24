@@ -41,7 +41,12 @@ export async function proxy(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   // Only approved members can be logged in (owner, 2026-10-24): any other account is signed out and told why.
-  if (user && !NOT_APPROVED_OK.some((p) => path === p || path.startsWith(`${p}/`))) {
+  // Only full page loads sign out: link prefetches and in-app requests (which carry Next's `next-url` / `rsc` headers or a
+  // non-document fetch destination) must not end the session of someone finishing a password reset.
+  const dest = request.headers.get('sec-fetch-dest');
+  const background =
+    request.headers.has('next-url') || request.headers.has('rsc') || request.headers.has('next-router-prefetch') || (dest !== null && dest !== 'document');
+  if (user && !background && !NOT_APPROVED_OK.some((p) => path === p || path.startsWith(`${p}/`))) {
     const { data: profile } = await supabase.from('profiles').select('status').eq('id', user.id).maybeSingle();
     if (profile?.status !== 'approved') {
       await supabase.auth.signOut({ scope: 'local' });
