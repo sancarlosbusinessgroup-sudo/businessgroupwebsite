@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 let pathname = '/';
 vi.mock('next/navigation', () => ({ usePathname: () => pathname }));
 
+import { openLiveChat, setChatOpen } from '@/lib/chat-client';
 import { LiveChat } from './LiveChat';
 
 type TidioDoc = Document & { tidioIdentify?: Record<string, string> };
@@ -15,8 +16,20 @@ afterEach(() => {
   tidioScripts().forEach((s) => s.remove());
   delete (document as TidioDoc).tidioIdentify;
   delete (window as TidioWindow).tidioChatApi;
+  setChatOpen(false);
   pathname = '/';
 });
+
+/** Pretend the screen is phone-sized (jsdom has no matchMedia). Returns a function that undoes it. */
+function asPhone() {
+  const original = window.matchMedia;
+  window.matchMedia = vi
+    .fn()
+    .mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }) as unknown as typeof window.matchMedia;
+  return () => {
+    window.matchMedia = original;
+  };
+}
 
 describe('LiveChat', () => {
   it('loads the Tidio widget once with the configured key', () => {
@@ -59,18 +72,49 @@ describe('LiveChat', () => {
   it('keeps the floating bubble hidden on phones (the bar chat button opens the chat there)', () => {
     const hide = vi.fn();
     const show = vi.fn();
-    const original = window.matchMedia;
-    window.matchMedia = vi
-      .fn()
-      .mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }) as unknown as typeof window.matchMedia;
+    const undo = asPhone();
     try {
       (window as TidioWindow).tidioChatApi = { hide, show, on: vi.fn() };
       render(<LiveChat publicKey={KEY} />);
-      pathname = '/support';
       expect(hide).toHaveBeenCalled();
       expect(show).not.toHaveBeenCalled();
     } finally {
-      window.matchMedia = original;
+      undo();
+    }
+  });
+
+  it('on phones, opening the chat puts the widget back first (hide() removes the chat window too), and closing it hides it again', async () => {
+    const handlers: Record<string, () => void> = {};
+    const hide = vi.fn();
+    const show = vi.fn();
+    const open = vi.fn();
+    const undo = asPhone();
+    try {
+      render(<LiveChat publicKey={KEY} />);
+      (window as TidioWindow).tidioChatApi = {
+        hide,
+        show,
+        open,
+        getStatus: () => 'online',
+        on: (event: string, fn: () => void) => {
+          handlers[event] = fn;
+        },
+      };
+      document.dispatchEvent(new Event('tidioChat-ready'));
+      expect(hide).toHaveBeenCalled();
+      hide.mockClear();
+
+      expect(await openLiveChat()).toBe(true);
+      expect(show).toHaveBeenCalled();
+      expect(open).toHaveBeenCalled();
+      expect(show.mock.invocationCallOrder[0]).toBeLessThan(open.mock.invocationCallOrder[0] ?? 0);
+      handlers.open?.();
+      expect(hide).not.toHaveBeenCalled();
+
+      handlers.close?.();
+      expect(hide).toHaveBeenCalled();
+    } finally {
+      undo();
     }
   });
 });

@@ -53,7 +53,7 @@ export function MobileMeetingBar({ meetingId, when, member, chatEnabled }: Props
         <div className={`flex items-center justify-between gap-3 pt-2.5 ${pad}`}>
           <p className="m-0 min-w-0 text-sm leading-tight">
             <span className="text-on-band-muted block text-xs font-semibold tracking-wide uppercase">Next meeting</span>
-            <span className="block truncate font-bold">{when ?? 'Date to be announced'}</span>
+            <span className="block font-bold">{when ?? 'Date to be announced'}</span>
           </p>
           <div className="flex shrink-0 items-center gap-2">
             {member ? (
@@ -76,15 +76,17 @@ export function MobileMeetingBar({ meetingId, when, member, chatEnabled }: Props
           </div>
         </div>
         {member ? (
-          <nav aria-label="Report activity" className={`border-band-line mt-2.5 grid grid-cols-[1fr_1fr_auto] items-center gap-2 border-t pt-2.5 ${pad}`}>
-            <Link href="/referrals" className="btn btn-ghost-band btn-sm w-full">
-              Referrals
-            </Link>
-            <Link href="/one-on-ones" className="btn btn-ghost-band btn-sm w-full">
-              One-on-ones
-            </Link>
+          <div className={`border-band-line mt-2.5 flex items-center gap-2 border-t pt-2.5 ${pad}`}>
+            <nav aria-label="Report activity" className="grid min-w-0 flex-1 grid-cols-2 gap-2">
+              <Link href="/referrals" className="btn btn-ghost-band btn-sm w-full">
+                Referrals
+              </Link>
+              <Link href="/one-on-ones" className="btn btn-ghost-band btn-sm w-full">
+                One-on-ones
+              </Link>
+            </nav>
             {chatButton}
-          </nav>
+          </div>
         ) : null}
       </aside>
     </>

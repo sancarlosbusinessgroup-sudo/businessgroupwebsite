@@ -26,7 +26,8 @@ export default async function SupportPage() {
           <p className="text-ink-soft m-0 text-[15px]">Start a chat with the support team. We&apos;ll get back to you as soon as we can.</p>
           {chatEnabled ? (
             <p className="text-ink-muted m-0 text-sm">
-              You can also use the chat bubble in the corner of any page. If nobody is online, leave a message and we&apos;ll reply by email.
+              You can also start a chat from any page: the chat bubble in the corner, or on phones the round chat button at the bottom of the screen. If nobody
+              is online, leave a message and we&apos;ll reply by email.
             </p>
           ) : null}
           <div>
