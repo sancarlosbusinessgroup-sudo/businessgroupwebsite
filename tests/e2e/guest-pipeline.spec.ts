@@ -28,7 +28,7 @@ async function rest(path: string, method = 'GET', body?: unknown) {
   return res.status === 204 ? [] : ((await res.json()) as Record<string, unknown>[]);
 }
 
-test('guest row: phone, Send Zoom link, one-on-ones Done?, then Approved sends the welcome email', async ({ page }) => {
+test('guest row: phone, Send Zoom link, one-on-ones Done?, See application, then Approved sends the welcome email', async ({ page }) => {
   const stamp = Date.now();
   const email = `pipeline.${stamp}@example.org`;
   const [m] = await rest('meetings', 'POST', {
@@ -89,7 +89,16 @@ test('guest row: phone, Send Zoom link, one-on-ones Done?, then Approved sends t
       }),
     });
     userId = ((await res.json()) as { id: string }).id;
+    const existing = await rest(`member_applications?profile_id=eq.${userId}&select=profile_id`);
+    if (!existing.length)
+      await rest('member_applications', 'POST', { profile_id: userId, product_service: 'Plumbing', signature_name: 'Paula Pipeline', years_in_business: '5' });
     await page.reload();
+    // "See application" jumps to their application under Pending applications, opened.
+    await row.getByRole('link', { name: 'See application of Paula Pipeline' }).click();
+    await expect(page).toHaveURL(new RegExp(`#application-${userId}$`));
+    const app = page.locator(`#application-${userId}`);
+    await expect(app).toContainText('Paula Pipeline');
+    await expect(app.locator('details')).toHaveAttribute('open', '');
     await row.getByRole('button', { name: 'Approved (approve the application of Paula Pipeline)' }).click();
     await expect(row.getByText('Approved', { exact: true })).toBeVisible();
     expect((await rest(`profiles?id=eq.${userId}&select=status`))[0]?.status).toBe('approved');

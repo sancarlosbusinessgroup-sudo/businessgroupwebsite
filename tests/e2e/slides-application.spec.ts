@@ -90,7 +90,7 @@ test.describe('meeting slides follow the new agenda', () => {
     const welcomeBox = (await deck.getByRole('heading', { name: 'Welcome', exact: true }).boundingBox())!;
     expect(welcomeBox.y - stageBox.y).toBeGreaterThan(stageBox.height * 0.22);
     // The Golden Gate photo shows on the right and fades to white beneath the text.
-    await expect(deck.getByRole('group').filter({ visible: true }).locator('img[src*="hero-bridge"]')).toBeVisible();
+    await expect(deck.getByRole('group').filter({ visible: true }).locator('img[src*="welcome-bridge"]')).toBeVisible();
     await expect(deck.getByText(/A chance to chat/)).toHaveCount(0);
     // Welcome: two points since 2026-10-23 (no "Say hello").
     await expect(deck.getByText('Please can you put your camera on, and add your name and business to your Zoom Window.')).toBeVisible();

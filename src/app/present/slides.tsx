@@ -17,6 +17,8 @@ import { Fireworks, PdfPageSlide, SlideTimer, WebsiteSlide, YouTubeSlide } from 
 // scales with the 16:9 stage on a shared screen.
 
 const BRIDGE = '/images/hero-bridge.jpg';
+/** The Welcome slide's photo: the group's flag on the Golden Gate tower (owner, 2026-10-24). */
+const WELCOME_PHOTO = '/images/welcome-bridge.jpg';
 const NAVY = '#12346e';
 const BLUE = '#1f7fd0';
 const INK = '#1c2b4a';
@@ -119,7 +121,7 @@ function Page({
   ctx: Ctx;
   title: string;
   center?: boolean;
-  /** Show the Golden Gate photo across the right side, fading to white beneath the text. */
+  /** Show the Welcome photo (flag on the Golden Gate tower) across the right side, fading to white beneath the text. */
   photo?: boolean;
   children?: ReactNode;
   aside?: ReactNode;
@@ -128,12 +130,12 @@ function Page({
     <div className="relative flex h-full flex-col overflow-hidden bg-white">
       {photo ? (
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          <Image src={BRIDGE} alt="" fill sizes="100vw" className="object-cover object-[72%_55%]" />
+          <Image src={WELCOME_PHOTO} alt="" fill sizes="100vw" className="object-cover object-[70%_50%]" />
           <span
             className="absolute inset-0"
             style={{
               background:
-                'linear-gradient(to right, #fff 0%, #fff 38%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0.6) 62%, rgba(255,255,255,0.2) 76%, rgba(255,255,255,0) 90%)',
+                'linear-gradient(to right, #fff 0%, #fff 34%, rgba(255,255,255,0.88) 44%, rgba(255,255,255,0.5) 52%, rgba(255,255,255,0.12) 60%, rgba(255,255,255,0) 66%)',
             }}
           />
         </div>

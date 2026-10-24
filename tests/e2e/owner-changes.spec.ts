@@ -229,18 +229,20 @@ test.describe('banners, directory, profile and support (second request of the da
         .first()
         .locator('img[src*="hero-bridge"]'),
     ).toBeAttached();
-    // Introduction and a photo placeholder, name and role for each person (owner, 2026-10-24; profile boxes removed).
+    // Photo, name and role for each person, then the team's introduction under the photos (owner, 2026-10-24).
     const team = page.getByRole('region', { name: 'Your support team' });
-    await expect(team.getByText(/^Lorem ipsum dolor sit amet/)).toBeVisible();
-    for (const [n, role] of [
-      ['Cedrick Velasco', 'Operations Manager'],
-      ['Shermaine Benolirao', 'Operations Director'],
-      ['Rachanee Munar', 'Web Developer'],
+    for (const [n, role, file] of [
+      ['Cedrick Velasco', 'Operations Manager', 'cedrick-velasco'],
+      ['Shermaine Benolirao', 'Operations Director', 'shermaine-benolirao'],
+      ['Rachanee Munar', 'Web Developer', 'rachanee-munar'],
     ] as const) {
       await expect(team.getByRole('heading', { level: 3, name: n })).toBeVisible();
-      await expect(team.getByRole('img', { name: `Photo of ${n} coming soon` })).toBeVisible();
+      await expect(team.getByRole('img', { name: n })).toHaveAttribute('src', new RegExp(file));
       await expect(team.getByText(role, { exact: true })).toBeVisible();
     }
+    await expect(team.getByText(/^We’re happy to be part of the Bay Area Referral Partners community!/)).toBeVisible();
+    await expect(team.getByText(/one click at a time!$/)).toBeVisible();
+    await expect(team.getByText(/Lorem ipsum/)).toHaveCount(0);
     await page.getByText('How do I change my photo?').click();
     await expect(page.getByText(/open My profile and choose “Change photo”/)).toBeVisible();
     await page.getByRole('button', { name: 'Chat with support' }).first().click();

@@ -13,6 +13,7 @@ import { zoomConfigured } from '@/lib/zoom-api';
 import Link from 'next/link';
 import { resolveCorrection, setGuestOneOnOnes, setGuestStatus, setMemberStatus } from '../actions/admin';
 import { SendZoomLinkButton } from './SendZoomLinkButton';
+import { OpenApplicationOnHash } from './OpenApplicationOnHash';
 import { InviteToApplyButton } from './InviteToApplyButton';
 import { ResendEmailButton } from './ResendEmailButton';
 import { resendTarget } from '@/lib/email/resend-target';
@@ -136,6 +137,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </section>
 
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="ap-h">
+          <OpenApplicationOnHash />
           <h2 id="ap-h" className="font-display m-0 text-[22px] font-extrabold">
             Pending applications ({pendingRes.data.length})
           </h2>
@@ -156,7 +158,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   website?: string | null;
                 }[];
                 return (
-                  <li key={p.id} className="border-line flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
+                  <li
+                    key={p.id}
+                    id={`application-${p.id}`}
+                    className="border-line target:ring-teal flex scroll-mt-24 flex-wrap items-center justify-between gap-3 rounded-xl border p-4 target:ring-2"
+                  >
                     <div className="min-w-0">
                       <strong>
                         {p.first_name} {p.last_name}
@@ -361,17 +367,26 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                           const applicant = pendingByEmail.get(g.email.toLowerCase());
                           if (!applicant) return <span className="text-ink-muted text-sm">Waiting for their application</span>;
                           return (
-                            <form action={setMemberStatus}>
-                              <input type="hidden" name="id" value={applicant.id} />
-                              <input type="hidden" name="status" value="approved" />
-                              <button type="submit" className="btn btn-primary btn-sm">
-                                Approved
+                            <div className="flex flex-col items-start gap-1.5">
+                              <a href={`#application-${applicant.id}`} className="text-sm font-bold">
+                                See application
                                 <span className="sr-only">
                                   {' '}
-                                  (approve the application of {g.first_name} {g.last_name})
+                                  of {g.first_name} {g.last_name}
                                 </span>
-                              </button>
-                            </form>
+                              </a>
+                              <form action={setMemberStatus}>
+                                <input type="hidden" name="id" value={applicant.id} />
+                                <input type="hidden" name="status" value="approved" />
+                                <button type="submit" className="btn btn-primary btn-sm">
+                                  Approved
+                                  <span className="sr-only">
+                                    {' '}
+                                    (approve the application of {g.first_name} {g.last_name})
+                                  </span>
+                                </button>
+                              </form>
+                            </div>
                           );
                         })()}
                       </td>

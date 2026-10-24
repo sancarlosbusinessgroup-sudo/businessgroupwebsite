@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { PageHero } from '@/components/ui';
 import { site, supportFaq, supportIntro, supportTeam, supportTopics } from '@/lib/content';
 import { tidioConfigFromEnv } from '@/lib/chat';
@@ -41,22 +42,12 @@ export default async function SupportPage() {
             Your support team
           </h2>
         </div>
-        <p className="text-ink-soft m-0 max-w-[68ch] text-[17px] leading-relaxed">{supportIntro}</p>
-        {/* Photo placeholders until the owner sends the team's photos (owner, 2026-10-24). */}
         <ul className="m-0 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-3">
           {supportTeam.map((t, i) => (
             <li key={t.name} className="flex flex-col gap-3">
-              <figure
-                role="img"
-                aria-label={`Photo of ${t.name} coming soon`}
-                className={`border-line-strong text-ink-muted m-0 flex aspect-[4/5] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed ${bands[i % bands.length]}`}
-              >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-12 w-12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
-                </svg>
-                <span className="text-sm font-semibold">Photo coming soon</span>
-              </figure>
+              <span className={`relative block aspect-square overflow-hidden rounded-2xl ${bands[i % bands.length]}`}>
+                <Image src={t.photo} alt={t.name} fill sizes="(max-width: 640px) 100vw, 380px" className="object-cover object-top" />
+              </span>
               <div className="flex flex-col gap-0.5">
                 <h3 className="font-display text-heading m-0 text-xl font-bold">{t.name}</h3>
                 <p className="text-teal-text m-0 font-semibold">{t.role}</p>
@@ -64,6 +55,13 @@ export default async function SupportPage() {
             </li>
           ))}
         </ul>
+        <div className="flex max-w-[72ch] flex-col gap-3">
+          {supportIntro.map((p) => (
+            <p key={p.slice(0, 24)} className="text-ink-soft m-0 text-[17px] leading-relaxed">
+              {p}
+            </p>
+          ))}
+        </div>
       </section>
 
       <section className="border-line bg-canvas border-y" aria-labelledby="help-h">
