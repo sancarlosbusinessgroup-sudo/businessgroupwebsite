@@ -85,6 +85,9 @@ test.describe('meeting slides follow the new agenda', () => {
     const stageW = (await deck.locator('[aria-roledescription="slide"]').boundingBox())?.width ?? 0;
     const logoW = (await first.locator('img[src*="logo-mark"]').boundingBox())?.width ?? 0;
     expect(logoW).toBeGreaterThan(stageW * 0.12);
+    // Background: the owner's photo of the flag on the Golden Gate tower (owner, 2026-10-24).
+    await expect(first.locator('img[src*="logo-slide-flag"]')).toBeVisible();
+    await expect(first.locator('img[src*="hero-bridge"]')).toHaveCount(0);
 
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('heading', { name: 'Welcome', exact: true })).toBeVisible();
@@ -92,8 +95,9 @@ test.describe('meeting slides follow the new agenda', () => {
     const stageBox = (await deck.locator('[aria-roledescription="slide"]').boundingBox())!;
     const welcomeBox = (await deck.getByRole('heading', { name: 'Welcome', exact: true }).boundingBox())!;
     expect(welcomeBox.y - stageBox.y).toBeGreaterThan(stageBox.height * 0.22);
-    // The Golden Gate photo shows on the right and fades to white beneath the text.
-    await expect(deck.getByRole('group').filter({ visible: true }).locator('img[src*="welcome-bridge"]')).toBeVisible();
+    // The Golden Gate photo shows on the right and fades to white beneath the text: since 2026-10-24 the photo slide 1 used to have.
+    await expect(deck.getByRole('group').filter({ visible: true }).locator('img[src*="hero-bridge"]').first()).toBeVisible();
+    await expect(deck.getByRole('group').filter({ visible: true }).locator('img[src*="welcome-bridge"]')).toHaveCount(0);
     await expect(deck.getByText(/A chance to chat/)).toHaveCount(0);
     // Welcome: two points since 2026-10-23 (no "Say hello").
     await expect(deck.getByText('Please can you put your camera on, and add your name and business to your Zoom Window.')).toBeVisible();
@@ -121,6 +125,9 @@ test.describe('meeting slides follow the new agenda', () => {
     await expect(mgmt.getByRole('heading', { name: 'Meet the Management Team' })).toBeVisible();
     // Grouped like the printed Management Team slide: roles in two columns, then the Membership Committee.
     await expect(mgmt.getByRole('heading', { name: 'Membership Committee' })).toBeVisible();
+    // No small coloured bar in front of the group headings (owner, 2026-10-24).
+    for (const h of ['Membership Committee', 'Attendance Managers'])
+      await expect(mgmt.getByRole('heading', { name: h }).locator('span')).toHaveCount(0);
     await page.keyboard.press('ArrowRight');
     // "Introduction of Guests" is no longer in the standard deck (owner, 2026-10-22): the infomercial slide comes next.
     await expect(deck.getByRole('heading', { name: 'Introduction of Guests' })).toHaveCount(0);
