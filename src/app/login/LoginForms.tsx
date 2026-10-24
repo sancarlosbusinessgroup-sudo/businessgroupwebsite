@@ -5,10 +5,11 @@ import { useActionState } from 'react';
 import { PasswordField, SubmitButton, TextField } from '@/components/forms';
 import { useClientValidation } from '@/components/useClientValidation';
 import { Notice } from '@/components/ui';
+import { type LoginNotice, loginNotices } from '@/lib/approval';
 import { idle, loginSchema } from '@/lib/validation';
 import { signInWithPassword } from '../actions/auth';
 
-export function LoginForms({ next, linkError }: { next: string; linkError: boolean }) {
+export function LoginForms({ next, linkError, notice }: { next: string; linkError: boolean; notice: LoginNotice | null }) {
   const [pwState, pwAction] = useActionState(signInWithPassword, idle);
   const pwV = useClientValidation(loginSchema);
 
@@ -16,6 +17,7 @@ export function LoginForms({ next, linkError }: { next: string; linkError: boole
     <div className="border-line bg-surface min-w-0 flex-[1_1_400px] overflow-hidden rounded-[20px] border">
       <div className="flex flex-col gap-4 p-7">
         <h2 className="font-display m-0 text-2xl">Welcome back</h2>
+        {notice && !pwState.message ? <Notice tone={notice === 'confirmed' ? 'success' : 'info'}>{loginNotices[notice]}</Notice> : null}
         {linkError ? <Notice tone="error">That link has expired or was already used. Please log in or request a new one.</Notice> : null}
 
         <div>

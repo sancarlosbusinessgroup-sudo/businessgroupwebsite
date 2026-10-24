@@ -36,15 +36,6 @@ export async function Header() {
         {signOutButton}
       </>
     );
-  } else if (viewer) {
-    actions = (
-      <>
-        <Link href="/pending" className="btn btn-outline btn-sm">
-          Application status
-        </Link>
-        {signOutButton}
-      </>
-    );
   } else {
     actions = (
       <>

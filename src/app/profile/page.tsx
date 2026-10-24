@@ -23,7 +23,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   const viewer = await getViewer();
   if (!viewer) redirect('/login?next=/profile');
   const p = viewer.profile;
-  if (!p) redirect('/pending');
+  if (!p || p.status !== 'approved') redirect('/login?notice=pending');
   const approved = p.status === 'approved';
   const editing = tab === 'edit' || !approved;
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { isLoginNotice } from '@/lib/approval';
 import { getViewer, safeNext } from '@/lib/auth';
 import { LoginForms } from './LoginForms';
 import { site } from '@/lib/content';
@@ -13,11 +14,12 @@ const features = [
   { t: 'Accountability through tracking', d: 'One-on-ones, referrals and closed business keep results real.' },
 ];
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string; notice?: string }> }) {
   const sp = await searchParams;
   const next = safeNext(sp.next);
   const viewer = await getViewer();
-  if (viewer) redirect(viewer.profile?.status === 'approved' ? next : '/pending');
+  // The proxy signs out accounts that are not approved, so a viewer here is an approved member.
+  if (viewer?.profile?.status === 'approved') redirect(next);
 
   return (
     <>
@@ -40,7 +42,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             ))}
           </ul>
         </div>
-        <LoginForms next={next} linkError={sp.error === 'link'} />
+        <LoginForms next={next} linkError={sp.error === 'link'} notice={isLoginNotice(sp.notice) ? sp.notice : null} />
       </section>
       <section className="bg-band">
         <div className="text-on-band-muted mx-auto flex max-w-[820px] flex-col gap-3 px-6 py-14 text-center">

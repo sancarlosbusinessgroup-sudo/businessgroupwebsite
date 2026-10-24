@@ -2,6 +2,7 @@
 
 import type { EmailOtpType } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
+import { noticeFor, loginNotices } from '@/lib/approval';
 import { safeNext } from '@/lib/auth';
 import { env } from '@/lib/env';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -42,7 +43,7 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     email: d.email,
     password: d.password,
     options: {
-      emailRedirectTo: callback('/pending'),
+      emailRedirectTo: callback('/dashboard'),
       data: {
         first_name: d.firstName,
         last_name: d.lastName,
@@ -75,7 +76,9 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
       values: withoutSecrets(values),
     };
   }
-  return { status: 'success', message: data.session ? 'signed-in' : 'confirm-email', values: { email: d.email } };
+  // Applicants are never left signed in: only approved members can log in (owner, 2026-10-24).
+  if (data.session) await supabase.auth.signOut({ scope: 'local' });
+  return { status: 'success', message: data.session ? 'signed-up' : 'confirm-email', values: { email: d.email } };
 }
 
 /** Where to go after logging in: members with a temporary password choose their own first. */
@@ -99,7 +102,27 @@ export async function signInWithPassword(_prev: ActionState, formData: FormData)
       values: withoutSecrets(values),
     };
   }
+  // Only approved members can log in (owner, 2026-10-24).
+  const { data: profile } = await supabase.from('profiles').select('status').eq('id', data.user.id).maybeSingle();
+  if (profile?.status !== 'approved') {
+    await supabase.auth.signOut({ scope: 'local' });
+    return { status: 'error', message: loginNotices[noticeFor(profile?.status)], values: withoutSecrets(values) };
+  }
   redirect(afterLogin(data.user, values.next));
+}
+
+/** After an email link signs someone in: approved members carry on; anyone else is signed out and told when they can log in. */
+async function approvedOrSignedOut(supabase: Awaited<ReturnType<typeof createClient>>, type: EmailOtpType): Promise<string | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: profile } = await supabase.from('profiles').select('status').eq('id', user.id).maybeSingle();
+  if (profile?.status === 'approved') return null;
+  // A password reset may still be finished (the proxy lets /reset-password through); everything else signs out.
+  if (type === 'recovery') return null;
+  await supabase.auth.signOut({ scope: 'local' });
+  return type === 'signup' && noticeFor(profile?.status) === 'pending' ? '/login?notice=confirmed' : `/login?notice=${noticeFor(profile?.status)}`;
 }
 
 export async function requestPasswordReset(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -115,7 +138,7 @@ export async function requestPasswordReset(_prev: ActionState, formData: FormDat
 }
 
 const CONFIRM_TYPES: EmailOtpType[] = ['recovery', 'signup', 'email', 'email_change', 'invite'];
-const CONFIRM_DEFAULT_NEXT: Partial<Record<EmailOtpType, string>> = { recovery: '/reset-password', signup: '/pending' };
+const CONFIRM_DEFAULT_NEXT: Partial<Record<EmailOtpType, string>> = { recovery: '/reset-password', signup: '/dashboard' };
 
 /** Runs when the member presses the button on /auth/confirm: uses the one-time token from the email link. */
 export async function confirmEmailLink(formData: FormData): Promise<void> {
@@ -123,11 +146,13 @@ export async function confirmEmailLink(formData: FormData): Promise<void> {
   const type = String(formData.get('type') ?? '') as EmailOtpType;
   const next = safeNext(String(formData.get('next') ?? ''), CONFIRM_DEFAULT_NEXT[type] ?? '/dashboard');
   let ok = false;
+  let elsewhere: string | null = null;
   if (tokenHash && CONFIRM_TYPES.includes(type)) {
     const supabase = await createClient();
     ok = !(await supabase.auth.verifyOtp({ token_hash: tokenHash, type })).error;
+    if (ok) elsewhere = await approvedOrSignedOut(supabase, type);
   }
-  redirect(ok ? next : '/login?error=link');
+  redirect(ok ? (elsewhere ?? next) : '/login?error=link');
 }
 
 export async function updatePassword(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -142,6 +167,12 @@ export async function updatePassword(_prev: ActionState, formData: FormData): Pr
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { status: 'error', message: passwordErrorMessage(error, 'We could not update your password. Please try a different one.') };
   await clearTemporaryPassword(user.id, user.app_metadata?.must_change_password === true).catch(() => undefined);
+  // Not approved yet: the new password is saved, then they are signed out until approved (owner, 2026-10-24).
+  const { data: profile } = await supabase.from('profiles').select('status').eq('id', user.id).maybeSingle();
+  if (profile?.status !== 'approved') {
+    await supabase.auth.signOut({ scope: 'local' });
+    redirect(`/login?notice=${noticeFor(profile?.status)}`);
+  }
   redirect('/dashboard');
 }
 

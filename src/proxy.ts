@@ -1,11 +1,15 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { noticeFor } from './lib/approval';
 import type { Database } from './lib/database.types';
 
 /** Pages still open while a member must choose a new password. */
 const CHOOSE_OK = ['/choose-password', '/auth', '/login', '/forgot-password', '/reset-password', '/privacy', '/terms'];
 
 const MEMBER_PATHS = ['/dashboard', '/meetings', '/referrals', '/one-on-ones', '/profile', '/admin', '/pending', '/present', '/events/new', '/onboarding'];
+
+/** Pages a signed-in account that is not approved may still open: the email links and choosing a new password. */
+const NOT_APPROVED_OK = ['/auth', '/reset-password'];
 
 /**
  * Refreshes the Supabase session cookie on every request and sends signed-out
@@ -36,6 +40,19 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+  // Only approved members can be logged in (owner, 2026-10-24): any other account is signed out and told why.
+  if (user && !NOT_APPROVED_OK.some((p) => path === p || path.startsWith(`${p}/`))) {
+    const { data: profile } = await supabase.from('profiles').select('status').eq('id', user.id).maybeSingle();
+    if (profile?.status !== 'approved') {
+      await supabase.auth.signOut({ scope: 'local' });
+      const login = request.nextUrl.clone();
+      login.pathname = '/login';
+      login.search = `?notice=${noticeFor(profile?.status)}`;
+      const out = NextResponse.redirect(login);
+      for (const c of response.cookies.getAll()) out.cookies.set(c);
+      return out;
+    }
+  }
   // Members given a temporary password must choose their own before using the site (owner, 2026-10-23).
   if (user?.app_metadata?.must_change_password === true && !CHOOSE_OK.some((p) => path === p || path.startsWith(`${p}/`))) {
     const choose = request.nextUrl.clone();

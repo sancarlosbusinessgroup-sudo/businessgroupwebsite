@@ -1,5 +1,6 @@
 import type { EmailOtpType } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
+import { noticeFor } from '@/lib/approval';
 import { safeNext } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 
@@ -23,6 +24,20 @@ export async function GET(request: NextRequest) {
 
   const target = url.clone();
   target.search = '';
+  // Only approved members stay signed in (owner, 2026-10-24); a password reset may still be finished.
+  if (ok && type !== 'recovery' && next !== '/reset-password') {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const { data: profile } = user ? await supabase.from('profiles').select('status').eq('id', user.id).maybeSingle() : { data: null };
+    if (user && profile?.status !== 'approved') {
+      await supabase.auth.signOut({ scope: 'local' });
+      const notice = noticeFor(profile?.status);
+      target.pathname = '/login';
+      target.searchParams.set('notice', (type === 'signup' || (code && !type)) && notice === 'pending' ? 'confirmed' : notice);
+      return NextResponse.redirect(target);
+    }
+  }
   if (ok) {
     target.pathname = next;
   } else {
