@@ -7,6 +7,7 @@ const links = [
   { href: '/admin/champion', label: 'BARP Champion' },
   { href: '/admin/stats', label: 'Member stats' },
   { href: '/admin/leadership', label: 'Management' },
+  { href: '/admin/recap', label: 'Recap preview' },
   { href: '/present/next', label: 'Meeting slides' },
 ] as const;
 

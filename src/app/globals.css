@@ -423,10 +423,3 @@
   color: var(--ink);
   color-scheme: light;
 }
-
-/* Phones: keep the chat bubble above the fixed next-meeting bar (owner, 2026-10-24). */
-@media (max-width: 767.98px) {
-  body:has([data-mobile-meeting-bar]) #tidio-chat-iframe {
-    bottom: 72px !important;
-  }
-}

@@ -56,4 +56,21 @@ describe('LiveChat', () => {
     rerender(<LiveChat publicKey={KEY} />);
     expect(show).toHaveBeenCalled();
   });
+  it('keeps the floating bubble hidden on phones (the bar chat button opens the chat there)', () => {
+    const hide = vi.fn();
+    const show = vi.fn();
+    const original = window.matchMedia;
+    window.matchMedia = vi
+      .fn()
+      .mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }) as unknown as typeof window.matchMedia;
+    try {
+      (window as TidioWindow).tidioChatApi = { hide, show, on: vi.fn() };
+      render(<LiveChat publicKey={KEY} />);
+      pathname = '/support';
+      expect(hide).toHaveBeenCalled();
+      expect(show).not.toHaveBeenCalled();
+    } finally {
+      window.matchMedia = original;
+    }
+  });
 });

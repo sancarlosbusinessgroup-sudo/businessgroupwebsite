@@ -37,8 +37,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <Header />
         <main id="main">{children}</main>
         <Footer />
-        {next && nextStart ? (
-          <MobileMeetingBar meetingId={next.id} when={`${formatMeetingDate(nextStart)} · ${formatMeetingTime(nextStart)} PT`} member={approved} />
+        {next || chat ? (
+          <MobileMeetingBar
+            meetingId={next?.id ?? null}
+            when={nextStart ? `${formatMeetingDate(nextStart)} · ${formatMeetingTime(nextStart)} PT` : null}
+            member={approved}
+            chatEnabled={!!chat}
+          />
         ) : null}
         {chat ? (
           <LiveChat {...chat} visitor={approved ? chatVisitor(viewer?.userId ?? null, viewer?.profile ?? null, viewer?.email ?? null) : undefined} />
