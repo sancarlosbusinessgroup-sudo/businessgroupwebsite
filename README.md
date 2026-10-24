@@ -100,6 +100,8 @@ Supabase's built-in email only sends a few messages per hour and is meant for te
    <p><a href="https://www.bayareareferralpartners.com/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/pending">Confirm my email</a></p>
    ```
 
+   Only approved members can log in (2026-10-24): after confirming, an applicant is signed out and lands on the login page with "Your email is confirmed…" (the `next=/pending` in the template is ignored for them).
+
    The local test stack serves the same links (`scripts/local-stack/smtp-sink.mjs`, `/templates/recovery` and `/templates/confirmation`). `/auth/callback` still works for links in emails sent before the change.
 
 ## 5. Running tests

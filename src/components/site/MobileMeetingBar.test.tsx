@@ -9,7 +9,7 @@ vi.mock('next/navigation', () => ({ usePathname: () => '/', useRouter: () => ({ 
 vi.mock('@/lib/chat-client', () => ({ openLiveChat: () => openLiveChat() }));
 vi.mock('@/app/actions/member', () => ({ joinMeeting: vi.fn() }));
 
-const base = { meetingId: 'm-1', when: 'Monday, Nov 2 · 8:15 AM PT', member: false };
+const when = 'Monday, Nov 2 · 8:15 AM PT';
 
 beforeEach(() => {
   push.mockClear();
@@ -17,24 +17,32 @@ beforeEach(() => {
 });
 
 describe('MobileMeetingBar', () => {
-  it('shows the round chat button to the right of the visitor action when live chat is on', () => {
-    render(<MobileMeetingBar {...base} chatEnabled />);
-    const request = screen.getByRole('link', { name: 'Request an invite' });
+  it('visitors: the chat button sits beside "Log In" when live chat is on', () => {
+    render(<MobileMeetingBar meetingId="m-1" when={when} member={false} chatEnabled />);
+    const login = screen.getByRole('link', { name: 'Log In' });
     const chat = screen.getByRole('button', { name: 'Chat with support' });
-    // Same row, chat button after the action.
-    expect(request.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(login.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     fireEvent.click(chat);
     expect(openLiveChat).toHaveBeenCalledOnce();
   });
 
+  it('members: the chat button sits to the right of "One-on-ones" in the second row', () => {
+    render(<MobileMeetingBar meetingId="m-1" when={when} member chatEnabled />);
+    const oneOnOnes = screen.getByRole('link', { name: 'One-on-ones' });
+    const chat = screen.getByRole('button', { name: 'Chat with support' });
+    expect(oneOnOnes.compareDocumentPosition(chat) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Join in Zoom' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Log In' })).toBeNull();
+  });
+
   it('leaves out the chat button while live chat is switched off', () => {
-    render(<MobileMeetingBar {...base} chatEnabled={false} />);
+    render(<MobileMeetingBar meetingId="m-1" when={when} member={false} chatEnabled={false} />);
     expect(screen.queryByRole('button', { name: 'Chat with support' })).toBeNull();
   });
 
   it('sends the visitor to the support page when the chat cannot load', async () => {
     openLiveChat.mockResolvedValueOnce(false);
-    render(<MobileMeetingBar {...base} chatEnabled />);
+    render(<MobileMeetingBar meetingId="m-1" when={when} member={false} chatEnabled />);
     fireEvent.click(screen.getByRole('button', { name: 'Chat with support' }));
     await waitFor(() => expect(push).toHaveBeenCalledWith('/support'));
   });

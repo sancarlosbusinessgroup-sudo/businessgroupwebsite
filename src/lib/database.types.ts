@@ -804,6 +804,8 @@ export type Database = {
           invitee_id: string;
           message: string | null;
           proposed_on: string | null;
+          replied_at: string | null;
+          reply: string | null;
           requester_id: string;
           responded_at: string | null;
           status: 'pending' | 'accepted' | 'declined' | 'cancelled';
@@ -814,6 +816,8 @@ export type Database = {
           invitee_id: string;
           message?: string | null;
           proposed_on?: string | null;
+          replied_at?: string | null;
+          reply?: string | null;
           requester_id?: string;
           responded_at?: string | null;
           status?: 'pending' | 'accepted' | 'declined' | 'cancelled';
@@ -824,6 +828,8 @@ export type Database = {
           invitee_id?: string;
           message?: string | null;
           proposed_on?: string | null;
+          replied_at?: string | null;
+          reply?: string | null;
           requester_id?: string;
           responded_at?: string | null;
           status?: 'pending' | 'accepted' | 'declined' | 'cancelled';
@@ -1128,6 +1134,8 @@ export type Database = {
         Returns: { profile_id: string; closed_amount_given: number; closed_amount_received: number }[];
       };
       respond_one_on_one_request: { Args: { p_id: string; p_status: string }; Returns: undefined };
+      reply_one_on_one_request: { Args: { p_id: string; p_message: string }; Returns: string };
+      set_speaker_topic: { Args: { p_meeting: string; p_slot: string; p_topic: string; p_description: string }; Returns: undefined };
       admin_member_stats: { Args: { p_from?: string | null; p_to?: string | null }; Returns: MemberPeriodStats[] };
       confirm_one_on_one: { Args: { p_id: string }; Returns: undefined };
       complete_onboarding: { Args: { p_share_contacts: boolean; p_agreed: boolean }; Returns: undefined };

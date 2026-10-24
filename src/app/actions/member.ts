@@ -5,7 +5,7 @@ import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { onOneOnOneAnswered, onOneOnOneReported, onOneOnOneRequested, onReferralSent, onReferralUpdated } from '@/lib/email/events';
+import { onOneOnOneAnswered, onOneOnOneMessage, onOneOnOneReported, onOneOnOneRequested, onReferralSent, onReferralUpdated } from '@/lib/email/events';
 import { safely } from '@/lib/email/notify';
 import { prefKeys } from '@/lib/email/prefs';
 import {
@@ -92,6 +92,30 @@ export async function claimSpeakerSlot(_prev: ActionState, formData: FormData): 
   revalidatePath('/group-meetings');
   revalidatePath('/dashboard');
   return { status: 'success' };
+}
+
+/** The presenter writes or changes the title of their own presentation; the slides show it (owner, 2026-10-24). */
+export async function updateSpeakerTopic(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formToObject(formData);
+  const id = uuid.safeParse(values.meetingId);
+  const slot = z.enum(['education', 'presentation']).safeParse(values.slot);
+  const topic = speakerTopicSchema.safeParse(values);
+  if (!id.success || !slot.success) return { status: 'error', message: GENERIC };
+  if (!topic.success) return { status: 'error', errors: fieldErrors(topic.error), values };
+  const { supabase, user } = await session();
+  if (!user) return { status: 'error', message: 'Please log in again.' };
+  const { error } = await supabase.rpc('set_speaker_topic', {
+    p_meeting: id.data,
+    p_slot: slot.data,
+    p_topic: topic.data.topic,
+    p_description: topic.data.topicDescription ?? '',
+  });
+  if (error) return { status: 'error', message: 'The topic could not be saved. Please refresh the page and try again.', values };
+  revalidatePath('/meetings');
+  revalidatePath('/events');
+  revalidatePath('/group-meetings');
+  revalidatePath('/dashboard');
+  return { status: 'success', values };
 }
 
 export async function releaseSpeakerSlot(formData: FormData): Promise<void> {
@@ -376,6 +400,28 @@ export async function respondOneOnOneRequest(formData: FormData): Promise<void> 
   const reqId = id.data;
   if (!error) after(() => safely('one-on-one answer', () => onOneOnOneAnswered(reqId)));
   revalidatePath('/one-on-ones');
+}
+
+/** "Send a message" on a request I received, e.g. to explain why I need to decline (owner, 2026-10-24). */
+export async function replyOneOnOneRequest(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formToObject(formData);
+  const id = uuid.safeParse(values.id);
+  const message = z
+    .string()
+    .trim()
+    .min(1, 'Write a message')
+    .max(500, 'Keep it under 500 characters')
+    .safeParse(values.message ?? '');
+  if (!id.success) return { status: 'error', message: GENERIC };
+  if (!message.success) return { status: 'error', errors: { message: message.error.issues[0]?.message ?? 'Write a message' }, values };
+  const { supabase, user } = await session();
+  if (!user) return { status: 'error', message: 'Please log in again.' };
+  const { data: repliedAt, error } = await supabase.rpc('reply_one_on_one_request', { p_id: id.data, p_message: message.data });
+  if (error || !repliedAt) return { status: 'error', message: 'The message could not be sent. Please refresh the page and try again.', values };
+  const reqId = id.data;
+  after(() => safely('one-on-one message', () => onOneOnOneMessage(reqId, repliedAt)));
+  revalidatePath('/one-on-ones');
+  return { status: 'success' };
 }
 
 // --- Onboarding & email preferences -------------------------------------------

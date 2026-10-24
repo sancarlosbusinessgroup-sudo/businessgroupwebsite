@@ -234,11 +234,18 @@ test.describe('banners, directory, profile and support (second request of the da
     for (const [n, role, file] of [
       ['Cedrick Velasco', 'Operations Manager', 'cedrick-velasco'],
       ['Shermaine Benolirao', 'Operations Director', 'shermaine-benolirao'],
-      ['Rachanee Munar', 'Web Developer', 'rachanee-munar'],
+      ['Rachanee Munar', 'Web Support', 'rachanee-munar'],
     ] as const) {
       await expect(team.getByRole('heading', { level: 3, name: n })).toBeVisible();
       await expect(team.getByRole('img', { name: n })).toHaveAttribute('src', new RegExp(file));
       await expect(team.getByText(role, { exact: true })).toBeVisible();
+      // Round photos at three quarters of the column width (owner, 2026-10-24).
+      const frame = team.getByTestId(`support-photo-${file}`);
+      await expect(frame).toHaveCSS('border-radius', /^(9999px|50%|3\.35544e\+07px)$/);
+      const box = await frame.boundingBox();
+      const col = await team.getByRole('listitem').filter({ hasText: n }).boundingBox();
+      expect(box && col && Math.abs(box.width / col.width - 0.75)).toBeLessThan(0.02);
+      expect(box && Math.abs(box.width - box.height)).toBeLessThan(1);
     }
     await expect(team.getByText(/^We’re happy to be part of the Bay Area Referral Partners community!/)).toBeVisible();
     await expect(team.getByText(/one click at a time!$/)).toBeVisible();

@@ -45,10 +45,14 @@ export default async function SupportPage() {
         <ul className="m-0 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-3">
           {supportTeam.map((t, i) => (
             <li key={t.name} className="flex flex-col gap-3">
-              <span className={`relative block aspect-square overflow-hidden rounded-2xl ${bands[i % bands.length]}`}>
-                <Image src={t.photo} alt={t.name} fill sizes="(max-width: 640px) 100vw, 380px" className="object-cover object-top" />
+              {/* Round photo, three quarters of the column width (owner, 2026-10-24). */}
+              <span
+                data-testid={`support-photo-${t.photo.replace(/^.*\/|\.webp$/g, '')}`}
+                className={`relative mx-auto block aspect-square w-3/4 overflow-hidden rounded-full ${bands[i % bands.length]}`}
+              >
+                <Image src={t.photo} alt={t.name} fill sizes="(max-width: 640px) 75vw, 285px" className="object-cover object-top" />
               </span>
-              <div className="flex flex-col gap-0.5">
+              <div className="flex flex-col items-center gap-0.5 text-center">
                 <h3 className="font-display text-heading m-0 text-xl font-bold">{t.name}</h3>
                 <p className="text-teal-text m-0 font-semibold">{t.role}</p>
               </div>

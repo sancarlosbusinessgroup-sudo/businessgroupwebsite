@@ -154,6 +154,44 @@ test.describe('email notifications', () => {
     expect(await emailsTo(users.member2, /^Please confirm your one-on-one with Ada Admin/)).not.toHaveLength(0);
   });
 
+  test('one-on-one request: the invitee can Accept, Decline or Send a message; the message reaches the requester (owner, 2026-10-24)', async ({ page }) => {
+    const note = `Message test coffee ${Date.now()}`;
+    await login(page, users.member2, undefined, '/one-on-ones');
+    const form = page.getByRole('form', { name: 'Request a one-on-one' });
+    await form.getByLabel('Who would you like to meet?').selectOption({ label: 'Ada Admin · Test Admin Co' });
+    await form.getByLabel('Message').fill(note);
+    await form.getByRole('button', { name: 'Send request' }).click();
+    await expect(page.getByText('Request sent.', { exact: false })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Log out' }).click();
+    await login(page, users.admin, undefined, '/one-on-ones');
+    const item = page.getByRole('region', { name: 'One-on-one requests for you' }).getByRole('listitem').filter({ hasText: note });
+    await expect(item.getByRole('button', { name: 'Accept' })).toBeVisible();
+    await expect(item.getByRole('button', { name: 'Decline' })).toBeVisible();
+    await item.getByRole('button', { name: 'Send a message' }).click();
+    const box = item.getByRole('form', { name: /^Message to Riley Second/ });
+    await box.getByRole('button', { name: 'Send message' }).click();
+    await expect(box.getByText('Write a message')).toBeVisible();
+    const reason = 'Sorry Riley, I am travelling for the next two weeks. Can we try in November?';
+    await box.getByLabel('Your message').fill(reason);
+    await box.getByRole('button', { name: 'Send message' }).click();
+    await expect(item.getByText('Message sent.')).toBeVisible();
+    await expectAccessible(page);
+    const [mail] = await emailsTo(users.member2, /^Ada Admin sent you a message about your one-on-one request/);
+    expect(mail?.textContent).toContain(reason);
+    // The request stays open after a message; then the invitee declines.
+    await item.getByRole('button', { name: 'Decline' }).click();
+    const [declined] = await emailsTo(users.member2, /^Ada Admin declined your one-on-one request/);
+    expect(declined?.textContent).toContain(reason);
+
+    // The requester sees the message with the request.
+    await page.getByRole('button', { name: 'Log out' }).click();
+    await login(page, users.member2, undefined, '/one-on-ones');
+    const mine = page.getByRole('region', { name: 'My requests' }).getByRole('listitem').filter({ hasText: reason });
+    await expect(mine.getByText('You asked Ada Admin')).toBeVisible();
+    await expect(mine.getByText('DECLINED')).toBeVisible();
+  });
+
   test('a guest request thanks the visitor and tells the inviting member and the admins', async ({ page }) => {
     const [me] = await db<{ referral_code: string }>(`profiles?select=referral_code&first_name=eq.Morgan&last_name=eq.Member`);
     const email = `guest.mail.${Date.now()}@example.org`;

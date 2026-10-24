@@ -1,8 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { PASSWORD, db, expectAccessible, lastMail, linkIn, login, users } from './support';
+import { PASSWORD, STACK, db, expectAccessible, lastMail, linkIn, login, serviceKey, users } from './support';
+
+async function asService(path: string, method: string, body: unknown) {
+  const key = await serviceKey();
+  const res = await fetch(`${STACK}${path}`, {
+    method,
+    headers: { apikey: key, Authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`${method} ${path}: ${res.status} ${await res.text()}`);
+}
 
 test.describe('sign up → admin approval → member access', () => {
-  test('one-page application validates, creates a pending account with the application, confirms email and gates member pages', async ({ page }) => {
+  test('one-page application validates, creates a pending account with the application, confirms email; only approved members can log in', async ({ page }) => {
     const email = `applicant.${Date.now()}@example.test`;
     await page.goto('/join?ref=AVER-001');
     await expect(page.getByText('Invited by Avery Lindqvist')).toBeVisible();
@@ -50,6 +60,10 @@ test.describe('sign up → admin approval → member access', () => {
     const before = Date.now();
     await page.getByRole('button', { name: 'Submit application' }).click();
     await expect(page.getByRole('heading', { name: 'Application received' })).toBeVisible();
+    // No log-in button: applicants can log in only once approved (owner, 2026-10-24).
+    await expect(page.getByRole('link', { name: 'Log in to see your status' })).toHaveCount(0);
+    await expect(page.getByText(/You can log in once the leadership team approves your membership/)).toBeVisible();
+    await expect(page.getByText(/Click it to confirm your email/)).toBeVisible();
 
     // Application answers stored for the leadership team
     const [app] = await db<{ years_in_business: string; signature_name: string; references: unknown[] }>(
@@ -69,15 +83,24 @@ test.describe('sign up → admin approval → member access', () => {
     await page.goto(linkIn(mail));
     await expect(page).toHaveURL(/\/auth\/confirm/);
     await page.getByRole('button', { name: 'Confirm my email' }).click();
-    await expect(page).toHaveURL(/\/pending/);
-    await expect(page.getByRole('heading', { name: 'Application received' })).toBeVisible();
-
-    // Pending users cannot reach member pages
+    // Confirming does not sign the applicant in; the login page explains when they can log in.
+    await expect(page).toHaveURL(/\/login\?notice=confirmed/);
+    await expect(page.getByText(/Your email is confirmed/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(0);
+    await expectAccessible(page);
     await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/pending/);
+    await expect(page).toHaveURL(/\/login/);
+
+    // Not approved yet: the right password is refused with an explanation, and no session is kept.
+    await page.getByLabel('Email').first().fill(email);
+    await page.getByRole('textbox', { name: 'Password', exact: true }).fill(PASSWORD);
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page.getByText(/Your application is still waiting for approval/)).toBeVisible();
+    await expect(page).toHaveURL(/\/login/);
+    await page.goto('/profile');
+    await expect(page).toHaveURL(/\/login/);
 
     // Admin approves
-    await page.getByRole('button', { name: 'Log out' }).click();
     await login(page, users.admin, PASSWORD, '/admin');
     await expect(page.getByRole('heading', { name: /Pending applications/ })).toBeVisible();
     await expectAccessible(page);
@@ -181,10 +204,34 @@ test.describe('login, logout and password reset', () => {
     await expect(page.getByText('Passwords do not match')).toBeVisible();
     await page.getByLabel('Confirm new password').fill('new-password-123');
     await page.getByRole('button', { name: 'Save password' }).click();
-    await expect(page).toHaveURL(/\/pending/);
-    await page.getByRole('button', { name: 'Log out' }).click();
-    await login(page, users.pending, 'new-password-123', '/pending');
-    await expect(page).toHaveURL(/\/pending/);
+    // This account is still a pending applicant: the password is saved, but they are signed out until approved.
+    await expect(page).toHaveURL(/\/login\?notice=pending/);
+    await expect(page.getByText(/Your application is still waiting for approval/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Log out' })).toHaveCount(0);
+    // The new password is the one on the account (a wrong one would say the details don't match).
+    await page.getByLabel('Email').first().fill(users.pending);
+    await page.getByRole('textbox', { name: 'Password', exact: true }).fill('new-password-123');
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page.getByText(/Your application is still waiting for approval/)).toBeVisible();
+    await page.goto('/pending');
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test('a declined or inactive account cannot log in', async ({ page }) => {
+    const [p] = await db<{ id: string }>(`profiles?select=id&first_name=eq.Pat&last_name=eq.Pending`);
+    await asService(`/auth/v1/admin/users/${p?.id}`, 'PUT', { password: PASSWORD });
+    await asService(`/rest/v1/profiles?id=eq.${p?.id}`, 'PATCH', { status: 'inactive' });
+    try {
+      await page.goto('/login');
+      await page.getByLabel('Email').first().fill(users.pending);
+      await page.getByRole('textbox', { name: 'Password', exact: true }).fill(PASSWORD);
+      await page.getByRole('button', { name: 'Log in' }).click();
+      await expect(page.getByText(/Your membership is not active/)).toBeVisible();
+      await page.goto('/dashboard');
+      await expect(page).toHaveURL(/\/login/);
+    } finally {
+      await asService(`/rest/v1/profiles?id=eq.${p?.id}`, 'PATCH', { status: 'pending' });
+    }
   });
 
   test('expired or reused email links land on login with a message', async ({ page }) => {

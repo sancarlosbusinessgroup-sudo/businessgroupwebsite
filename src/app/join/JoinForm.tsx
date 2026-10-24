@@ -52,7 +52,7 @@ export function JoinForm({ categories, referralCode, referrerName, today, prefil
           <h2 className="font-display m-0 text-[26px]" tabIndex={-1}>
             Application received
           </h2>
-          {state.message === 'confirm-email' ? <Notice tone="info">We sent a confirmation link to {v.email}. Click it to activate your account.</Notice> : null}
+          {state.message === 'confirm-email' ? <Notice tone="info">We sent a confirmation link to {v.email}. Click it to confirm your email.</Notice> : null}
           <p className="text-ink-soft m-0">
             Your account is a <strong>Guest applicant</strong> until the leadership team approves it. Here&apos;s what happens next:
           </p>
@@ -64,9 +64,10 @@ export function JoinForm({ categories, referralCode, referrerName, today, prefil
               <strong className="text-ink-muted">Pending</strong>
             </li>
           </ol>
-          <Link className="btn btn-primary" href="/login?next=/pending">
-            Log in to see your status
-          </Link>
+          {/* No log-in button: only approved members can log in (owner, 2026-10-24). */}
+          <p className="text-ink-soft m-0">
+            You can log in once the leadership team approves your membership. We&apos;ll email you when you&apos;re approved.
+          </p>
         </div>
       </div>
     );

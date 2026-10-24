@@ -129,7 +129,7 @@ export async function onOneOnOneRequested(id: string): Promise<void> {
 export async function onOneOnOneAnswered(id: string): Promise<void> {
   const db = createAdminClient();
   if (!db) return;
-  const { data: q } = await db.from('one_on_one_requests').select('id, requester_id, invitee_id, status').eq('id', id).single();
+  const { data: q } = await db.from('one_on_one_requests').select('id, requester_id, invitee_id, status, reply').eq('id', id).single();
   if (!q || (q.status !== 'accepted' && q.status !== 'declined')) return;
   const { data: inv } = await db.from('profiles').select('first_name, last_name').eq('id', q.invitee_id).single();
   if (!inv) return;
@@ -137,7 +137,25 @@ export async function onOneOnOneAnswered(id: string): Promise<void> {
     kind: 'one_on_one_answer',
     dedupeKey: q.id,
     pref: 'one_on_ones',
-    build: (r) => T.oneOnOneAnswerEmail({ siteUrl: siteUrl(), toFirstName: r.firstName, inviteeName: fullName(inv), accepted: q.status === 'accepted' }),
+    build: (r) =>
+      T.oneOnOneAnswerEmail({ siteUrl: siteUrl(), toFirstName: r.firstName, inviteeName: fullName(inv), accepted: q.status === 'accepted', message: q.reply }),
+  });
+}
+
+/** The invitee sent a message about a request ("Send a message"); each message is emailed once. */
+export async function onOneOnOneMessage(id: string, repliedAt: string): Promise<void> {
+  const db = createAdminClient();
+  if (!db) return;
+  const { data: q } = await db.from('one_on_one_requests').select('id, requester_id, invitee_id, reply, replied_at').eq('id', id).single();
+  if (!q?.reply || !q.replied_at || new Date(q.replied_at).getTime() !== new Date(repliedAt).getTime()) return;
+  const { data: inv } = await db.from('profiles').select('first_name, last_name').eq('id', q.invitee_id).single();
+  if (!inv) return;
+  const message = q.reply;
+  await notifyMembers([q.requester_id], {
+    kind: 'one_on_one_message',
+    dedupeKey: `${q.id}:${new Date(q.replied_at).getTime()}`,
+    pref: 'one_on_ones',
+    build: (r) => T.oneOnOneMessageEmail({ siteUrl: siteUrl(), toFirstName: r.firstName, inviteeName: fullName(inv), message }),
   });
 }
 

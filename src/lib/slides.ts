@@ -25,8 +25,9 @@ export const SLIDE_KEYS = [
 export type SlideKey = (typeof SLIDE_KEYS)[number];
 
 /** Standard deck (owner's order, 2026-10-21; "Visitors" added and "Introduction of guests" taken out 2026-10-22;
- *  "BARP Champion" added and the two question slides taken out 2026-10-23).
- *  "Today's agenda", "Introduction of guests", "This week we're looking for…", the question slides and "Thank you, visitors"
+ *  "BARP Champion" added and the two question slides taken out 2026-10-23;
+ *  "Introduction of Visitors" back, after the infomercials, 2026-10-24).
+ *  "Today's agenda", "This week we're looking for…", the question slides and "Thank you, visitors"
  *  stay available: tick them on the Customize slides page to add them to a meeting. */
 export const DEFAULT_SLIDES: SlideKey[] = [
   'welcome',
@@ -35,6 +36,7 @@ export const DEFAULT_SLIDES: SlideKey[] = [
   'visitor_path',
   'leadership',
   'infomercials',
+  'guests',
   'statistics',
   'leaderboards',
   'champion',
@@ -52,7 +54,7 @@ const info: Record<SlideKey, SlideInfo> = {
   call_to_order: { label: 'Let’s begin (meeting called to order)', time: '8:30' },
   visitor_path: { label: 'Visitors (how to join)' },
   leadership: { label: 'Meet the Management Team', time: '8:31' },
-  guests: { label: 'Introduction of guests', time: '8:32' },
+  guests: { label: 'Introduction of Visitors' },
   infomercials: { label: '60-second infomercial and reporting', time: '8:33' },
   asks: { label: 'This week we’re looking for…', time: '8:33' },
   statistics: { label: 'Statistics', time: '9:00' },
