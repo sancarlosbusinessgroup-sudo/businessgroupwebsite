@@ -46,11 +46,11 @@ test.describe('public site', () => {
     await expect(page.getByText('Referrals given (90 days)')).toHaveCount(0);
   });
 
-  test('Visit page lists open professions; the join form warns about a full category', async ({ page }) => {
+  test('no "Open professions" section on the Visit page (owner, 2026-10-25); the join form warns about a full category', async ({ page }) => {
     await page.goto('/visit');
-    const open = page.getByRole('region', { name: 'Open professions' });
-    await expect(open.getByText('Accounting')).toBeVisible();
-    await expect(open.getByText('Real Estate', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Request a guest invite' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Open professions' })).toHaveCount(0);
+    await expect(page.getByText('One member per profession', { exact: true })).toHaveCount(0);
 
     await page.goto('/join');
     await page.getByLabel('Category').selectOption({ label: 'Real Estate (full)' });
@@ -199,14 +199,14 @@ test.describe('admins', () => {
     await expect(page.getByRole('form', { name: 'Edit Quinn Treasurer' })).toHaveCount(0);
   });
 
-  test('category seats: raising a limit opens the profession on the Visit page', async ({ page }) => {
+  test('category seats: raising a limit opens the profession on the application form', async ({ page }) => {
     await page.goto('/admin');
     const form = page.getByRole('form', { name: 'Seats for Real Estate' });
     await form.getByLabel('Seats').fill('2');
     await form.getByRole('button', { name: 'Save' }).click();
     await expect(form.getByText('Saved')).toBeVisible();
-    await page.goto('/visit');
-    await expect(page.getByRole('region', { name: 'Open professions' }).getByText('Real Estate', { exact: true })).toBeVisible();
+    await page.goto('/join');
+    await expect(page.getByLabel('Category').locator('option', { hasText: /^Real Estate$/ })).toHaveCount(1);
 
     await page.goto('/admin');
     await form.getByLabel('Seats').fill('1');

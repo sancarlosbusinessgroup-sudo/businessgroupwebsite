@@ -73,8 +73,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           {[
             { v: String(site.founded), l: 'Founded with the San Carlos Chamber of Commerce' },
             { v: String(count), l: 'Member businesses in the directory' },
-            { v: site.meetingCadence, l: `${site.meetingTime}, online with hybrid gatherings` },
-            { v: '$0', l: 'Annual dues. Participation, not payment' },
+            { v: site.meetingCadence, l: '8:15am–9:30am' },
+            { v: '$0', l: 'No membership fees. Participation, not payment' },
           ].map((s) => (
             <div key={s.l} className="flex flex-col-reverse px-1 py-2">
               <dt className="text-ink-muted">{s.l}</dt>

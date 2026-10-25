@@ -88,7 +88,7 @@ export default async function BylawsPage() {
                 Leadership &amp; responsibilities
               </h3>
               {leaders.length ? (
-                <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3 p-0" aria-label="Leadership team">
+                <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-3 p-0" aria-label="Leadership &amp; responsibilities">
                   {leaders.map((t, i) => (
                     <li key={t.id} className="card flex items-center gap-4 p-3.5">
                       <Photo p={t} size={72} index={i} />

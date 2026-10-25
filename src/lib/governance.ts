@@ -13,7 +13,7 @@ export const bylaws = {
     'The leadership committee is responsible for coordinating visitor follow-ups, determining whether applicants are suitable for group membership, performing periodic reviews of members and recommending members for expulsion.',
   meetings: 'Meetings are held every other Monday on Zoom. Please turn off or silence all cellphones and other devices during the meeting, and arrive on time.',
   acceptanceIntro:
-    'After meeting with three leadership team members for individual one-to-ones, the leadership team will review the application and decide whether the prospective member is a good fit for the group.',
+    'After meeting with three Membership Committee members for individual one-to-ones, the Membership Committee will review the application and decide whether the prospective member is a good fit for the group.',
   acceptance: [
     'Only one person per business category is allowed, so that there is no competition for referrals within a category.',
     'Reference checks.',
@@ -41,7 +41,7 @@ export const procedures = {
     'Substitutes are encouraged if you must miss a meeting.',
     'Members are only allowed to miss 2 meetings in a 6-month period.',
   ],
-  dues: 'Our networking group is free.',
+  dues: 'Our networking group has no membership fees.',
   weekly: [
     'Each meeting, every member is expected to do at least one one-to-one, or bring a qualified referral, or bring a visitor to the group.',
     'At least two one-to-one meetings are expected per month. Referrals can only happen when members know each other well.',

@@ -41,10 +41,10 @@ export const memberNav: readonly NavItem[] = [
 ] as const;
 
 export const howItWorks = [
-  { title: 'Visit twice, free', text: 'Get invited by a member and attend up to two meetings as a guest.' },
-  { title: 'Meet the leadership team', text: "One-to-ones with three leadership team members. If it's a fit, welcome aboard." },
+  { title: 'Visit twice, no membership fees', text: 'Get invited by a member and attend up to two meetings as a guest.' },
+  { title: 'Meet the Membership Committee', text: "One-to-ones with three Membership Committee members. If it's a fit, welcome aboard." },
   { title: 'Refer and connect', text: 'Share warm introductions and invite guests. Your referral link tracks every one.' },
-  { title: 'Watch it grow', text: 'Report referrals, one-on-ones and closed business. The leaderboard shows the whole group’s progress.' },
+  { title: 'We help you grow your business by referral', text: 'Report referrals, one-on-ones and closed business. The leaderboard shows the whole group’s progress.' },
 ];
 
 export const values = [
@@ -77,7 +77,7 @@ export const leadership = {
 export const meetingAgenda = [
   { time: '8:15', item: 'Open networking' },
   { time: '8:30', item: 'Meeting called to order' },
-  { time: '8:31', item: 'Introduction of the leadership team' },
+  { time: '8:31', item: 'Introduction of the Membership Committee' },
   { time: '8:32', item: 'Introduction of guests' },
   { time: '8:33', item: '60-second infomercials: referrals, one-to-ones, closed business, thank-yous, testimonials and leads' },
   { time: '9:00', item: 'Statistics' },
@@ -99,14 +99,14 @@ export const visitTips = [
 
 export const joinSteps = [
   { title: 'Get invited', text: 'Through a member, or request an invite below.' },
-  { title: 'Attend as a guest', text: 'Up to two meetings, free.' },
-  { title: '3 one-on-ones', text: 'With three leadership team members, then the team reviews your application.' },
+  { title: 'Attend as a guest', text: 'Up to two meetings. No membership fees.' },
+  { title: '3 one-on-ones', text: 'With three Membership Committee members, then the committee reviews your application.' },
   { title: 'Join & grow', text: 'Mutual fit? Welcome aboard.' },
 ];
 
 /** Agreement terms from the Member Application Form. */
 export const agreementTerms = [
-  { title: 'Dues', text: 'Our networking group is free. We just ask you to adhere to our group rules.' },
+  { title: 'Dues', text: 'Our networking group has no membership fees. We just ask you to adhere to our group rules.' },
   { title: 'Attendance', text: 'Attendance is expected at every meeting. Members are only allowed to miss 2 meetings in a 6-month period.' },
   {
     title: 'Understanding',
@@ -199,6 +199,6 @@ export const supportFaq = [
   { q: 'Where is the Zoom link?', a: 'Members find it on the Meetings page (“Open Zoom link”). It is shared with logged-in members only.' },
   {
     q: 'I’m not a member yet. How do I visit?',
-    a: 'Use “Request for an Invite” at the top of any page. The leadership team will be in touch about the next meeting.',
+    a: 'Use “Request for an Invite” at the top of any page. The Membership Committee will be in touch about the next meeting.',
   },
 ] as const;

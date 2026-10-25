@@ -62,7 +62,7 @@ test.describe('sign up → admin approval → member access', () => {
     await expect(page.getByRole('heading', { name: 'Application received' })).toBeVisible();
     // No log-in button: applicants can log in only once approved (owner, 2026-10-24).
     await expect(page.getByRole('link', { name: 'Log in to see your status' })).toHaveCount(0);
-    await expect(page.getByText(/You can log in once the leadership team approves your membership/)).toBeVisible();
+    await expect(page.getByText(/You can log in once the Membership Committee approves your membership/)).toBeVisible();
     await expect(page.getByText(/Click it to confirm your email/)).toBeVisible();
 
     // Application answers stored for the leadership team

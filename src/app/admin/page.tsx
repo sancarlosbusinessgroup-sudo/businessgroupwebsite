@@ -254,9 +254,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             Guest invite requests
           </h2>
           <p className="text-ink-muted m-0 text-sm">
-            <strong>Send Zoom link</strong> emails the guest the Zoom link for their meeting. After they have visited and the leadership team agrees, use{' '}
+            <strong>Send Zoom link</strong> emails the guest the Zoom link for their meeting. After they have visited and the Membership Committee agrees, use{' '}
             <strong>Invite to apply</strong> to email them the membership application form, already filled in with their name and email. Mark their one-on-ones
-            with the leadership team as done, then <strong>Approved</strong> approves their application and emails them their welcome.
+            with the Membership Committee as done, then <strong>Approved</strong> approves their application and emails them their welcome.
           </p>
           {guestsRes.data.length === 0 ? (
             <EmptyState title="No guest requests yet" />

@@ -104,7 +104,7 @@ export function welcomeEmail(o: { siteUrl: string; firstName: string }): Email {
       preheader: 'You’re approved. One short step left: your onboarding form.',
       heading: `Welcome aboard, ${o.firstName}!`,
       blocks: [
-        { p: `The leadership team has approved your membership in ${site.name}. We’re glad to have you.` },
+        { p: `The Membership Committee has approved your membership in ${site.name}. We’re glad to have you.` },
         { p: 'Please complete your short onboarding form: confirm your details, add a photo and tell members how to refer you. It takes about five minutes.' },
         { p: `Log in with the email and password you used to apply. Forgot your password? Use “Forgot password” on the login page.` },
       ],
@@ -386,7 +386,7 @@ export function visitorFollowupEmail(o: { siteUrl: string; firstName: string }):
       heading: `Thanks for joining us, ${o.firstName}!`,
       blocks: [
         { p: 'It was great to have you at our meeting. We keep one member per profession, so every introduction counts.' },
-        { p: 'If it felt like a good fit, the next step is a short application. The leadership team will be in touch about one-to-ones.' },
+        { p: 'If it felt like a good fit, the next step is a short application. The Membership Committee will be in touch about one-to-ones.' },
       ],
       cta: { label: 'Apply to join', href: `${o.siteUrl}/join` },
       footer: `You get this email because you visited ${site.name}.`,
@@ -457,11 +457,11 @@ export function applyInviteEmail(o: { siteUrl: string; firstName: string; link: 
       preheader: 'Your membership application form is ready.',
       heading: `${o.firstName}, you're invited to apply`,
       blocks: [
-        { p: `Thank you for visiting ${site.name}. The leadership team would love to have you apply for membership.` },
+        { p: `Thank you for visiting ${site.name}. The Membership Committee would love to have you apply for membership.` },
         {
           p: 'The membership application form takes about 10 minutes. You will need two business references, and you will be asked to agree to our terms, so please read the Bylaws and Procedures first.',
         },
-        { p: 'Next, you will have one-to-ones with three members of our leadership team, who then review your application.' },
+        { p: 'Next, you will have one-to-ones with three members of our Membership Committee, who then review your application.' },
       ],
       cta: { label: 'Open the membership form', href: o.link },
       footer: `You get this email because you visited ${site.name}.`,

@@ -7,9 +7,9 @@ export const noticeFor = (status: string | null | undefined): LoginNotice => (st
 
 export const loginNotices: Record<LoginNotice, string> = {
   confirmed:
-    'Your email is confirmed. You can log in once the leadership team approves your membership. We’ll email you when you’re approved.',
-  pending: 'Your application is still waiting for approval. You can log in once the leadership team approves your membership.',
-  inactive: 'Your membership is not active. Please contact the leadership team if you have questions.',
+    'Your email is confirmed. You can log in once the Membership Committee approves your membership. We’ll email you when you’re approved.',
+  pending: 'Your application is still waiting for approval. You can log in once the Membership Committee approves your membership.',
+  inactive: 'Your membership is not active. Please contact the Membership Committee if you have questions.',
 };
 
 export const isLoginNotice = (v: unknown): v is LoginNotice => v === 'confirmed' || v === 'pending' || v === 'inactive';

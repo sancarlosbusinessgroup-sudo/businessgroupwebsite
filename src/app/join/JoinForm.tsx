@@ -54,19 +54,19 @@ export function JoinForm({ categories, referralCode, referrerName, today, prefil
           </h2>
           {state.message === 'confirm-email' ? <Notice tone="info">We sent a confirmation link to {v.email}. Click it to confirm your email.</Notice> : null}
           <p className="text-ink-soft m-0">
-            Your account is a <strong>Guest applicant</strong> until the leadership team approves it. Here&apos;s what happens next:
+            Your account is a <strong>Guest applicant</strong> until the Membership Committee approves it. Here&apos;s what happens next:
           </p>
           <ol className="m-0 flex w-full list-none flex-col gap-2.5 p-0">
             <li className="border-line rounded-xl border px-4 py-3.5">Attend up to 2 meetings as a guest</li>
-            <li className="border-line rounded-xl border px-4 py-3.5">One-to-ones with three leadership team members</li>
+            <li className="border-line rounded-xl border px-4 py-3.5">One-to-ones with three Membership Committee members</li>
             <li className="border-line flex justify-between gap-3 rounded-xl border px-4 py-3.5">
-              <span>Reference checks and leadership review</span>
+              <span>Reference checks and Membership Committee review</span>
               <strong className="text-ink-muted">Pending</strong>
             </li>
           </ol>
           {/* No log-in button: only approved members can log in (owner, 2026-10-24). */}
           <p className="text-ink-soft m-0">
-            You can log in once the leadership team approves your membership. We&apos;ll email you when you&apos;re approved.
+            You can log in once the Membership Committee approves your membership. We&apos;ll email you when you&apos;re approved.
           </p>
         </div>
       </div>
@@ -125,7 +125,7 @@ export function JoinForm({ categories, referralCode, referrerName, today, prefil
             error={errors.categoryId}
             help={
               fullCategory
-                ? `${fullCategory.name} already has a member, and we keep one member per profession. You can still apply; the leadership team will contact you about fit.`
+                ? `${fullCategory.name} already has a member, and we keep one member per profession. You can still apply; the Membership Committee will contact you about fit.`
                 : 'One member per profession. Categories marked “full” already have a member.'
             }
           >
@@ -310,7 +310,7 @@ export function JoinForm({ categories, referralCode, referrerName, today, prefil
       </fieldset>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-ink-muted text-sm">Your answers are seen only by the leadership team.</span>
+        <span className="text-ink-muted text-sm">Your answers are seen only by the Membership Committee.</span>
         <SubmitButton pendingText="Submitting…">Submit application</SubmitButton>
       </div>
     </form>

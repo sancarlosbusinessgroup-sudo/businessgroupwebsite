@@ -11,6 +11,6 @@ describe('only approved members can log in', () => {
   it('knows the notices the login page can show', () => {
     for (const k of ['confirmed', 'pending', 'inactive']) expect(isLoginNotice(k)).toBe(true);
     expect(isLoginNotice('link')).toBe(false);
-    expect(loginNotices.pending).toMatch(/once the leadership team approves your membership/);
+    expect(loginNotices.pending).toMatch(/once the Membership Committee approves your membership/);
   });
 });

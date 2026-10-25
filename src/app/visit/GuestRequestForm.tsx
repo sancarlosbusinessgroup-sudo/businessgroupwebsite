@@ -19,7 +19,7 @@ export function GuestRequestForm({ meetings, referralCode, referrerName }: { mee
     return (
       <div className="card flex flex-col items-start gap-2.5 p-7" role="status">
         <h3 className="font-display m-0 text-[22px]">You&apos;re on the list, {state.message}!</h3>
-        <p className="text-ink-soft m-0">A member of the leadership team will email you the Zoom link and a calendar invite before the meeting.</p>
+        <p className="text-ink-soft m-0">A member of the Membership Committee will email you the Zoom link and a calendar invite before the meeting.</p>
       </div>
     );
   }

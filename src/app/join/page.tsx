@@ -47,7 +47,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
           <p className="eyebrow m-0">Membership application</p>
           <h1 className="font-display m-0 text-[clamp(32px,4vw,46px)] leading-[1.08] font-extrabold">Join {site.name}</h1>
           <p className="text-ink-soft m-0">
-            No dues. One business per category. Members commit to showing up, one-to-ones and bringing referrals or visitors. See our{' '}
+            No membership fees. One business per category. Members commit to showing up, one-to-ones and bringing referrals or visitors. See our{' '}
             <Link href="/bylaws">Bylaws and Procedures</Link>.
           </p>
           {invited ? (

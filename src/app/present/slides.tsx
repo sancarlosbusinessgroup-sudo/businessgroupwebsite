@@ -993,8 +993,8 @@ export function buildSlides(d: DeckData): DeckSlide[] {
             <>
               <Bullets
                 items={[
-                  'Next step: one-to-ones with three members of our leadership team.',
-                  'The leadership team then reviews your application. Only one person per business category.',
+                  'Next step: one-to-ones with three members of our Membership Committee.',
+                  'The Membership Committee then reviews your application. Only one person per business category.',
                   <>
                     Apply or learn more at <strong style={{ color: BLUE }}>{visitUrl}</strong>
                   </>,
