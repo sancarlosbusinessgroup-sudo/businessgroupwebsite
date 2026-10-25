@@ -32,6 +32,7 @@ export const memberNav: readonly NavItem[] = [
     children: [
       { href: '/referrals', label: 'Referrals' },
       { href: '/one-on-ones', label: 'One-on-ones' },
+      { href: '/closed-business', label: 'Closed Businesses' },
     ],
   },
   { href: '/members', label: 'Directory' },
@@ -197,7 +198,7 @@ export const supportFaq = [
   },
   {
     q: 'How do I report a referral or a one-on-one?',
-    a: 'Log in and open Report Activity in the menu. Choose Referrals to file a referral slip, or One-on-ones to report or request a one-on-one.',
+    a: 'Log in and open Report Activity in the menu. Choose Referrals to file a referral slip, One-on-ones to report or request a one-on-one, or Closed Businesses to mark a referral as closed business or file closed business you forgot to report.',
   },
   { q: 'Where is the Zoom link?', a: 'Members find it on the Meetings page (“Open Zoom link”). It is shared with logged-in members only.' },
   {

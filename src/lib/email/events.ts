@@ -39,7 +39,7 @@ export async function onReferralSent(referralId: string): Promise<void> {
   if (!db) return;
   const { data: ref } = await db
     .from('referrals')
-    .select('id, from_id, to_id, contact_name, prospect_phone, prospect_email, amount, notes')
+    .select('id, from_id, to_id, contact_name, prospect_phone, prospect_email, amount, notes, status')
     .eq('id', referralId)
     .single();
   if (!ref || !ref.from_id || !ref.to_id) return;
@@ -59,6 +59,7 @@ export async function onReferralSent(referralId: string): Promise<void> {
         email: ref.prospect_email,
         amount: ref.amount != null ? formatMoney(Number(ref.amount)) : null,
         notes: ref.notes,
+        closed: ref.status === 'closed_deal',
       }),
   });
 }

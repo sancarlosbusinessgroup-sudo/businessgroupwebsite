@@ -1135,6 +1135,10 @@ export type Database = {
       };
       respond_one_on_one_request: { Args: { p_id: string; p_status: string }; Returns: undefined };
       reply_one_on_one_request: { Args: { p_id: string; p_message: string }; Returns: string };
+      file_closed_business: {
+        Args: { p_to: string; p_contact_name: string; p_phone: string | null; p_email: string | null; p_amount: number | null; p_notes: string | null };
+        Returns: string;
+      };
       set_speaker_topic: { Args: { p_meeting: string; p_slot: string; p_topic: string; p_description: string }; Returns: undefined };
       admin_member_stats: { Args: { p_from?: string | null; p_to?: string | null }; Returns: MemberPeriodStats[] };
       confirm_one_on_one: { Args: { p_id: string }; Returns: undefined };

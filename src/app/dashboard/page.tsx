@@ -109,7 +109,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 {[
                   { href: '/one-on-ones', t: 'One-on-one', d: 'Log a meeting with another member' },
                   { href: '/referrals', t: 'Referral slip', d: 'Pass business to another member' },
-                  { href: '/referrals', t: 'Closed business', d: 'Mark a referral you received as closed business' },
+                  { href: '/closed-business', t: 'Closed business', d: 'Mark a referral you received as closed business' },
                   { href: '/meetings', t: 'Sign up to speak', d: '5-min education or 10-min presentation' },
                 ].map((a) => (
                   <Link

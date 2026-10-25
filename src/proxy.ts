@@ -6,7 +6,7 @@ import type { Database } from './lib/database.types';
 /** Pages still open while a member must choose a new password. */
 const CHOOSE_OK = ['/choose-password', '/auth', '/login', '/forgot-password', '/reset-password', '/privacy', '/terms'];
 
-const MEMBER_PATHS = ['/dashboard', '/meetings', '/referrals', '/one-on-ones', '/profile', '/admin', '/pending', '/present', '/events/new', '/onboarding'];
+const MEMBER_PATHS = ['/dashboard', '/meetings', '/referrals', '/closed-business', '/one-on-ones', '/profile', '/admin', '/pending', '/present', '/events/new', '/onboarding'];
 
 /** Pages a signed-in account that is not approved may still open: the email links and choosing a new password. */
 const NOT_APPROVED_OK = ['/auth', '/reset-password'];

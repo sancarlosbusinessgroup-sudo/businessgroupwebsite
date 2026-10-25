@@ -23,11 +23,22 @@ describe('email templates', () => {
     expect(t.oneOnOneAnswerEmail({ siteUrl, toFirstName: 'Ana', inviteeName: 'Bo', accepted: false }).text).not.toContain('Their message');
   });
 
+  it('a closed business filed afterwards tells the receiver it is already recorded as closed (owner, 2026-10-25)', () => {
+    const e = t.referralReceivedEmail({ siteUrl, toFirstName: 'Ana', fromName: 'Bo', prospect: 'Kitchen <remodel>', amount: '$12,500', closed: true });
+    expect(e.subject).toBe('Closed business recorded from Bo: Kitchen <remodel>');
+    expect(e.text).toContain('already closed business');
+    expect(e.text).toContain('Value: $12,500');
+    expect(e.text).toContain('/closed-business');
+    expect(e.text).not.toContain('Reach out soon');
+    expect(e.html).toContain('Kitchen &lt;remodel&gt;');
+  });
+
   it('every template has a subject, a lang attribute, a link to the site and a plain-text twin', () => {
     const all: t.Email[] = [
       t.welcomeEmail({ siteUrl, firstName: 'Ana' }),
       t.onboardingReminderEmail({ siteUrl, firstName: 'Ana' }),
       t.referralReceivedEmail({ siteUrl, toFirstName: 'Ana', fromName: 'Bo', prospect: 'P' }),
+      t.referralReceivedEmail({ siteUrl, toFirstName: 'Ana', fromName: 'Bo', prospect: 'P', closed: true }),
       t.referralStatusEmail({ siteUrl, toFirstName: 'Ana', receiverName: 'Bo', prospect: 'P', status: 'Closed business', amount: '$1,000' }),
       t.oneOnOneConfirmEmail({ siteUrl, toFirstName: 'Ana', reporterName: 'Bo', date: 'Oct 1' }),
       t.oneOnOneRequestEmail({ siteUrl, toFirstName: 'Ana', requesterName: 'Bo', business: 'Bo Co' }),

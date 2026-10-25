@@ -164,9 +164,38 @@ export async function sendReferral(_prev: ActionState, formData: FormData): Prom
   });
   if (error) return { status: 'error', message: GENERIC, values };
   after(() => safely('referral sent', () => onReferralSent(referralId)));
-  revalidatePath('/referrals');
-  revalidatePath('/dashboard');
+  revalidateReferralPages();
   return { status: 'success', message: 'Referral slip sent.' };
+}
+
+/**
+ * A referral the member forgot to file that has already become business (owner, 2026-10-25).
+ * Saved as a referral from them, already "closed business", through a checked database function.
+ */
+export async function fileClosedBusiness(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formToObject(formData);
+  const parsed = referralSchema.safeParse(values);
+  if (!parsed.success) return { status: 'error', message: 'Please fix the highlighted fields.', errors: fieldErrors(parsed.error), values };
+  const { supabase, user } = await session();
+  if (!user) return { status: 'error', message: 'Please log in again.' };
+  if (parsed.data.toId === user.id) return { status: 'error', errors: { toId: 'Choose another member' }, values };
+  const d = parsed.data;
+  const { data: referralId, error } = await supabase.rpc('file_closed_business', {
+    p_to: d.toId,
+    p_contact_name: d.contactName,
+    p_phone: d.prospectPhone ?? null,
+    p_email: d.prospectEmail ?? null,
+    p_amount: d.amount ?? null,
+    p_notes: d.notes ?? null,
+  });
+  if (error || !referralId) return { status: 'error', message: GENERIC, values };
+  after(() => safely('closed business filed', () => onReferralSent(referralId)));
+  revalidateReferralPages();
+  return { status: 'success', message: 'Closed business filed.' };
+}
+
+function revalidateReferralPages() {
+  for (const p of ['/referrals', '/closed-business', '/dashboard', '/admin/stats', '/admin/champion']) revalidatePath(p);
 }
 
 export async function updateReferral(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -184,8 +213,7 @@ export async function updateReferral(_prev: ActionState, formData: FormData): Pr
   if (error || !data?.length) return { status: 'error', message: 'Only the member who received a referral can update it.' };
   const refId = parsed.data.id;
   after(() => safely('referral updated', () => onReferralUpdated(refId)));
-  revalidatePath('/referrals');
-  revalidatePath('/dashboard');
+  revalidateReferralPages();
   // Keep the saved values in the form (React resets forms after an action).
   return { status: 'success', message: 'Saved.', values };
 }
@@ -323,7 +351,7 @@ export async function deleteReferral(formData: FormData): Promise<void> {
   const { supabase, user } = await session();
   if (!user) return;
   await supabase.from('referrals').delete().eq('id', id.data);
-  for (const p of ['/referrals', '/dashboard', '/admin/activity', '/admin/stats']) revalidatePath(p);
+  for (const p of ['/referrals', '/closed-business', '/dashboard', '/admin/activity', '/admin/stats']) revalidatePath(p);
 }
 
 export async function deleteOneOnOne(formData: FormData): Promise<void> {

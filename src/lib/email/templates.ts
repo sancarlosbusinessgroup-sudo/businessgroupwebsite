@@ -137,11 +137,31 @@ export function referralReceivedEmail(o: {
   email?: string | null;
   amount?: string | null;
   notes?: string | null;
+  /** Filed afterwards from the Closed Businesses page: already closed business (owner, 2026-10-25). */
+  closed?: boolean;
 }): Email {
   const list: [string, string][] = [['Prospect', o.prospect]];
   if (o.phone) list.push(['Phone', o.phone]);
   if (o.email) list.push(['Email', o.email]);
-  if (o.amount) list.push(['Estimated value', o.amount]);
+  if (o.amount) list.push([o.closed ? 'Value' : 'Estimated value', o.amount]);
+  if (o.closed) {
+    return {
+      subject: `Closed business recorded from ${o.fromName}: ${o.prospect}`,
+      ...layout({
+        siteUrl: o.siteUrl,
+        preheader: `${o.fromName} recorded a referral that became business for you.`,
+        heading: `Closed business recorded, ${o.toFirstName}`,
+        blocks: [
+          { p: `${o.fromName} filed a referral they passed you earlier. It is already closed business.` },
+          { list },
+          ...(o.notes ? [{ quote: o.notes }] : []),
+          { p: 'If the value is not right, or this was not closed business, you can change it on the Closed Businesses page.' },
+        ],
+        cta: { label: 'Open Closed Businesses', href: `${o.siteUrl}/closed-business` },
+        footer: prefsFooter(o.siteUrl),
+      }),
+    };
+  }
   return {
     subject: `New referral from ${o.fromName}: ${o.prospect}`,
     ...layout({

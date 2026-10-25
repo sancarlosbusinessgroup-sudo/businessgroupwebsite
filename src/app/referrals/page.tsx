@@ -1,18 +1,12 @@
 import type { Metadata } from 'next';
-import { personName } from '@/lib/people';
-import { EmptyState, Pill } from '@/components/ui';
+import { EmptyState } from '@/components/ui';
 import { requireMember } from '@/lib/auth';
-import { referralStatusLabels } from '@/lib/content';
 import { getMemberOptions } from '@/lib/data/member';
-import { formatMoney, formatShortDate } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
-import { ConfirmDelete } from '@/components/ConfirmDelete';
-import { deleteReferral } from '../actions/member';
-import { SendReferralForm, UpdateReferralForm } from './ReferralForms';
+import { SendReferralForm } from './ReferralForms';
+import { ReferralSlip, referralSelect, type ReferralRow } from './ReferralSlip';
 
 export const metadata: Metadata = { title: 'Referral tracker' };
-
-const refTone = { new: 'gray', contacted: 'teal', meeting_set: 'teal', closed_deal: 'green', not_a_fit: 'amber' } as const;
 
 export default async function ReferralsPage({ searchParams }: { searchParams: Promise<{ to?: string }> }) {
   const sp = await searchParams;
@@ -23,70 +17,18 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
     getMemberOptions(me.id),
     supabase
       .from('referrals')
-      .select(
-        'id, from_id, to_id, contact_name, prospect_phone, prospect_email, amount, notes, status, created_at, from:profiles!referrals_from_id_fkey(first_name, last_name), to:profiles!referrals_to_id_fkey(first_name, last_name)',
-      )
+      .select(referralSelect)
       .or(`from_id.eq.${me.id},to_id.eq.${me.id}`)
       .order('created_at', { ascending: false })
       .limit(100),
   ]);
   if (refsRes.error) throw new Error('Could not load your referrals');
-  const received = refsRes.data.filter((r) => r.to_id === me.id);
-  const given = refsRes.data.filter((r) => r.from_id === me.id);
+  const rows = refsRes.data as unknown as ReferralRow[];
+  const received = rows.filter((r) => r.to_id === me.id);
+  const given = rows.filter((r) => r.from_id === me.id);
   const validTo = members.some((m) => m.id === sp.to) ? sp.to : undefined;
 
-  const slip = (r: (typeof refsRes.data)[number], isReceived: boolean) => {
-    const other = isReceived ? r.from : r.to;
-    return (
-      <li key={r.id} className="border-line flex flex-col gap-2 rounded-xl border p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span>
-            <span className="text-ink-muted text-sm">{isReceived ? '← From' : 'To →'}</span> <strong>{personName(other)}</strong>
-          </span>
-          <span className="text-ink-muted flex flex-wrap items-center gap-2 text-sm">
-            {formatShortDate(new Date(r.created_at))}
-            <Pill tone={refTone[r.status]}>{referralStatusLabels[r.status]}</Pill>
-          </span>
-        </div>
-        {/* Labelled details, the same for the giver and the receiver (owner, 2026-10-24). */}
-        <dl className="text-ink-soft m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[15px]">
-          <dt className="text-ink-muted">Name of Referral:</dt>
-          <dd className="m-0 font-semibold">{r.contact_name}</dd>
-          {r.prospect_phone ? (
-            <>
-              <dt className="text-ink-muted">Phone:</dt>
-              <dd className="m-0">
-                <a href={`tel:${r.prospect_phone.replace(/[^0-9+]/g, '')}`}>{r.prospect_phone}</a>
-              </dd>
-            </>
-          ) : null}
-          {r.prospect_email ? (
-            <>
-              <dt className="text-ink-muted">Email:</dt>
-              <dd className="m-0 break-all">
-                <a href={`mailto:${r.prospect_email}`}>{r.prospect_email}</a>
-              </dd>
-            </>
-          ) : null}
-          {r.notes ? (
-            <>
-              <dt className="text-ink-muted">Note:</dt>
-              <dd className="m-0 whitespace-pre-line">{r.notes}</dd>
-            </>
-          ) : null}
-        </dl>
-        {r.amount !== null ? (
-          <span className="text-ink-soft text-[15px]">
-            Value: <strong>{formatMoney(r.amount)}</strong>
-          </span>
-        ) : null}
-        {isReceived ? <UpdateReferralForm id={r.id} status={r.status} amount={r.amount} label={r.contact_name} /> : null}
-        {!isReceived || me.role === 'admin' ? (
-          <ConfirmDelete action={deleteReferral} id={r.id} what={`referral slip for ${r.contact_name}`} className="self-start" />
-        ) : null}
-      </li>
-    );
-  };
+  const slip = (r: ReferralRow, isReceived: boolean) => <ReferralSlip key={r.id} r={r} isReceived={isReceived} isAdmin={me.role === 'admin'} />;
 
   return (
     <div className="bg-canvas">
