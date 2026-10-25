@@ -191,15 +191,7 @@ function Page({
 function ChampionPage({ ctx, soon, children }: { ctx: Ctx; soon?: boolean; children?: ReactNode }) {
   return (
     <div className="relative h-full overflow-hidden bg-white">
-      <Image
-        src={soon ? CHAMPION_SOON : CHAMPION_BG}
-        alt=""
-        fill
-        sizes="100vw"
-        className="object-cover"
-        data-testid="champion-background"
-        aria-hidden="true"
-      />
+      <Image src={soon ? CHAMPION_SOON : CHAMPION_BG} alt="" fill sizes="100vw" className="object-cover" data-testid="champion-background" aria-hidden="true" />
       <h2 className="sr-only">BARP Champion</h2>
       {soon ? <p className="sr-only">Coming soon</p> : null}
       <div className="absolute inset-x-[8cqw] top-[16.5cqw] bottom-[9cqw] flex flex-col items-center justify-center text-center">{children}</div>
@@ -697,7 +689,11 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                         style={hi ? { background: 'linear-gradient(135deg, #1f7fd0, #0a47a9)' } : undefined}
                       >
                         <Badge name={icon} size={3.6} light={hi} />
-                        <span className="font-display text-[3.8cqw] leading-none font-extrabold tabular-nums" style={hi ? undefined : { color: BLUE }}>
+                        <span
+                          className="font-display leading-none font-extrabold whitespace-nowrap tabular-nums"
+                          // Long numbers (e.g. "$3,000,000") get a smaller font so they stay inside the card.
+                          style={{ fontSize: `${v.length <= 7 ? 3.8 : Math.max(1.8, (3.8 * 7.5) / v.length)}cqw`, ...(hi ? {} : { color: BLUE }) }}
+                        >
                           {v}
                         </span>
                         <span className="text-[1.6cqw] font-semibold" style={hi ? undefined : { color: INK }}>
