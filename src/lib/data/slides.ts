@@ -216,7 +216,8 @@ async function loadChampionSlide(startsAt: string, meetingId: string, saved: rea
     const award = awards.find((a) => a.month === monthRange(month).key) ?? awards.find((a) => a.month === monthRange(previousMonth(month)).key) ?? null;
     if (award) return { ...empty, award };
     const { rows } = await getChampionRanking(month);
-    const top = rows.filter((r) => r.eligible).slice(0, 3);
+    // Only the top scorer is shown (owner, 2026-10-25).
+    const top = rows.filter((r) => r.eligible).slice(0, 1);
     const { data: pics } = top.length
       ? await supabase
           .from('profiles')

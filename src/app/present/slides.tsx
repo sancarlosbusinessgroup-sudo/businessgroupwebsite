@@ -868,22 +868,20 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                 <p className="font-display m-0 text-[1.8cqw] font-bold tracking-[0.18em] uppercase" style={{ color: BLUE }}>
                   Leading {c.monthLabel} so far
                 </p>
-                <ol className="m-0 flex list-none items-end gap-[2.4cqw] p-0" aria-label={`Leading ${c.monthLabel} so far`}>
-                  {c.leaders.map((l, i) => (
-                    <li key={l.id} className={`${card()} flex flex-col items-center gap-[0.6cqw] px-[1.8cqw] py-[1.2cqw] ${i === 0 ? 'scale-110' : ''}`}>
-                      <span className="font-display text-[2.2cqw] font-extrabold" style={{ color: STEP_COLORS[i * 2] ?? BLUE }}>
-                        {i + 1}
-                      </span>
-                      <Face name={l.name} path={l.avatar} size={7} square />
-                      <span className="font-display text-[1.7cqw] font-extrabold" style={{ color: NAVY }}>
-                        {l.name}
-                      </span>
-                      <span className="text-[1.4cqw] font-semibold" style={{ color: MUTED }}>
-                        {l.points} points
-                      </span>
-                    </li>
-                  ))}
-                </ol>
+                {/* Only the top scorer (owner, 2026-10-25). */}
+                {c.leaders.slice(0, 1).map((l) => (
+                  <div key={l.id} className={`${card()} flex flex-col items-center gap-[0.8cqw] px-[3cqw] py-[1.6cqw]`}>
+                    <span className="rounded-[1.6cqw] shadow-[0_0.6cqw_2cqw_rgba(245,158,11,0.45)] ring-[0.4cqw] ring-[#fbbf24]">
+                      <Face name={l.name} path={l.avatar} size={10} square />
+                    </span>
+                    <span className="font-display text-[2.8cqw] leading-tight font-extrabold" style={{ color: NAVY }}>
+                      {l.name}
+                    </span>
+                    <span className="text-[1.7cqw] font-semibold" style={{ color: MUTED }}>
+                      {l.points} points
+                    </span>
+                  </div>
+                ))}
                 {d.notes.champion ? <Note text={d.notes.champion} /> : null}
               </div>
             </ChampionPage>

@@ -70,6 +70,45 @@ test('BARP Champion: ranking, override needs a reason, badge on profile and dire
   }
 });
 
+test('champion slide: without a chosen champion it shows only the top scorer so far (owner, 2026-10-25)', async ({ page }) => {
+  const me = await idOf(users.member);
+  const other = await idOf(users.member2);
+  // Several members score this month (Riley only 5 points); only the top scorer may appear.
+  const made = [
+    ...(await rest('referrals', 'POST', { from_id: me, to_id: other, contact_name: 'Top Scorer Prospect A' })),
+    ...(await rest('referrals', 'POST', { from_id: me, to_id: other, contact_name: 'Top Scorer Prospect B' })),
+    ...(await rest('referrals', 'POST', { from_id: other, to_id: me, contact_name: 'Top Scorer Prospect C' })),
+  ];
+  const month = new Date().toLocaleString('en-CA', { year: 'numeric', month: '2-digit', timeZone: 'America/Los_Angeles' }).slice(0, 7);
+  const [m] = await rest('meetings', 'POST', {
+    slug: `champion-top-${Date.now()}`,
+    title: 'Champion top scorer meeting',
+    category: 'Networking',
+    starts_at: `${month}-28T16:15:00Z`,
+    ends_at: `${month}-28T17:30:00Z`,
+  });
+  try {
+    await login(page, users.member, undefined, `/present/${m?.slug}`);
+    const deck = page.getByRole('region', { name: 'Meeting slides' });
+    // Keep pressing → until the champion slide shows (presses before the deck hydrates are ignored).
+    await expect(async () => {
+      if (!(await deck.getByRole('heading', { name: 'BARP Champion' }).isVisible())) {
+        await page.keyboard.press('ArrowRight');
+        throw new Error('not on the champion slide yet');
+      }
+    }).toPass({ timeout: 20000, intervals: [200] });
+    const slide = deck.getByRole('group').filter({ visible: true });
+    await expect(slide.getByText(/^Leading .* so far$/)).toBeVisible();
+    // Exactly one person (the seed data decides who leads); Riley, with fewer points, is not shown.
+    await expect(slide.getByText(/^\d+ points$/)).toHaveCount(1);
+    await expect(slide.getByText('Riley Second')).toHaveCount(0);
+    await expectAccessible(page);
+  } finally {
+    for (const r of made) await rest(`referrals?id=eq.${r.id}`, 'DELETE');
+    await rest(`meetings?id=eq.${m?.id}`, 'DELETE');
+  }
+});
+
 test('champion slide: at the first meeting of a month it shows last month’s champion, the reason and fireworks', async ({ page }) => {
   const other = await idOf(users.member2);
   const [m] = await rest('meetings', 'POST', {
