@@ -85,9 +85,9 @@ test.describe('meeting slides follow the new agenda', () => {
     const stageW = (await deck.locator('[aria-roledescription="slide"]').boundingBox())?.width ?? 0;
     const logoW = (await first.locator('img[src*="logo-mark"]').boundingBox())?.width ?? 0;
     expect(logoW).toBeGreaterThan(stageW * 0.12);
-    // Background: the owner's photo of the BARP flag flying from the Golden Gate tower (owner, 2026-10-25).
-    await expect(first.locator('img[src*="logo-slide-flag-bridge"]')).toBeVisible();
-    await expect(first.locator('img[src*="hero-bridge"]')).toHaveCount(0);
+    // Background: the original Golden Gate Bridge photo, no flag (owner, 2026-10-25 evening).
+    await expect(first.locator('img[src*="hero-bridge"]')).toBeVisible();
+    await expect(first.locator('img[src*="logo-slide-flag"]')).toHaveCount(0);
 
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('heading', { name: 'Welcome', exact: true })).toBeVisible();
@@ -126,8 +126,7 @@ test.describe('meeting slides follow the new agenda', () => {
     // Grouped like the printed Management Team slide: roles in two columns, then the Membership Committee.
     await expect(mgmt.getByRole('heading', { name: 'Membership Committee' })).toBeVisible();
     // No small coloured bar in front of the group headings (owner, 2026-10-24).
-    for (const h of ['Membership Committee', 'Attendance Managers'])
-      await expect(mgmt.getByRole('heading', { name: h }).locator('span')).toHaveCount(0);
+    for (const h of ['Membership Committee', 'Attendance Managers']) await expect(mgmt.getByRole('heading', { name: h }).locator('span')).toHaveCount(0);
     await page.keyboard.press('ArrowRight');
     // "Introduction of Guests" is no longer in the standard deck (owner, 2026-10-22): the infomercial slide comes next.
     await expect(deck.getByRole('heading', { name: 'Introduction of Guests' })).toHaveCount(0);

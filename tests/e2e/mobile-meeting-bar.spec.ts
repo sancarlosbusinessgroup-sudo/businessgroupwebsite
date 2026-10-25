@@ -6,7 +6,9 @@ import { expectAccessible, login, users } from './support';
 test.describe('next-meeting bar on phones', () => {
   test.use({ viewport: { width: 375, height: 740 } });
 
-  test('logged out: the date and "Log In"; logged in: the date, "Join in Zoom", and Referrals / One-on-ones below; not on the slides (owner, 2026-10-24)', async ({ page }) => {
+  test('logged out: the date and "Log In"; logged in: the date, "Join in Zoom", and Referrals / One-on-ones below; not on the slides (owner, 2026-10-24)', async ({
+    page,
+  }) => {
     await page.goto('/');
     const bar = page.getByRole('complementary', { name: 'Next meeting' });
     await expect(bar).toBeVisible();

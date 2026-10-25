@@ -154,6 +154,9 @@ test.describe('data-backed public views', () => {
     await page.goto('/members/harbor-lane-realty');
     await expect(page.getByText('Email and phone are visible to')).toBeVisible();
     await expect(page.getByRole('link', { name: /@example\.com/ })).toHaveCount(0);
+    // No "Member since …" line on profiles (owner, 2026-10-25).
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(page.getByText(/Member since/)).toHaveCount(0);
   });
 
   test('meetings list/calendar toggle, month navigation, category filter and detail page', async ({ page }) => {

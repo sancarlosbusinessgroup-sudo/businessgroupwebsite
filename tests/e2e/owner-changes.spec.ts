@@ -230,17 +230,21 @@ test.describe('banners, directory, profile and support (second request of the da
         .locator('img[src*="hero-bridge"]'),
     ).toBeAttached();
     // Photo, name and role for each person, then the team's introduction under the photos (owner, 2026-10-24).
+    // Everyone's position is "Support Team" and the photo + name link to their profile (owner, 2026-10-25).
     const team = page.getByRole('region', { name: 'Your support team' });
-    for (const [n, role, file] of [
-      ['Cedrick Velasco', 'Operations Manager', 'cedrick-velasco'],
-      ['Shermaine Benolirao', 'Operations Director', 'shermaine-benolirao'],
-      ['Rachanee Munar', 'Web Support', 'rachanee-munar'],
+    await expect(team.getByText('Support Team', { exact: true })).toHaveCount(3);
+    for (const [n, file, slug] of [
+      ['Cedrick Velasco', 'cedrick-velasco', 'cedrick-admin'],
+      ['Shermaine Benolirao', 'shermaine-benolirao', 'shermaine-admin'],
+      ['Rachanee Munar', 'rachanee-munar', 'rachanee-admin'],
     ] as const) {
       await expect(team.getByRole('heading', { level: 3, name: n })).toBeVisible();
-      await expect(team.getByRole('img', { name: n })).toHaveAttribute('src', new RegExp(file));
-      await expect(team.getByText(role, { exact: true })).toBeVisible();
-      // Round photos at three quarters of the column width (owner, 2026-10-24).
+      const link = team.getByRole('link').filter({ has: page.getByRole('heading', { name: n }) });
+      await expect(link).toHaveAttribute('href', `/members/${slug}`);
       const frame = team.getByTestId(`support-photo-${file}`);
+      await expect(link.getByTestId(`support-photo-${file}`)).toBeVisible();
+      await expect(frame.locator('img')).toHaveAttribute('src', new RegExp(file));
+      // Round photos at three quarters of the column width (owner, 2026-10-24).
       await expect(frame).toHaveCSS('border-radius', /^(9999px|50%|3\.35544e\+07px)$/);
       const box = await frame.boundingBox();
       const col = await team.getByRole('listitem').filter({ hasText: n }).boundingBox();

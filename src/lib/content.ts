@@ -44,7 +44,10 @@ export const howItWorks = [
   { title: 'Visit twice, no membership fees', text: 'Get invited by a member and attend up to two meetings as a guest.' },
   { title: 'Meet the Membership Committee', text: "One-to-ones with three Membership Committee members. If it's a fit, welcome aboard." },
   { title: 'Refer and connect', text: 'Share warm introductions and invite guests. Your referral link tracks every one.' },
-  { title: 'We help you grow your business by referral', text: 'Report referrals, one-on-ones and closed business. The leaderboard shows the whole group’s progress.' },
+  {
+    title: 'We help you grow your business by referral',
+    text: 'Report referrals, one-on-ones and closed business. The leaderboard shows the whole group’s progress.',
+  },
 ];
 
 export const values = [
@@ -159,11 +162,11 @@ export const slotDescriptions = {
 /** "BARP Google Sheet" button on the directory (owner, 2026-10-23). Link as given by the owner. */
 export const barpSheetUrl = 'https://docs.google.com/spreadsheets/d/12kjnHPKlKJUb8sxYQTpjfK0z9Ii7FgKE3US-5RgfNrI/edit?usp=sharing';
 
-/** Support page (owner request, 2026-10-17). */
+/** Support page (owner request, 2026-10-17). Position "Support Team" for all three; each photo links to their profile (owner, 2026-10-25). */
 export const supportTeam = [
-  { name: 'Cedrick Velasco', role: 'Operations Manager', photo: '/support/cedrick-velasco.webp' },
-  { name: 'Shermaine Benolirao', role: 'Operations Director', photo: '/support/shermaine-benolirao.webp' },
-  { name: 'Rachanee Munar', role: 'Web Support', photo: '/support/rachanee-munar.webp' },
+  { name: 'Cedrick Velasco', role: 'Support Team', photo: '/support/cedrick-velasco.webp', profile: '/members/cedrick-admin' },
+  { name: 'Shermaine Benolirao', role: 'Support Team', photo: '/support/shermaine-benolirao.webp', profile: '/members/shermaine-admin' },
+  { name: 'Rachanee Munar', role: 'Support Team', photo: '/support/rachanee-munar.webp', profile: '/members/rachanee-admin' },
 ] as const;
 
 /** Support team introduction, shown under the team photos (owner's text, 2026-10-24). */

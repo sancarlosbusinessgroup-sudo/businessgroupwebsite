@@ -17,11 +17,8 @@ import { Fireworks, PdfPageSlide, SlideTimer, WebsiteSlide, YouTubeSlide } from 
 // scales with the 16:9 stage on a shared screen.
 
 const BRIDGE = '/images/hero-bridge.jpg';
-/** The Welcome slide's photo: the group's flag on the Golden Gate tower (owner, 2026-10-24). */
-/** Slide 2 (Welcome): the Golden Gate photo slide 1 used before 2026-10-24. */
+/** Slides 1 (logo) and 2 (Welcome): the original Golden Gate Bridge photo, no flag. */
 const WELCOME_PHOTO = '/images/hero-bridge.jpg';
-/** Slide 1 (logo): owner's photo of the flag on the Golden Gate tower (2026-10-24). */
-const LOGO_PHOTO = '/images/logo-slide-flag-bridge.jpg';
 /** Owner's BARP Champion artwork (2026-10-24): logo, crown, title and confetti. "Coming soon" version for when nobody is named yet. */
 const CHAMPION_BG = '/images/champion-bg.webp';
 const CHAMPION_SOON = '/images/champion-coming-soon.webp';
@@ -394,17 +391,17 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'welcome':
         add(key, (ctx) => (
           <div className="relative h-full overflow-hidden bg-white">
-            {/* Owner's photo of the BARP flag flying from the Golden Gate tower, full strength (2026-10-25). The logo sits over the sky on the
-                left so the flag stays in view; a soft white glow around the letters makes it stand out. */}
-            <Image src={LOGO_PHOTO} alt="" fill sizes="100vw" priority className="object-cover object-center" />
+            {/* Original Golden Gate Bridge photo, no flag (restored 2026-10-25). Full-strength photo (no white wash); a white glow around the letters makes the logo stand out. */}
+            <Image src={BRIDGE} alt="" fill sizes="100vw" priority className="object-cover object-[60%_55%]" />
             <Band />
-            <div className="relative flex h-full items-center justify-start pb-[12cqw] pl-[5cqw]">
+            <div className="relative flex h-full items-center justify-center">
               <h2 className="sr-only">Welcome to {site.name}</h2>
+              {/* Soft white glow that radiates from the letters and fades into the photo (no box). */}
               <span
-                className="absolute top-[38%] left-[29%] h-[34cqw] w-[66cqw] -translate-x-1/2 -translate-y-1/2"
+                className="absolute top-1/2 left-1/2 h-[46cqw] w-[96cqw] -translate-x-1/2 -translate-y-1/2"
                 style={{
                   background:
-                    'radial-gradient(ellipse at center, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.78) 30%, rgba(255,255,255,0.4) 52%, rgba(255,255,255,0) 72%)',
+                    'radial-gradient(ellipse at center, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.82) 30%, rgba(255,255,255,0.45) 52%, rgba(255,255,255,0) 72%)',
                 }}
                 aria-hidden="true"
               />
@@ -412,7 +409,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                 className="relative"
                 style={{ filter: 'drop-shadow(0 0 0.6cqw #fff) drop-shadow(0 0 1.4cqw rgba(255,255,255,0.9)) drop-shadow(0 0 3cqw rgba(255,255,255,0.7))' }}
               >
-                <Lockup size={2.4} />
+                <Lockup size={2.6} />
               </div>
             </div>
             <p className="absolute right-[3cqw] bottom-[2cqw] m-0 text-[1.25cqw] font-semibold text-white [text-shadow:0_0.1cqw_0.4cqw_rgba(0,0,0,0.6)]">

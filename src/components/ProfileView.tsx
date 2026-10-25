@@ -18,7 +18,6 @@ export function ProfileView({ profile: p, contact, champion }: Props) {
   const name = `${p.first_name} ${p.last_name}`;
   const avatar = mediaUrl('profile-media', p.avatar_path);
   const logo = mediaUrl('profile-media', p.logo_path);
-  const since = p.member_since ? new Date(p.member_since + 'T12:00:00Z').getUTCFullYear() : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -41,7 +40,7 @@ export function ProfileView({ profile: p, contact, champion }: Props) {
           <div className="min-w-0 flex-[1_1_300px] pb-1.5 [text-shadow:0_1px_10px_rgb(0_0_0/0.55)]">
             <h1 className="font-display m-0 text-[32px] font-extrabold text-white">{name}</h1>
             <p className="m-0 text-lg font-semibold text-white">{p.business_name}</p>
-            <p className="m-0 text-[15px] text-white/90">{[p.categories?.name, p.city, since ? `Member since ${since}` : null].filter(Boolean).join(' · ')}</p>
+            <p className="m-0 text-[15px] text-white/90">{[p.categories?.name, p.city].filter(Boolean).join(' · ')}</p>
             {champion?.current ? <ChampionBadge month={champion.current} className="mt-2" /> : null}
             {champion && champion.past.filter((m) => m !== champion.current).length ? (
               <p className="m-0 mt-1 text-sm text-white/90">BARP Champion: {champion.past.filter((m) => m !== champion.current).join(', ')}</p>

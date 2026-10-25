@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { PageHero } from '@/components/ui';
@@ -46,17 +47,19 @@ export default async function SupportPage() {
         <ul className="m-0 grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-3">
           {supportTeam.map((t, i) => (
             <li key={t.name} className="flex flex-col gap-3">
-              {/* Round photo, three quarters of the column width (owner, 2026-10-24). */}
-              <span
-                data-testid={`support-photo-${t.photo.replace(/^.*\/|\.webp$/g, '')}`}
-                className={`relative mx-auto block aspect-square w-3/4 overflow-hidden rounded-full ${bands[i % bands.length]}`}
-              >
-                <Image src={t.photo} alt={t.name} fill sizes="(max-width: 640px) 75vw, 285px" className="object-cover object-top" />
-              </span>
-              <div className="flex flex-col items-center gap-0.5 text-center">
-                <h3 className="font-display text-heading m-0 text-xl font-bold">{t.name}</h3>
-                <p className="text-teal-text m-0 font-semibold">{t.role}</p>
-              </div>
+              {/* Round photo, three quarters of the column width (owner, 2026-10-24); photo and name open their profile (owner, 2026-10-25). */}
+              <Link href={t.profile} className="group flex flex-col gap-3 no-underline">
+                <span
+                  data-testid={`support-photo-${t.photo.replace(/^.*\/|\.webp$/g, '')}`}
+                  className={`relative mx-auto block aspect-square w-3/4 overflow-hidden rounded-full ${bands[i % bands.length]} transition-shadow group-hover:ring-4 group-hover:ring-[#0c7b74]/40`}
+                >
+                  <Image src={t.photo} alt="" fill sizes="(max-width: 640px) 75vw, 285px" className="object-cover object-top" />
+                </span>
+                <span className="flex flex-col items-center gap-0.5 text-center">
+                  <h3 className="font-display text-heading m-0 text-xl font-bold group-hover:underline">{t.name}</h3>
+                  <span className="text-teal-text font-semibold">{t.role}</span>
+                </span>
+              </Link>
             </li>
           ))}
         </ul>
