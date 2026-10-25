@@ -62,7 +62,7 @@ export const metrics = [
 export const timeline = [
   { year: '2016', text: 'Founded within the San Carlos Chamber of Commerce' },
   { year: '2020', text: 'Chamber closes. Members choose to keep going and move to Zoom' },
-  { year: 'Today', text: 'Meeting every other Monday, online with hybrid gatherings' },
+  { year: 'Today', text: 'Meeting every other Monday, 8:15am–9:30am' },
 ];
 
 /** Shown on About only until admins add people to the Management list (Admin → Management). */

@@ -71,7 +71,7 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
         <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-4">
           <p className="eyebrow m-0">What to expect</p>
           <h2 className="h2">Easy and welcoming</h2>
-          <p className="m-0 text-lg">We meet every other Monday morning at 8:15 AM, mostly online via Zoom, with occasional in-person hybrid gatherings.</p>
+          <p className="m-0 text-lg">We meet every other Monday, 8:15am–9:30am.</p>
           <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
             {[
               'Casual, local-focused conversation with fellow business owners',
