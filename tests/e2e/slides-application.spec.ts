@@ -85,8 +85,8 @@ test.describe('meeting slides follow the new agenda', () => {
     const stageW = (await deck.locator('[aria-roledescription="slide"]').boundingBox())?.width ?? 0;
     const logoW = (await first.locator('img[src*="logo-mark"]').boundingBox())?.width ?? 0;
     expect(logoW).toBeGreaterThan(stageW * 0.12);
-    // Background: the owner's photo of the flag on the Golden Gate tower (owner, 2026-10-24).
-    await expect(first.locator('img[src*="logo-slide-flag"]')).toBeVisible();
+    // Background: the owner's photo of the BARP flag flying from the Golden Gate tower (owner, 2026-10-25).
+    await expect(first.locator('img[src*="logo-slide-flag-bridge"]')).toBeVisible();
     await expect(first.locator('img[src*="hero-bridge"]')).toHaveCount(0);
 
     await page.keyboard.press('ArrowRight');

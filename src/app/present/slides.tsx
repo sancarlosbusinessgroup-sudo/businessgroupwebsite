@@ -21,7 +21,7 @@ const BRIDGE = '/images/hero-bridge.jpg';
 /** Slide 2 (Welcome): the Golden Gate photo slide 1 used before 2026-10-24. */
 const WELCOME_PHOTO = '/images/hero-bridge.jpg';
 /** Slide 1 (logo): owner's photo of the flag on the Golden Gate tower (2026-10-24). */
-const LOGO_PHOTO = '/images/logo-slide-flag.jpg';
+const LOGO_PHOTO = '/images/logo-slide-flag-bridge.jpg';
 /** Owner's BARP Champion artwork (2026-10-24): logo, crown, title and confetti. "Coming soon" version for when nobody is named yet. */
 const CHAMPION_BG = '/images/champion-bg.webp';
 const CHAMPION_SOON = '/images/champion-coming-soon.webp';
@@ -402,7 +402,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'welcome':
         add(key, (ctx) => (
           <div className="relative h-full overflow-hidden bg-white">
-            {/* Owner's photo of the flag on the Golden Gate tower, full strength (2026-10-24). The logo sits over the sky on the
+            {/* Owner's photo of the BARP flag flying from the Golden Gate tower, full strength (2026-10-25). The logo sits over the sky on the
                 left so the flag stays in view; a soft white glow around the letters makes it stand out. */}
             <Image src={LOGO_PHOTO} alt="" fill sizes="100vw" priority className="object-cover object-center" />
             <Band />
