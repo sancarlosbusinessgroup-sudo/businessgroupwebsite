@@ -91,7 +91,7 @@ export async function recapForMeeting(db: Db, m: EndedMeeting, shared: RecapShar
       .in('status', ['visited', 'applied', 'joined'])
       .order('created_at'),
   ]);
-  const kindLabel = { pdf: 'Presentation (PDF)', image: 'Presentation image', youtube: 'Watch the video' } as const;
+  const kindLabel = { pdf: 'Presentation (PDF)', powerpoint: 'Presentation (PowerPoint)', image: 'Presentation image', youtube: 'Watch the video' } as const;
   const materialsFor = (slide: string): [string, string][] => [
     ...(media ?? [])
       .filter((x) => x.after_slide === slide)

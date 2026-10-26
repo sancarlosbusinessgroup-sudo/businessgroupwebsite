@@ -1,7 +1,8 @@
-// A presenter's uploaded material (PDF, image or YouTube video), linked from the meeting recap email.
+// A presenter's uploaded material (PDF, image, PowerPoint or YouTube video), linked from the meeting recap email.
 // Members only: files are private, so each visit gets a fresh short-lived signed link.
 import { NextResponse } from 'next/server';
 import { requireMember } from '@/lib/auth';
+import { officeViewerUrl } from '@/lib/slides';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +25,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   }
   if (m.storage_path) {
     const { data } = await supabase.storage.from('slide-media').createSignedUrl(m.storage_path, 3600);
-    if (data?.signedUrl) return NextResponse.redirect(data.signedUrl);
+    // A PowerPoint opens in Microsoft's online viewer so it can be read in the browser without PowerPoint.
+    if (data?.signedUrl) return NextResponse.redirect(m.kind === 'powerpoint' ? officeViewerUrl(data.signedUrl, 'view') : data.signedUrl);
   }
   return NextResponse.redirect(back);
 }

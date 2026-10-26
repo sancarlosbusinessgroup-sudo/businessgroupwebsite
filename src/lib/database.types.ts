@@ -557,7 +557,7 @@ export type Database = {
         Row: {
           id: string;
           meeting_id: string;
-          kind: 'image' | 'pdf' | 'youtube';
+          kind: 'image' | 'pdf' | 'youtube' | 'powerpoint';
           title: string | null;
           storage_path: string | null;
           youtube_id: string | null;
@@ -571,7 +571,7 @@ export type Database = {
         Insert: {
           id?: string;
           meeting_id: string;
-          kind: 'image' | 'pdf' | 'youtube';
+          kind: 'image' | 'pdf' | 'youtube' | 'powerpoint';
           title?: string | null;
           storage_path?: string | null;
           youtube_id?: string | null;

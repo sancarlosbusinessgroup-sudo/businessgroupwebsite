@@ -120,6 +120,28 @@ export const MEDIA_MAX_BYTES = 20 * 1024 * 1024;
 export const PDF_MAX_PAGES = 40;
 export const MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'] as const;
 
+// PowerPoint files play inside the slide through Microsoft's free online viewer, which reads the file through a
+// short-lived private link. Its limit for PowerPoint files is 10 MB.
+export const PPT_TYPE = 'application/vnd.ms-powerpoint';
+export const PPTX_TYPE = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+export const POWERPOINT_TYPES = [PPT_TYPE, PPTX_TYPE] as const;
+export const POWERPOINT_MAX_BYTES = 10 * 1024 * 1024;
+/** What the file picker accepts: images, PDF and PowerPoint (by type and by extension, as some computers send no type for .ppt). */
+export const UPLOAD_ACCEPT = [...MEDIA_TYPES, ...POWERPOINT_TYPES, '.ppt', '.pptx'].join(',');
+
+/** 'ppt' / 'pptx' for a PowerPoint file (by its type, or its name when the computer gave no type), else null. */
+export function powerPointExt(file: { name: string; type: string }): 'ppt' | 'pptx' | null {
+  if (file.type === PPTX_TYPE) return 'pptx';
+  if (file.type === PPT_TYPE) return 'ppt';
+  const m = /\.(pptx?)$/i.exec(file.name);
+  return m && (!file.type || file.type === 'application/octet-stream' || file.type === 'application/zip') ? (m[1]!.toLowerCase() as 'ppt' | 'pptx') : null;
+}
+
+/** Microsoft's online viewer for a file at a (signed) link: `embed` plays inside the slide, `view` is the full page. */
+export function officeViewerUrl(fileUrl: string, mode: 'embed' | 'view' = 'embed'): string {
+  return `https://view.officeapps.live.com/op/${mode}.aspx?src=${encodeURIComponent(fileUrl)}`;
+}
+
 /** YouTube video id (and start time) from the usual link shapes, or null. */
 export function parseYouTube(input: string): { id: string; start: number } | null {
   let url: URL;

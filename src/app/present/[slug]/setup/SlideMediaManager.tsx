@@ -5,7 +5,7 @@ import { useActionState, useId, useState } from 'react';
 import { addSlideFile, addVideoOrLink, moveSlideMedia, removeSlideMedia } from '@/app/actions/slides';
 import { SelectField, SubmitButton, TextField } from '@/components/forms';
 import { Notice } from '@/components/ui';
-import { MEDIA_MAX_BYTES, MEDIA_TYPES, PDF_MAX_PAGES } from '@/lib/slides';
+import { MEDIA_MAX_BYTES, MEDIA_TYPES, PDF_MAX_PAGES, POWERPOINT_MAX_BYTES, PPTX_TYPE, PPT_TYPE, UPLOAD_ACCEPT, powerPointExt } from '@/lib/slides';
 import { createClient } from '@/lib/supabase/browser';
 import { idle } from '@/lib/validation';
 import { countPdfPages } from '../../SlideWidgets';
@@ -13,14 +13,14 @@ import { countPdfPages } from '../../SlideWidgets';
 type Option = { key: string; label: string };
 export type MediaRow = {
   id: string;
-  kind: 'image' | 'pdf' | 'youtube' | 'link';
+  kind: 'image' | 'pdf' | 'youtube' | 'powerpoint' | 'link';
   title: string | null;
   afterSlide: string;
   pageCount: number | null;
   url?: string | null;
 };
 
-const kindLabel = { image: 'Image', pdf: 'PDF', youtube: 'YouTube video', link: 'Website' } as const;
+const kindLabel = { image: 'Image', pdf: 'PDF', youtube: 'YouTube video', powerpoint: 'PowerPoint', link: 'Website' } as const;
 
 function AfterSelect({ name, options, defaultValue, id, error }: { name: string; options: Option[]; defaultValue: string; id?: string; error?: string }) {
   return (
@@ -38,7 +38,7 @@ function UploadForm({
   meetingId,
   options,
   fixedAfter,
-  name = 'Upload an image or PDF',
+  name = 'Upload an image, PDF or PowerPoint',
 }: {
   meetingId: string;
   options: Option[];
@@ -55,10 +55,17 @@ function UploadForm({
     const form = e.currentTarget;
     const data = new FormData(form);
     const file = data.get('file');
-    if (!(file instanceof File) || !file.size) return setMsg({ tone: 'error', text: 'Choose an image or PDF file.' });
-    if (!(MEDIA_TYPES as readonly string[]).includes(file.type)) return setMsg({ tone: 'error', text: 'Use a JPG, PNG, WebP or GIF image, or a PDF.' });
+    if (!(file instanceof File) || !file.size) return setMsg({ tone: 'error', text: 'Choose an image, PDF or PowerPoint file.' });
+    const ppt = powerPointExt(file);
+    if (!ppt && !(MEDIA_TYPES as readonly string[]).includes(file.type))
+      return setMsg({ tone: 'error', text: 'Use a JPG, PNG, WebP or GIF image, a PDF, or a PowerPoint (.ppt or .pptx).' });
+    if (ppt && file.size > POWERPOINT_MAX_BYTES)
+      return setMsg({
+        tone: 'error',
+        text: 'That PowerPoint is over 10 MB, the most Microsoft’s viewer can show. Please make it smaller (for example compress its pictures) or save it as a PDF.',
+      });
     if (file.size > MEDIA_MAX_BYTES) return setMsg({ tone: 'error', text: 'That file is over 20 MB. Please use a smaller file.' });
-    const kind = file.type === 'application/pdf' ? 'pdf' : 'image';
+    const kind = ppt ? 'powerpoint' : file.type === 'application/pdf' ? 'pdf' : 'image';
     setBusy(true);
     try {
       let pageCount: number | null = null;
@@ -71,9 +78,10 @@ function UploadForm({
         }
       }
       setMsg({ tone: 'info', text: 'Uploading…' });
-      const ext = kind === 'pdf' ? 'pdf' : (file.type.split('/')[1] ?? 'img').replace('jpeg', 'jpg');
+      const ext = ppt ?? (kind === 'pdf' ? 'pdf' : (file.type.split('/')[1] ?? 'img').replace('jpeg', 'jpg'));
       const path = `${meetingId}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await createClient().storage.from('slide-media').upload(path, file, { contentType: file.type });
+      const contentType = ppt === 'pptx' ? PPTX_TYPE : ppt === 'ppt' ? PPT_TYPE : file.type;
+      const { error } = await createClient().storage.from('slide-media').upload(path, file, { contentType });
       if (error) throw error;
       const res = await addSlideFile({
         meetingId,
@@ -96,17 +104,22 @@ function UploadForm({
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3" aria-label={name}>
-      <h3 className="h3 m-0">{fixedAfter ? 'Upload an image or PDF' : name}</h3>
+      <h3 className="h3 m-0">{fixedAfter ? 'Upload an image, PDF or PowerPoint' : name}</h3>
       <p className="text-ink-muted m-0 text-sm">
         JPG, PNG, WebP, GIF or PDF, up to 20 MB. Each PDF page becomes its own slide (up to {PDF_MAX_PAGES} pages), so a presenter can step through it with the
         clicker.
+      </p>
+      <p className="text-ink-muted m-0 text-sm">
+        PowerPoint (.ppt or .pptx), up to 10 MB: it plays inside one slide in Microsoft’s free online viewer, with its own arrows to step through it. Click into
+        it first, then the arrow keys move through the PowerPoint. Click outside it to go back to the meeting slides. Saving as a PDF keeps the clicker working
+        slide by slide.
       </p>
       {msg ? <Notice tone={msg.tone}>{msg.text}</Notice> : null}
       <div className="flex flex-col gap-1">
         <label htmlFor={fileId} className="label">
           File
         </label>
-        <input id={fileId} name="file" type="file" accept={MEDIA_TYPES.join(',')} className="field py-2" disabled={busy} />
+        <input id={fileId} name="file" type="file" accept={UPLOAD_ACCEPT} className="field py-2" disabled={busy} />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <TextField name="title" id={`${fileId}-title`} label="Title (optional)" maxLength={120} />

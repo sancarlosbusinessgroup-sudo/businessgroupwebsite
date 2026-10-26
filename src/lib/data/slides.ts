@@ -15,7 +15,7 @@ export type SpeakerCard = Speaker & { avatar_path: string | null };
 
 export type SlideMedia = {
   id: string;
-  kind: 'image' | 'pdf' | 'youtube' | 'link';
+  kind: 'image' | 'pdf' | 'youtube' | 'powerpoint' | 'link';
   title: string | null;
   url: string | null;
   youtubeId: string | null;

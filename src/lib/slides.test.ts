@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SLIDES, SLIDE_KEYS, chunk, parseWebsite, parseYouTube, resolveNotes, resolveSlides, resolveTimers, slideLabel, slideTime } from './slides';
+import {
+  DEFAULT_SLIDES,
+  PPTX_TYPE,
+  PPT_TYPE,
+  SLIDE_KEYS,
+  UPLOAD_ACCEPT,
+  chunk,
+  officeViewerUrl,
+  parseWebsite,
+  parseYouTube,
+  powerPointExt,
+  resolveNotes,
+  resolveSlides,
+  resolveTimers,
+  slideLabel,
+  slideTime,
+} from './slides';
 
 describe('slide settings', () => {
   it('defaults: the owner’s standard deck, in agenda order (Procedures, effective October 19, 2026)', () => {
@@ -118,5 +134,25 @@ describe('resolveTimers', () => {
     expect(t.ten_materials).toBe(true);
     expect(t.ten_qa).toBe(false);
     expect(t.infomercials).toBe(false);
+  });
+});
+
+describe('PowerPoint files (owner, 2026-10-27)', () => {
+  it('recognises .ppt and .pptx by type, or by name when the computer gives no type', () => {
+    expect(powerPointExt({ name: 'deck.pptx', type: PPTX_TYPE })).toBe('pptx');
+    expect(powerPointExt({ name: 'deck.ppt', type: PPT_TYPE })).toBe('ppt');
+    expect(powerPointExt({ name: 'Old Deck.PPT', type: '' })).toBe('ppt');
+    expect(powerPointExt({ name: 'deck.pptx', type: 'application/octet-stream' })).toBe('pptx');
+    expect(powerPointExt({ name: 'deck.pdf', type: 'application/pdf' })).toBeNull();
+    expect(powerPointExt({ name: 'photo.png', type: 'image/png' })).toBeNull();
+    expect(powerPointExt({ name: 'fake.pptx', type: 'image/png' })).toBeNull();
+  });
+
+  it('builds Microsoft viewer links with the file link fully encoded', () => {
+    const file = 'https://x.supabase.co/storage/v1/object/sign/slide-media/m/d.pptx?token=a.b&x=1';
+    expect(officeViewerUrl(file)).toBe(`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(file)}`);
+    expect(officeViewerUrl(file, 'view')).toMatch(/^https:\/\/view\.officeapps\.live\.com\/op\/view\.aspx\?src=https%3A%2F%2F/);
+    expect(UPLOAD_ACCEPT).toContain('.ppt');
+    expect(UPLOAD_ACCEPT).toContain(PPTX_TYPE);
   });
 });

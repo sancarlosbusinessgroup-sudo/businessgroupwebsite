@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { officeViewerUrl } from '@/lib/slides';
 
 // Interactive pieces used inside slides: a speaking timer, a YouTube player, a website and a PDF page.
 // Slides that are not on screen are `hidden`, so each widget only does work once it is visible.
@@ -206,6 +207,52 @@ export function WebsiteSlide({ url, title }: { url: string; title: string }) {
           </div>
           <p className="m-0 max-w-[60cqw] text-[1.3cqw] text-[#4f6464]">
             If the page stays blank, the website doesn’t allow being shown inside other pages. Use “Open in a new window” instead.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A presenter's PowerPoint, played in Microsoft's free online viewer (it reads the file through a short-lived
+ *  private link). Nothing loads from Microsoft until "Show the PowerPoint here". */
+export function PowerPointSlide({ url, title }: { url: string; title: string }) {
+  const [show, setShow] = useState(false);
+  const open = () => window.open(officeViewerUrl(url, 'view'), '_blank', 'noopener,noreferrer');
+  return (
+    <div className="relative h-full w-full overflow-hidden rounded-[1cqw] border border-[#c9eef0] bg-[#f7fdfd]">
+      {show ? (
+        <>
+          <iframe
+            src={officeViewerUrl(url)}
+            title={title}
+            className="absolute inset-0 h-full w-full border-0 bg-white"
+            allow="fullscreen"
+            allowFullScreen
+            referrerPolicy="no-referrer"
+          />
+          <button
+            type="button"
+            onClick={open}
+            className="btn btn-light absolute right-[1cqw] bottom-[1cqw] min-h-0 px-[1.2cqw] py-[0.5cqw] text-[1.2cqw] shadow"
+          >
+            Open in a new window<span className="sr-only"> ({title})</span>
+          </button>
+        </>
+      ) : (
+        <div className="flex h-full flex-col items-center justify-center gap-[1.6cqw] p-[3cqw] text-center">
+          <p className="font-display m-0 text-[2.6cqw] font-extrabold text-[#0e7c74]">{title}</p>
+          <p className="m-0 text-[1.6cqw] text-[#355856]">PowerPoint</p>
+          <div className="flex gap-[1.2cqw]">
+            <button type="button" onClick={() => setShow(true)} className="btn btn-primary min-h-0 px-[2cqw] py-[0.8cqw] text-[1.6cqw]">
+              Show the PowerPoint here<span className="sr-only"> ({title})</span>
+            </button>
+            <button type="button" onClick={open} className="btn btn-outline min-h-0 px-[2cqw] py-[0.8cqw] text-[1.6cqw]">
+              Open in a new window<span className="sr-only"> ({title})</span>
+            </button>
+          </div>
+          <p className="m-0 max-w-[60cqw] text-[1.3cqw] text-[#4f6464]">
+            Click into the PowerPoint to step through it with its arrows or the arrow keys. Click outside it to go back to the meeting slides.
           </p>
         </div>
       )}

@@ -309,7 +309,7 @@ test.describe('meeting slides follow the new agenda', () => {
     const before = Number((await deck.getByText(/^Slide 1 of \d+$/).textContent())?.match(/of (\d+)/)?.[1]);
     await deck.getByRole('link', { name: 'Customize slides' }).click();
 
-    const upload = page.getByRole('form', { name: 'Upload an image or PDF' });
+    const upload = page.getByRole('form', { name: 'Upload an image, PDF or PowerPoint' });
     await upload.getByLabel('File').setInputFiles('tests/e2e/fixtures/slide-image.png');
     await upload.getByLabel('Title (optional)').fill('Sponsor thank-you');
     await upload.getByLabel('Show after').selectOption('call_to_order');
@@ -374,7 +374,7 @@ test.describe('meeting slides follow the new agenda', () => {
     await login(page, users.member, undefined, '/present/next');
     const href = await page.url();
     await page.goto(`${href.replace(/\/$/, '')}/setup`);
-    await expect(page.getByRole('form', { name: 'Upload an image or PDF' })).toHaveCount(0);
+    await expect(page.getByRole('form', { name: 'Upload an image, PDF or PowerPoint' })).toHaveCount(0);
   });
 });
 
@@ -454,5 +454,63 @@ test.describe('membership application', () => {
       ['Accountant', 'Ref 1 Accounting Co'],
       ['Accountant', 'Ref 2 Accounting Co'],
     ]);
+  });
+
+  test('admins add a PowerPoint for a presentation; it plays in Microsoft’s viewer only after “Show the PowerPoint here” (owner, 2026-10-27)', async ({
+    page,
+  }) => {
+    // Microsoft's viewer is outside the test stack: record the request instead of loading it.
+    const viewer: string[] = [];
+    await page.route('https://view.officeapps.live.com/**', (r) => {
+      viewer.push(r.request().url());
+      return r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Viewer</title><p>Viewer</p>' });
+    });
+    await login(page, users.admin, undefined, '/present/next');
+    const deck = page.getByRole('region', { name: 'Meeting slides' });
+    await deck.getByRole('link', { name: 'Customize slides' }).click();
+    const five = page.getByRole('form', { name: 'Upload for the 5-minute presentation' });
+    await expect(five.getByLabel('File')).toHaveAttribute('accept', /\.pptx/);
+    // Over Microsoft's 10 MB limit: refused before uploading.
+    await five
+      .getByLabel('File')
+      .setInputFiles({
+        name: 'huge.pptx',
+        mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        buffer: Buffer.alloc(11 * 1024 * 1024),
+      });
+    await five.getByRole('button', { name: 'Add to slides' }).click();
+    await expect(five.getByText(/over 10 MB/)).toBeVisible();
+
+    await five.getByLabel('File').setInputFiles('tests/e2e/fixtures/test-deck.pptx');
+    await five.getByLabel('Title (optional)').fill('Roof care deck');
+    await five.getByRole('button', { name: 'Add to slides' }).click();
+    await expect(five.getByText('PowerPoint added.')).toBeVisible();
+    const list = page.getByRole('list', { name: 'Materials for the 5-minute presentation' });
+    await expect(list).toContainText('Roof care deck');
+    await expect(list).toContainText('PowerPoint');
+    await expectAccessible(page);
+
+    try {
+      await page.getByRole('link', { name: 'Open the slides' }).click();
+      await goToSlide(deck, page, 'Roof care deck');
+      await expect(deck.getByRole('button', { name: /Show the PowerPoint here/ })).toBeVisible();
+      await expect(deck.locator('iframe')).toHaveCount(0);
+      expect(viewer).toEqual([]);
+      await deck.getByRole('button', { name: /Show the PowerPoint here/ }).click();
+      const frame = deck.locator('iframe[title="Roof care deck"]');
+      await expect(frame).toBeAttached();
+      const src = (await frame.getAttribute('src')) ?? '';
+      expect(src).toMatch(/^https:\/\/view\.officeapps\.live\.com\/op\/embed\.aspx\?src=/);
+      const fileUrl = decodeURIComponent(src.split('src=')[1] ?? '');
+      expect(fileUrl).toMatch(/slide-media\/.+\.pptx\?token=/);
+      // The private link really serves the file.
+      expect((await page.request.get(fileUrl)).status()).toBe(200);
+      await expect(deck.getByRole('button', { name: /Open in a new window \(Roof care deck\)/ })).toBeVisible();
+    } finally {
+      await page.goto('/present/next');
+      await page.getByRole('region', { name: 'Meeting slides' }).getByRole('link', { name: 'Customize slides' }).click();
+      await page.getByRole('button', { name: 'Remove Roof care deck' }).click();
+      await expect(page.getByRole('button', { name: 'Remove Roof care deck' })).toHaveCount(0);
+    }
   });
 });

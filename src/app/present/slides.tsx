@@ -9,7 +9,7 @@ import { groupLeadership } from '@/lib/leadership';
 import { chunk, slideLabel, slideTime, type SlideKey } from '@/lib/slides';
 import type { DeckSlide } from './Deck';
 import { Icon, SilencePhone, type IconName } from './icons';
-import { Fireworks, PdfPageSlide, SlideTimer, WebsiteSlide, YouTubeSlide } from './SlideWidgets';
+import { Fireworks, PdfPageSlide, PowerPointSlide, SlideTimer, WebsiteSlide, YouTubeSlide } from './SlideWidgets';
 
 // Meeting slides. Design (owner's references, 2026-10-22): clean white pages in the logo's blues, a cyan-to-blue
 // gradient band, soft raised cards, round icon badges, big numbers and a numbered flow for the path to membership.
@@ -302,7 +302,8 @@ const Chip = ({ children }: { children: ReactNode }) => (
 );
 
 function MediaPage({ ctx, m, page, timers }: { ctx: Ctx; m: SlideMedia; page?: number; timers: DeckData['timers'] }) {
-  const title = m.title || (m.kind === 'youtube' ? 'Video' : m.kind === 'pdf' ? 'Presentation' : m.kind === 'link' ? 'Website' : 'Slide');
+  const title =
+    m.title || (m.kind === 'youtube' ? 'Video' : m.kind === 'pdf' || m.kind === 'powerpoint' ? 'Presentation' : m.kind === 'link' ? 'Website' : 'Slide');
   // A presenter's own slides keep that presentation's timer on top (same countdown as the presentation slide).
   const timer =
     m.afterSlide === 'five_minute' && timers.five_materials ? (
@@ -341,6 +342,8 @@ function MediaPage({ ctx, m, page, timers }: { ctx: Ctx; m: SlideMedia; page?: n
           </div>
         ) : m.kind === 'pdf' ? (
           <PdfPageSlide url={m.url} page={page ?? 1} title={title} />
+        ) : m.kind === 'powerpoint' ? (
+          <PowerPointSlide url={m.url} title={title} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={m.url} alt={title} className="h-full w-full object-contain" />
@@ -362,7 +365,9 @@ export function buildSlides(d: DeckData): DeckSlide[] {
 
   const addMedia = (after: string) => {
     for (const m of d.media.filter((x) => x.afterSlide === after)) {
-      const label = m.title || (m.kind === 'youtube' ? 'Video' : m.kind === 'pdf' ? 'Presentation' : m.kind === 'link' ? 'Website' : 'Added slide');
+      const label =
+        m.title ||
+        (m.kind === 'youtube' ? 'Video' : m.kind === 'pdf' || m.kind === 'powerpoint' ? 'Presentation' : m.kind === 'link' ? 'Website' : 'Added slide');
       if (m.kind === 'pdf')
         for (let p = 1; p <= m.pageCount; p++)
           specs.push({ id: `media-${m.id}-${p}`, label: `${label}, page ${p}`, render: (ctx) => <MediaPage ctx={ctx} m={m} page={p} timers={d.timers} /> });

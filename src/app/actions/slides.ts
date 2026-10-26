@@ -46,7 +46,7 @@ const mediaTitle = z
 
 const fileInput = z.object({
   meetingId: z.uuid(),
-  kind: z.enum(['image', 'pdf']),
+  kind: z.enum(['image', 'pdf', 'powerpoint']),
   path: z.string().max(300),
   title: mediaTitle,
   afterSlide,
@@ -72,7 +72,11 @@ export async function addSlideFile(input: z.input<typeof fileInput>): Promise<Ac
   });
   if (error) return { status: 'error', message: 'Only admins can change the slides.' };
   revalidatePath('/present', 'layout');
-  return { status: 'success', message: d.kind === 'pdf' ? `PDF added (${d.pageCount} page${d.pageCount === 1 ? '' : 's'}).` : 'Image added.' };
+  return {
+    status: 'success',
+    message:
+      d.kind === 'pdf' ? `PDF added (${d.pageCount} page${d.pageCount === 1 ? '' : 's'}).` : d.kind === 'powerpoint' ? 'PowerPoint added.' : 'Image added.',
+  };
 }
 
 /** Add a YouTube video (played inside the slide) or any other https website link (shown inside the slide). */
