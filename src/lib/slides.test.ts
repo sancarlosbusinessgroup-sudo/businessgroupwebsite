@@ -6,6 +6,7 @@ import {
   SLIDE_KEYS,
   UPLOAD_ACCEPT,
   chunk,
+  formatBytes,
   officeViewerUrl,
   parseWebsite,
   parseYouTube,
@@ -154,5 +155,14 @@ describe('PowerPoint files (owner, 2026-10-27)', () => {
     expect(officeViewerUrl(file, 'view')).toMatch(/^https:\/\/view\.officeapps\.live\.com\/op\/view\.aspx\?src=https%3A%2F%2F/);
     expect(UPLOAD_ACCEPT).toContain('.ppt');
     expect(UPLOAD_ACCEPT).toContain(PPTX_TYPE);
+  });
+});
+
+describe('formatBytes (Admin → Presentation materials)', () => {
+  it('shows sizes the way people read them', () => {
+    expect(formatBytes(900)).toBe('900 B');
+    expect(formatBytes(508_594)).toBe('497 KB');
+    expect(formatBytes(3.4 * 1024 * 1024)).toBe('3.4 MB');
+    expect(formatBytes(1.5 * 1024 * 1024 * 1024)).toBe('1.50 GB');
   });
 });

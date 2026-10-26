@@ -8,6 +8,7 @@ const links = [
   { href: '/admin/stats', label: 'Member stats' },
   { href: '/admin/leadership', label: 'Management' },
   { href: '/admin/recap', label: 'Recap preview' },
+  { href: '/admin/materials', label: 'Presentation materials' },
   { href: '/present/next', label: 'Meeting slides' },
 ] as const;
 

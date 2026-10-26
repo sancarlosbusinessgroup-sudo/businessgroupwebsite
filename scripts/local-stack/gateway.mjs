@@ -1,6 +1,6 @@
 // Tiny stand-in for the Supabase API gateway: routes /auth/v1 to Supabase Auth
 // and /rest/v1 to PostgREST, so @supabase/supabase-js works against the local stack.
-// /storage/v1 is a minimal file store on disk (upload, signed links, download, remove) for tests;
+// /storage/v1 is a minimal file store on disk (upload, list, signed links, download, remove) for tests;
 // it checks only that the caller is signed in, not the storage policies (DB tests cover those).
 import fs from 'node:fs';
 import http from 'node:http';
@@ -61,6 +61,13 @@ function storage(req, res, url) {
     }
     if (req.method === 'POST' && (m = rest.match(/^\/object\/sign\/([^/]+)\/(.+)$/)))
       return send(200, { signedURL: `/object/sign/${m[1]}/${safe(decodeURIComponent(m[2]))}?token=local` });
+    if (req.method === 'POST' && (m = rest.match(/^\/object\/list\/([^/]+)$/))) {
+      // Files in one folder, shaped like Supabase Storage's list reply (name + metadata.size).
+      const { prefix = '' } = JSON.parse(body.toString() || '{}');
+      const dir = path.join(STORE, m[1], safe(prefix));
+      const names = fs.existsSync(dir) ? fs.readdirSync(dir).filter((n) => !n.endsWith('.type') && fs.statSync(path.join(dir, n)).isFile()) : [];
+      return send(200, names.map((n) => ({ name: n, id: n, metadata: { size: fs.statSync(path.join(dir, n)).size } })));
+    }
     if ((req.method === 'POST' || req.method === 'PUT') && (m = rest.match(/^\/object\/([^/]+)\/(.+)$/))) {
       const file = path.join(STORE, m[1], safe(decodeURIComponent(m[2])));
       fs.mkdirSync(path.dirname(file), { recursive: true });

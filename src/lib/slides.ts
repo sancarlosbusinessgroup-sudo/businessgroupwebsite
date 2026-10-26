@@ -206,3 +206,14 @@ export function resolveTimers(saved: unknown): TimerSettings {
   const obj = saved && typeof saved === 'object' && !Array.isArray(saved) ? (saved as Record<string, unknown>) : {};
   return Object.fromEntries(TIMER_KEYS.map((k) => [k, obj[k] === true])) as TimerSettings;
 }
+
+/** File sizes for people: "512 KB", "3.4 MB". */
+export function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
+/** The free Supabase plan's file storage (1 GB), for the Admin → Presentation materials summary. */
+export const STORAGE_PLAN_BYTES = 1024 * 1024 * 1024;
