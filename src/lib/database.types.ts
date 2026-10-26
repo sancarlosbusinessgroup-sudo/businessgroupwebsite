@@ -256,6 +256,12 @@ export type Database = {
         };
         Relationships: [];
       };
+      email_change_requests: {
+        Row: { profile_id: string; new_email: string; code_hash: string; attempts: number; created_at: string; expires_at: string };
+        Insert: { profile_id: string; new_email: string; code_hash: string; attempts?: number; created_at?: string; expires_at: string };
+        Update: { new_email?: string; code_hash?: string; attempts?: number; created_at?: string; expires_at?: string };
+        Relationships: [];
+      };
       email_settings: {
         Row: { id: number; meeting_recaps_enabled: boolean; updated_by: string | null; updated_at: string };
         Insert: { id?: number; meeting_recaps_enabled?: boolean; updated_by?: string | null; updated_at?: string };

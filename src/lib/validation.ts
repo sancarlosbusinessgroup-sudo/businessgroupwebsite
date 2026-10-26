@@ -177,6 +177,18 @@ export const changePasswordSchema = z
   .refine((v) => v.password === v.confirm, { path: ['confirm'], message: 'Passwords do not match' })
   .refine((v) => v.password !== v.current, { path: ['password'], message: 'Choose a password different from your current one' });
 
+export const changeEmailSchema = z.object({
+  email,
+  current: z.string({ error: 'Enter your current password' }).min(1, 'Enter your current password').max(72),
+});
+
+export const emailCodeSchema = z.object({
+  code: z
+    .string({ error: 'Enter the 6-digit code' })
+    .trim()
+    .regex(/^\d{6}$/, 'Enter the 6-digit code from the email'),
+});
+
 export const referralStatuses = ['new', 'contacted', 'meeting_set', 'closed_deal', 'not_a_fit'] as const;
 
 export const referralSchema = z.object({
@@ -435,3 +447,6 @@ export type ActionState = {
 };
 
 export const idle: ActionState = { status: 'idle' };
+
+/** My profile → Change email: which step the form is on, and the address waiting for its code. */
+export type EmailChangeState = ActionState & { step: 'start' | 'code' | 'done'; pendingEmail?: string };

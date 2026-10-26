@@ -11,9 +11,14 @@ import { deliver, loadAdmins, siteUrl } from '@/lib/email/notify';
 import { accountDeletedEmail } from '@/lib/email/templates';
 import { passwordErrorMessage } from '@/lib/password-errors';
 import { createClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
+import { cancelEmailChange, confirmEmailChange, startEmailChange } from '@/lib/email-change';
 import {
   type ActionState,
+  type EmailChangeState,
+  changeEmailSchema,
   changePasswordSchema,
+  emailCodeSchema,
   emailOnlySchema,
   fieldErrors,
   formToObject,
@@ -273,4 +278,74 @@ export async function signOut(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect('/');
+}
+
+/** My profile → Change email, step 1: check the password, then email a code to the new address (owner, 2026-10-27). */
+export async function requestEmailChange(_prev: EmailChangeState, formData: FormData): Promise<EmailChangeState> {
+  const raw = formToObject(formData);
+  const parsed = changeEmailSchema.safeParse(raw);
+  const values = { email: raw.email ?? '' };
+  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values, step: 'start' };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { status: 'error', message: 'Please log in again.', step: 'start' };
+  const newEmail = parsed.data.email.trim().toLowerCase();
+  if (newEmail === user.email.toLowerCase()) return { status: 'error', errors: { email: 'That is already your login email.' }, values, step: 'start' };
+  const check = await supabase.auth.signInWithPassword({ email: user.email, password: parsed.data.current });
+  if (check.error) return { status: 'error', errors: { current: 'That isn’t your current password.' }, values, step: 'start' };
+  const { data: profile } = await supabase.from('profiles').select('first_name').eq('id', user.id).maybeSingle();
+  const r = await startEmailChange({ profileId: user.id, firstName: profile?.first_name ?? 'there', newEmail });
+  if (!r.ok) {
+    const message = {
+      taken: 'Another member already uses that email.',
+      too_soon: 'We just sent a code. Please wait a minute before asking for another.',
+      send_failed: 'We could not send the code to that address. Please check it and try again.',
+      unavailable: 'Something went wrong. Please try again.',
+    }[r.reason];
+    return r.reason === 'taken' ? { status: 'error', errors: { email: message }, values, step: 'start' } : { status: 'error', message, values, step: 'start' };
+  }
+  return { status: 'success', message: `We sent a 6-digit code to ${newEmail}.`, step: 'code', pendingEmail: newEmail };
+}
+
+/** Step 2: the code from the email. When it matches, the login email and contact email change together. */
+export async function confirmEmailCode(_prev: EmailChangeState, formData: FormData): Promise<EmailChangeState> {
+  const values = formToObject(formData);
+  const parsed = emailCodeSchema.safeParse(values);
+  const pendingEmail = values.pendingEmail || undefined;
+  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), step: 'code', pendingEmail };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: 'error', message: 'Please log in again.', step: 'code', pendingEmail };
+  const r = await confirmEmailChange({ profileId: user.id, code: parsed.data.code });
+  if (!r.ok) {
+    if (r.reason === 'wrong')
+      return { status: 'error', errors: { code: `That code doesn’t match. ${r.left} ${r.left === 1 ? 'try' : 'tries'} left.` }, step: 'code', pendingEmail };
+    const message = {
+      none: 'There is no email change waiting. Please start again.',
+      expired: 'That code has expired. Please start again to get a new one.',
+      locked: 'Too many wrong codes. Please start again to get a new one.',
+      taken: 'Another account already uses that email.',
+      unavailable: 'Something went wrong. Please try again.',
+    }[r.reason];
+    return { status: 'error', message, step: r.reason === 'unavailable' ? 'code' : 'start', pendingEmail };
+  }
+  // Refresh the session so the new email shows straight away.
+  await supabase.auth.refreshSession().catch(() => undefined);
+  revalidatePath('/profile');
+  return { status: 'success', message: `Done. You now log in with ${r.newEmail}.`, step: 'done' };
+}
+
+/** Step 2 → "Use a different email": drop the pending code. */
+export async function cancelEmailCode(): Promise<EmailChangeState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) await cancelEmailChange(user.id);
+  revalidatePath('/profile');
+  return { status: 'idle', step: 'start' };
 }

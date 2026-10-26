@@ -612,3 +612,41 @@ export function accountDeletedEmail(o: { siteUrl: string; toFirstName: string; n
     }),
   };
 }
+
+/** The code a member types on My profile to confirm a new login email (owner, 2026-10-27). The code is not in the subject. */
+export function emailChangeCodeEmail(o: { siteUrl: string; firstName: string; code: string }): Email {
+  return {
+    subject: `Confirm your new email for ${site.name}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: 'Your code to confirm this email address. It works for 15 minutes.',
+      heading: 'Confirm your new email',
+      blocks: [
+        { p: `Hi ${o.firstName}, you asked to use this address to log in to ${site.name}. Type this code on My profile to confirm it:` },
+        { h: o.code },
+        { p: 'The code works for 15 minutes. If you didn’t ask for this, ignore this email: nothing changes.' },
+      ],
+      footer: accountFooter,
+    }),
+  };
+}
+
+/** Sent to the old address once the login email has changed, so the member knows if it wasn't them. */
+export function emailChangedNoticeEmail(o: { siteUrl: string; firstName: string; newEmail: string }): Email {
+  return {
+    subject: `Your ${site.name} login email was changed`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: 'You now log in with your new email address.',
+      heading: 'Your login email was changed',
+      blocks: [
+        {
+          p: `Hi ${o.firstName}, the email you use to log in to ${site.name} is now ${o.newEmail}. Your password stays the same, and emails from the group go to the new address.`,
+        },
+        { p: 'If you didn’t make this change, contact the Support Team right away.' },
+      ],
+      cta: { label: 'Contact Support', href: `${o.siteUrl}/support` },
+      footer: accountFooter,
+    }),
+  };
+}

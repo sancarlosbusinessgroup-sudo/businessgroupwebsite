@@ -10,6 +10,8 @@ import { getViewer } from '@/lib/auth';
 import { getCategories } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
 import { prefKeys, prefOn } from '@/lib/email/prefs';
+import { pendingEmailChange } from '@/lib/email-change';
+import { ChangeEmailForm } from './ChangeEmailForm';
 import { ChangePasswordForm } from './ChangePasswordForm';
 import { DeleteAccountForm } from './DeleteAccountForm';
 import { EmailPrefsForm } from './EmailPrefsForm';
@@ -34,7 +36,12 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     p.category_id ? supabase.from('categories').select('name').eq('id', p.category_id).maybeSingle() : Promise.resolve({ data: null }),
     supabase.from('email_preferences').select('prefs').eq('profile_id', p.id).maybeSingle(),
   ]);
-  const [wins, currentChampion] = await Promise.all([getChampionAwards(24, p.id), getCurrentChampion()]);
+  const [wins, currentChampion, pendingEmail] = await Promise.all([
+    getChampionAwards(24, p.id),
+    getCurrentChampion(),
+    editing ? pendingEmailChange(p.id) : Promise.resolve(null),
+  ]);
+  const loginEmail = viewer.email ?? contactRes.data?.email ?? '';
   const champion = { current: currentChampion?.profileId === p.id ? currentChampion.label : null, past: wins.map((w) => w.label) };
   const prefs = Object.fromEntries(prefKeys.map((k) => [k, prefOn(prefsRes.data?.prefs, k)])) as Record<(typeof prefKeys)[number], boolean>;
   const tabCls = (on: boolean) =>
@@ -60,6 +67,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           {approved ? (
             <span className="text-ink-muted flex flex-wrap items-center gap-3 text-sm">
               {!editing ? 'This is how visitors see your listing in the directory.' : null}
+              <Link href="/profile?tab=edit#email" className="font-bold">
+                Change email
+              </Link>
               <Link href="/profile?tab=edit#password" className="font-bold">
                 Change password
               </Link>
@@ -100,6 +110,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
               }}
             />
             {approved ? <EmailPrefsForm on={prefs} isAdmin={p.role === 'admin'} /> : null}
+            <ChangeEmailForm currentEmail={loginEmail} pending={pendingEmail?.newEmail ?? null} />
             <ChangePasswordForm />
             <DeleteAccountForm />
           </>
