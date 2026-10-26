@@ -7,18 +7,21 @@ import { siteUrl } from '@/lib/email/notify';
 import { latestEndedMeeting, recapForMeeting, recapShared } from '@/lib/email/recap';
 import { meetingRecapEmail } from '@/lib/email/templates';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { recapsEnabled } from '@/lib/email/cron';
+import { RecapSwitchForm } from './RecapSwitchForm';
 
 export const metadata: Metadata = { title: 'Meeting recap preview' };
 
 /**
  * The meeting recap email as members receive it after a meeting ends, built from the live data of the most recent
- * meeting. Read-only: nothing is sent from this page. The greeting uses the admin's first name.
+ * meeting. Nothing is sent from this page; admins can switch the automatic recap off or on here. The greeting uses the
+ * admin's first name.
  */
 export default async function AdminRecapPage() {
   const viewer = await requireAdmin();
   const db = createAdminClient();
   const now = new Date();
-  const meeting = db ? await latestEndedMeeting(db, now) : null;
+  const [meeting, enabled] = db ? await Promise.all([latestEndedMeeting(db, now), recapsEnabled(db)]) : [null, true];
 
   let email: { subject: string; html: string; text: string } | null = null;
   if (db && meeting) {
@@ -47,6 +50,14 @@ export default async function AdminRecapPage() {
             data of the most recent ended meeting: its talks and materials, today&apos;s visitors and who invited them, member events and the next meeting.
             Nothing is sent from this page, and the greeting uses your first name, as each member sees their own.
           </p>
+          <div className="border-line flex flex-col gap-2 rounded-[14px] border p-4">
+            <RecapSwitchForm enabled={enabled} />
+            <p className="text-ink-muted m-0 text-sm">
+              {enabled
+                ? 'Turn it off before noon Pacific on a meeting day to stop that meeting’s recap from going out.'
+                : 'While it is off, no recap is sent. If you turn it back on within 36 hours of a meeting, that meeting’s recap goes out at the next run (around noon Pacific, or 7 AM the next morning).'}
+            </p>
+          </div>
           {meeting && email ? (
             <>
               <dl className="m-0 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1.5 text-sm">

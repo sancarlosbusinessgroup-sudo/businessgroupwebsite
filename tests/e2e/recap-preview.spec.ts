@@ -54,7 +54,7 @@ test.describe('meeting recap preview', () => {
       await expect(frame.getByText('Pia Presenter')).toBeVisible();
       await page.getByText('Plain-text version').click();
       await expect(page.locator('pre').filter({ hasText: 'Vera Visitor' })).toBeVisible();
-      await expectAccessible(page);
+      await expectAccessible(page, ['iframe[title="Recap email preview"]']);
     } finally {
       await rest(`meetings?id=eq.${meetingId}`, 'DELETE');
     }
@@ -64,5 +64,37 @@ test.describe('meeting recap preview', () => {
     await login(page, users.member, undefined, '/dashboard');
     await page.goto('/admin/recap');
     await expect(page.getByRole('heading', { name: 'Meeting recap preview' })).toHaveCount(0);
+  });
+
+  test('admins can switch the automatic recap off (the job then sends nothing) and back on', async ({ page, request }) => {
+    const slug = `recap-switch-${Date.now()}`;
+    const [m] = await rest('meetings', 'POST', {
+      slug,
+      title: 'Recap switch test',
+      category: 'Networking',
+      starts_at: '2027-04-05T15:15:00Z',
+      ends_at: '2027-04-05T16:30:00Z',
+    });
+    const auth = { authorization: 'Bearer local-cron-secret' };
+    try {
+      await login(page, users.admin, undefined, '/admin/recap');
+      await expect(page.getByTestId('recap-status')).toHaveText(/On$/);
+      await page.getByRole('button', { name: 'Turn off recap email' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Recap email is off' })).toBeVisible();
+      await expect(page.getByTestId('recap-status')).toHaveText(/Off$/);
+      await expectAccessible(page, ['iframe[title="Recap email preview"]']);
+
+      const off = await (await request.get('/api/cron/after-meeting?now=2027-04-05T19:00:00Z', { headers: auth })).json();
+      expect(off.meetingRecaps).toBe(0);
+
+      await page.getByRole('button', { name: 'Turn on recap email' }).click();
+      await expect(page.getByTestId('recap-status')).toHaveText(/On$/);
+      const on = await (await request.get('/api/cron/after-meeting?now=2027-04-05T19:05:00Z', { headers: auth })).json();
+      expect(on.meetingRecaps).toBeGreaterThan(0);
+    } finally {
+      await rest('email_settings?id=eq.1', 'PATCH', { meeting_recaps_enabled: true });
+      await rest(`email_log?dedupe_key=eq.${m?.id}`, 'DELETE');
+      await rest(`meetings?id=eq.${m?.id}`, 'DELETE');
+    }
   });
 });

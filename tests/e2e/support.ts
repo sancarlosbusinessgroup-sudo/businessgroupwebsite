@@ -61,8 +61,11 @@ export async function login(page: Page, email: string, password = PASSWORD, next
   await page.waitForURL((u) => !u.pathname.startsWith('/login'));
 }
 
-export async function expectAccessible(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+/** `exclude`: CSS selectors axe skips, e.g. a sandboxed iframe it cannot enter (it hangs there). */
+export async function expectAccessible(page: Page, exclude: string[] = []) {
+  let builder = new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']);
+  for (const sel of exclude) builder = builder.exclude(sel);
+  const results = await builder.analyze();
   const summary = results.violations.map(
     (v) =>
       `${v.id}: ${v.nodes

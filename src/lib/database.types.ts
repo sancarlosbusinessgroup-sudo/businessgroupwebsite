@@ -256,6 +256,12 @@ export type Database = {
         };
         Relationships: [];
       };
+      email_settings: {
+        Row: { id: number; meeting_recaps_enabled: boolean; updated_by: string | null; updated_at: string };
+        Insert: { id?: number; meeting_recaps_enabled?: boolean; updated_by?: string | null; updated_at?: string };
+        Update: { meeting_recaps_enabled?: boolean; updated_by?: string | null; updated_at?: string };
+        Relationships: [];
+      };
       email_preferences: {
         Row: { prefs: Json; profile_id: string; updated_at: string };
         Insert: { prefs?: Json; profile_id: string; updated_at?: string };

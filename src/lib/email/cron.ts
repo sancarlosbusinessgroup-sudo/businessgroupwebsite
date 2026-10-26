@@ -230,6 +230,8 @@ export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
 export async function runRecaps(now: Date = new Date()): Promise<number> {
   const db = createAdminClient();
   if (!db) return 0;
+  // Admins can switch the recap off on Admin → Meeting recap (email_settings). Off = nothing is sent.
+  if (!(await recapsEnabled(db))) return 0;
   const url = siteUrl();
   const nowIso = now.toISOString();
   const { data: ended } = await db
@@ -262,4 +264,10 @@ export async function runRecaps(now: Date = new Date()): Promise<number> {
     }
   }
   return sent;
+}
+
+/** The admin on/off switch for the meeting recap. A missing row counts as on (the original behaviour). */
+export async function recapsEnabled(db: NonNullable<ReturnType<typeof createAdminClient>>): Promise<boolean> {
+  const { data } = await db.from('email_settings').select('meeting_recaps_enabled').eq('id', 1).maybeSingle();
+  return data?.meeting_recaps_enabled !== false;
 }

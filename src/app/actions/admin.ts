@@ -230,3 +230,27 @@ export async function setGuestOneOnOnes(formData: FormData): Promise<void> {
     .eq('id', id.data);
   revalidatePath('/admin');
 }
+
+/** Admin → Meeting recap: turn the automatic recap email on or off. */
+export async function setRecapsEnabled(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const enabled = z.enum(['on', 'off']).safeParse(formData.get('recaps'));
+  if (!enabled.success) return { status: 'error', message: GENERIC };
+  const supabase = await createClient();
+  const { data: isAdmin } = await supabase.rpc('is_admin');
+  if (!isAdmin) return { status: 'error', message: 'Admins only.' };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const on = enabled.data === 'on';
+  const { data, error } = await supabase
+    .from('email_settings')
+    .update({ meeting_recaps_enabled: on, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
+    .eq('id', 1)
+    .select('id');
+  if (error || !data?.length) return { status: 'error', message: GENERIC };
+  revalidatePath('/admin/recap');
+  return {
+    status: 'success',
+    message: on ? 'Recap email is on. Members get it after each meeting.' : 'Recap email is off. Nothing will be sent until you turn it back on.',
+  };
+}
