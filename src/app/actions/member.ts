@@ -185,7 +185,7 @@ export async function fileClosedBusiness(_prev: ActionState, formData: FormData)
   if (!user) return { status: 'error', message: 'Please log in again.' };
   if (parsed.data.toId === user.id) return { status: 'error', errors: { toId: 'Choose another member' }, values };
   const d = parsed.data;
-  const { data: referralId, error } = await supabase.rpc('file_closed_business', {
+  const { data: referralId, error } = await supabase.rpc('file_closed_business_on', {
     p_to: d.toId,
     p_contact_name: d.contactName,
     p_phone: d.prospectPhone ?? null,

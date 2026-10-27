@@ -38,8 +38,9 @@ begin
   return new;
 end $$;
 
--- Closed Businesses page: optional "closed on" date (the referral is dated the same day).
-create or replace function public.file_closed_business(
+-- Closed Businesses page: optional "closed on" date (the referral is dated the same day). A new name rather than
+-- an overload, so the old six-argument function can stay (no drop) and PostgREST never sees an ambiguous call.
+create or replace function public.file_closed_business_on(
   p_to uuid,
   p_contact_name text,
   p_phone text,
@@ -85,7 +86,5 @@ begin
   return v_id;
 end $$;
 
--- The six-argument version is replaced by the one above (its default covers the old calls).
-drop function if exists public.file_closed_business(uuid, text, text, text, numeric, text);
-revoke execute on function public.file_closed_business(uuid, text, text, text, numeric, text, date) from public, anon;
-grant execute on function public.file_closed_business(uuid, text, text, text, numeric, text, date) to authenticated;
+revoke execute on function public.file_closed_business_on(uuid, text, text, text, numeric, text, date) from public, anon;
+grant execute on function public.file_closed_business_on(uuid, text, text, text, numeric, text, date) to authenticated;
