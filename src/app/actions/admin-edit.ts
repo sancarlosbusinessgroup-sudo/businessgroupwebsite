@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { onMemberStatus, onSlotAssigned, onSlotRevoked } from '@/lib/email/events';
 import { safely } from '@/lib/email/notify';
+import { pacificLocalToIso } from '@/lib/dates';
 import {
   type ActionState,
   adminOneOnOneSchema,
@@ -335,7 +336,14 @@ export async function adminUpdateReferral(_prev: ActionState, formData: FormData
   const d = parsed.data;
   const { data, error } = await supabase
     .from('referrals')
-    .update({ contact_name: d.contactName, status: d.status, amount: d.amount ?? null, notes: d.notes ?? null })
+    .update({
+      contact_name: d.contactName,
+      status: d.status,
+      amount: d.amount ?? null,
+      notes: d.notes ?? null,
+      ...(d.referredOn ? { created_at: pacificLocalToIso(`${d.referredOn}T12:00`) ?? undefined } : {}),
+      ...(d.status === 'closed_deal' && d.closedOn ? { closed_at: pacificLocalToIso(`${d.closedOn}T12:00`) ?? undefined } : {}),
+    })
     .eq('id', d.id)
     .select('from_id, to_id');
   if (error || !data?.length) return { status: 'error', message: GENERIC, values };

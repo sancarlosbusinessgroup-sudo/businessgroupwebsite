@@ -191,6 +191,15 @@ export const emailCodeSchema = z.object({
 
 export const referralStatuses = ['new', 'contacted', 'meeting_set', 'closed_deal', 'not_a_fit'] as const;
 
+/** An optional YYYY-MM-DD that is today or earlier (members may backdate what they forgot to file; owner, 2026-10-27). */
+const pastDate = (now: () => Date = () => new Date()) =>
+  z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined))
+    .refine((d) => d === undefined || /^\d{4}-\d{2}-\d{2}$/.test(d), 'Enter a valid date')
+    .refine((d) => d === undefined || d <= localDateKey(now()), 'The date can’t be in the future');
+
 export const referralSchema = z.object({
   toId: uuid('Choose a member to refer to'),
   contactName: z.string().trim().min(2, 'Enter the prospect’s name').max(120, 'Prospect name must be 120 characters or fewer'),
@@ -204,12 +213,16 @@ export const referralSchema = z.object({
     .refine((v) => v === undefined || (v.length <= 254 && z.email().safeParse(v).success), 'Enter a valid email address'),
   amount: money,
   notes: optionalText(1000, 'Notes'),
+  /** When it was referred (or, on the Closed Businesses page, when it closed). Empty = today. */
+  referredOn: pastDate(),
 });
 
 export const referralUpdateSchema = z.object({
   id: uuid('Missing referral'),
   status: z.enum(referralStatuses, { error: 'Choose a status' }),
   amount: money,
+  /** When the business closed; only used when the status is closed_deal. Empty = keep / today. */
+  closedOn: pastDate(),
 });
 
 /** Asking another member for a one-on-one that hasn't happened yet. */
@@ -451,6 +464,8 @@ export const adminReferralSchema = z.object({
   status: z.enum(referralStatuses, { error: 'Choose a status' }),
   amount: money,
   notes: optionalText(1000, 'Notes'),
+  referredOn: pastDate(),
+  closedOn: pastDate(),
 });
 
 /** An admin correcting a one-on-one (any date, confirmed or not). */

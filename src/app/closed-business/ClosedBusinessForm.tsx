@@ -10,7 +10,7 @@ import { fileClosedBusiness } from '../actions/member';
 type Option = { id: string; label: string };
 
 /** Same fields as "Give a referral", but saved already marked closed business (owner, 2026-10-25). */
-export function FileClosedBusinessForm({ members }: { members: Option[] }) {
+export function FileClosedBusinessForm({ members, today }: { members: Option[]; today: string }) {
   const [state, action] = useActionState(fileClosedBusiness, idle);
   const { clientErrors, onSubmit } = useClientValidation(referralSchema);
   const errors = clientErrors ?? state.errors ?? {};
@@ -54,6 +54,17 @@ export function FileClosedBusinessForm({ members }: { members: Option[] }) {
         help="The member who received the business can correct it later."
       />
       <TextArea name="notes" label="Notes" defaultValue={v.notes} error={errors.notes} />
+      <div className="max-w-xs">
+        <TextField
+          name="referredOn"
+          type="date"
+          label="Date the business closed"
+          max={today}
+          defaultValue={v.referredOn ?? today}
+          error={errors.referredOn}
+          help="Any past date is fine, e.g. a deal from last month."
+        />
+      </div>
       <SubmitButton pendingText="Filing…">File closed business</SubmitButton>
     </form>
   );

@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { onOneOnOneAnswered, onOneOnOneMessage, onOneOnOneReported, onOneOnOneRequested, onReferralSent, onReferralUpdated } from '@/lib/email/events';
 import { safely } from '@/lib/email/notify';
 import { prefKeys } from '@/lib/email/prefs';
+import { pacificLocalToIso } from '@/lib/dates';
 import {
   type ActionState,
   correctionSchema,
@@ -25,6 +26,8 @@ import {
 } from '@/lib/validation';
 
 const uuid = z.uuid();
+/** A YYYY-MM-DD from a date field → noon Pacific that day, as an ISO timestamp (null when empty). */
+const dayToIso = (d: string | undefined) => (d ? pacificLocalToIso(`${d}T12:00`) : null);
 const GENERIC = 'Something went wrong. Please try again.';
 
 async function session() {
@@ -161,6 +164,8 @@ export async function sendReferral(_prev: ActionState, formData: FormData): Prom
     prospect_email: d.prospectEmail ?? null,
     amount: d.amount ?? null,
     notes: d.notes ?? null,
+    // Backdated when the member forgot to file it (owner, 2026-10-27); the database refuses future dates.
+    ...(dayToIso(d.referredOn) ? { created_at: dayToIso(d.referredOn)! } : {}),
   });
   if (error) return { status: 'error', message: GENERIC, values };
   after(() => safely('referral sent', () => onReferralSent(referralId)));
@@ -187,6 +192,7 @@ export async function fileClosedBusiness(_prev: ActionState, formData: FormData)
     p_email: d.prospectEmail ?? null,
     p_amount: d.amount ?? null,
     p_notes: d.notes ?? null,
+    p_closed_on: d.referredOn ?? null,
   });
   if (error || !referralId) return { status: 'error', message: GENERIC, values };
   after(() => safely('closed business filed', () => onReferralSent(referralId)));
@@ -206,7 +212,12 @@ export async function updateReferral(_prev: ActionState, formData: FormData): Pr
   if (!user) return { status: 'error', message: 'Please log in again.' };
   const { data, error } = await supabase
     .from('referrals')
-    .update({ status: parsed.data.status, amount: parsed.data.amount ?? null })
+    .update({
+      status: parsed.data.status,
+      amount: parsed.data.amount ?? null,
+      // "Closed on" counts only for closed business; the database keeps/stamps it otherwise.
+      ...(parsed.data.status === 'closed_deal' && dayToIso(parsed.data.closedOn) ? { closed_at: dayToIso(parsed.data.closedOn)! } : {}),
+    })
     .eq('id', parsed.data.id)
     .eq('to_id', user.id)
     .select('id');

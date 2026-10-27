@@ -10,7 +10,7 @@ import { sendReferral, updateReferral } from '../actions/member';
 
 type Option = { id: string; label: string };
 
-export function SendReferralForm({ members, defaultTo }: { members: Option[]; defaultTo?: string }) {
+export function SendReferralForm({ members, defaultTo, today }: { members: Option[]; defaultTo?: string; today: string }) {
   const [state, action] = useActionState(sendReferral, idle);
   const { clientErrors, onSubmit } = useClientValidation(referralSchema);
   const errors = clientErrors ?? state.errors ?? {};
@@ -50,12 +50,38 @@ export function SendReferralForm({ members, defaultTo }: { members: Option[]; de
         help="Your best estimate of the business. The member who receives it can update it when the business closes."
       />
       <TextArea name="notes" label="Notes" defaultValue={v.notes} error={errors.notes} />
+      <div className="max-w-xs">
+        <TextField
+          name="referredOn"
+          type="date"
+          label="Date referred"
+          max={today}
+          defaultValue={v.referredOn ?? today}
+          error={errors.referredOn}
+          help="Forgot to file it? Put the day you actually made the referral."
+        />
+      </div>
       <SubmitButton pendingText="Sending…">Send referral slip</SubmitButton>
     </form>
   );
 }
 
-export function UpdateReferralForm({ id, status, amount, label }: { id: string; status: string; amount: number | null; label: string }) {
+export function UpdateReferralForm({
+  id,
+  status,
+  amount,
+  closedOn,
+  today,
+  label,
+}: {
+  id: string;
+  status: string;
+  amount: number | null;
+  /** YYYY-MM-DD the business closed, if it has. */
+  closedOn: string | null;
+  today: string;
+  label: string;
+}) {
   const [state, action] = useActionState(updateReferral, idle);
   const { clientErrors, onSubmit } = useClientValidation(referralUpdateSchema);
   const errors = clientErrors ?? state.errors ?? {};
@@ -87,6 +113,17 @@ export function UpdateReferralForm({ id, status, amount, label }: { id: string; 
           label="Value ($)"
           defaultValue={state.values?.amount ?? (amount === null ? '' : String(amount))}
           error={errors.amount}
+        />
+      </div>
+      <div className="w-40">
+        <TextField
+          name="closedOn"
+          id={`closed-${id}`}
+          type="date"
+          label="Closed on"
+          max={today}
+          defaultValue={state.values?.closedOn ?? closedOn ?? today}
+          error={errors.closedOn}
         />
       </div>
       <SubmitButton pendingText="Saving…" className="btn btn-outline btn-sm">

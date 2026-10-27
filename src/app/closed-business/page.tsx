@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { EmptyState, Notice } from '@/components/ui';
 import { requireMember } from '@/lib/auth';
 import { getMemberOptions } from '@/lib/data/member';
-import { formatMoney } from '@/lib/dates';
+import { formatMoney, localDateKey } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { ReferralSlip, referralSelect, type ReferralRow } from '../referrals/ReferralSlip';
 import { FileClosedBusinessForm } from './ClosedBusinessForm';
@@ -18,19 +18,12 @@ export default async function ClosedBusinessPage() {
   const supabase = await createClient();
   const [members, refsRes] = await Promise.all([
     getMemberOptions(me.id),
-    supabase
-      .from('referrals')
-      .select(referralSelect)
-      .or(`from_id.eq.${me.id},to_id.eq.${me.id}`)
-      .order('created_at', { ascending: false })
-      .limit(200),
+    supabase.from('referrals').select(referralSelect).or(`from_id.eq.${me.id},to_id.eq.${me.id}`).order('created_at', { ascending: false }).limit(200),
   ]);
   if (refsRes.error) throw new Error('Could not load your referrals');
   const rows = refsRes.data as unknown as ReferralRow[];
   const openReceived = rows.filter((r) => r.to_id === me.id && r.status !== 'closed_deal' && r.status !== 'not_a_fit');
-  const closed = rows
-    .filter((r) => r.status === 'closed_deal')
-    .sort((a, b) => (b.closed_at ?? b.created_at).localeCompare(a.closed_at ?? a.created_at));
+  const closed = rows.filter((r) => r.status === 'closed_deal').sort((a, b) => (b.closed_at ?? b.created_at).localeCompare(a.closed_at ?? a.created_at));
   const closedReceived = closed.filter((r) => r.to_id === me.id);
   const closedGiven = closed.filter((r) => r.from_id === me.id);
   const total = (list: ReferralRow[]) => list.reduce((sum, r) => sum + (r.amount ?? 0), 0);
@@ -107,7 +100,10 @@ export default async function ClosedBusinessPage() {
               )}
             </section>
           </div>
-          <FileClosedBusinessForm members={members.map((m) => ({ id: m.id, label: `${m.first_name} ${m.last_name} · ${m.business_name}` }))} />
+          <FileClosedBusinessForm
+            members={members.map((m) => ({ id: m.id, label: `${m.first_name} ${m.last_name} · ${m.business_name}` }))}
+            today={localDateKey(new Date())}
+          />
         </div>
       </div>
     </div>

@@ -6,7 +6,7 @@ import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { EmptyState, Notice, Pill } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { getCategories } from '@/lib/data/public';
-import { formatShortDate } from '@/lib/dates';
+import { formatShortDate, localDateKey } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -38,7 +38,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
     supabase
       .from('referrals')
       .select(
-        'id, from_id, to_id, contact_name, status, amount, notes, created_at, from:profiles!referrals_from_id_fkey(first_name, last_name), to:profiles!referrals_to_id_fkey(first_name, last_name)',
+        'id, from_id, to_id, contact_name, status, amount, notes, created_at, closed_at, from:profiles!referrals_from_id_fkey(first_name, last_name), to:profiles!referrals_to_id_fkey(first_name, last_name)',
       )
       .or(`from_id.eq.${id},to_id.eq.${id}`)
       .order('created_at', { ascending: false })
@@ -140,6 +140,8 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
                             amount: r.amount,
                             notes: r.notes,
                             created_at: r.created_at,
+                            referred_on: localDateKey(new Date(r.created_at)),
+                            closed_on: r.closed_at ? localDateKey(new Date(r.closed_at)) : null,
                             other: sent ? name(r.to) : name(r.from),
                             direction: sent ? 'sent' : 'received',
                           }}

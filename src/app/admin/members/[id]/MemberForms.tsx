@@ -128,6 +128,8 @@ export type ReferralRow = {
   amount: number | null;
   notes: string | null;
   created_at: string;
+  referred_on: string;
+  closed_on: string | null;
   other: string;
   direction: 'sent' | 'received';
 };
@@ -170,6 +172,23 @@ export function ReferralEditForm({ r }: { r: ReferralRow }) {
         <div className="md:col-span-3">
           <TextArea id={`${prefix}-notes`} name="notes" label="Notes" defaultValue={v.notes ?? r.notes ?? ''} error={errors.notes} maxLength={1000} rows={2} />
         </div>
+        <TextField
+          id={`${prefix}-ref-on`}
+          name="referredOn"
+          type="date"
+          label="Date referred"
+          defaultValue={v.referredOn ?? r.referred_on}
+          error={errors.referredOn}
+        />
+        <TextField
+          id={`${prefix}-closed-on`}
+          name="closedOn"
+          type="date"
+          label="Closed on"
+          defaultValue={v.closedOn ?? r.closed_on ?? ''}
+          error={errors.closedOn}
+          help="Counts only for closed business."
+        />
       </div>
       <div>
         <SubmitButton pendingText="Saving…" className="btn btn-outline btn-sm">
