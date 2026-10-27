@@ -24,14 +24,6 @@ export function InviteCard({ link, guests }: { link: string; guests: Guest[] }) 
         <a className="btn btn-ghost-band btn-sm" href={`sms:?&body=${invite}`}>
           Text an invite
         </a>
-        <a
-          className="btn btn-ghost-band btn-sm"
-          href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Share on LinkedIn
-        </a>
       </div>
       {guests.length > 0 ? (
         <div className="flex flex-col gap-1.5">

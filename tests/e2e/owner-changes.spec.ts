@@ -26,7 +26,12 @@ test.describe('home and header', () => {
     await expect(hero.getByRole('link', { name: 'Request for an Invite' })).toHaveCount(0);
     await hero.getByRole('link', { name: 'Invite a friend' }).click();
     await expect(page).toHaveURL(/\/dashboard#invite$/);
-    await expect(page.getByRole('region', { name: 'Invite a visitor' })).toBeVisible();
+    const invite = page.getByRole('region', { name: 'Invite a visitor' });
+    await expect(invite).toBeVisible();
+    // Owner 2026-10-27: email and text only, no LinkedIn share.
+    await expect(invite.getByRole('link', { name: 'Email an invite' })).toBeVisible();
+    await expect(invite.getByRole('link', { name: 'Text an invite' })).toBeVisible();
+    await expect(invite.getByRole('link', { name: /LinkedIn/ })).toHaveCount(0);
   });
 
   test('members: "Report Activity" opens a submenu with Referrals and One-on-ones @responsive', async ({ page }) => {
@@ -89,11 +94,16 @@ test.describe('one-on-ones', () => {
 });
 
 test.describe('cancelled meetings and slides', () => {
-  test('an admin cancels a meeting for a holiday: it stays on the schedule marked cancelled; then restores it', async ({ page }) => {
+  test('an admin cancels a meeting for a holiday: it stays on the admin schedule marked cancelled but leaves the website; then restores it', async ({
+    page,
+  }) => {
     await login(page, users.admin, undefined, '/admin');
     const schedule = page.getByRole('region', { name: 'Meeting schedule' });
     const form = schedule.getByRole('form', { name: /^Cancel / }).nth(1);
     const label = (await form.getAttribute('aria-label'))?.replace(/^Cancel /, '') ?? '';
+    await page.goto('/group-meetings');
+    await expect(page.getByRole('article').filter({ hasText: label })).toHaveCount(1);
+    await page.goto('/admin');
     await form.getByRole('button', { name: 'Cancel meeting' }).click();
     await expect(form.getByText('Give a short reason')).toBeVisible();
     await form.getByLabel('Reason').fill('Thanksgiving holiday');
@@ -101,11 +111,10 @@ test.describe('cancelled meetings and slides', () => {
     const restore = schedule.getByRole('form', { name: `Restore ${label}` });
     await expect(restore.getByText('Cancelled: Thanksgiving holiday')).toBeVisible();
 
+    // Owner 2026-10-27: cancelled meetings are not displayed at all (list, month view, home).
     await page.goto('/group-meetings');
-    const card = page.getByRole('article').filter({ hasText: label });
-    await expect(card.getByText('Cancelled', { exact: true })).toBeVisible();
-    await expect(card.getByText('No meeting this week: Thanksgiving holiday.')).toBeVisible();
-    await expect(card.getByRole('link', { name: 'Join on Zoom' })).toHaveCount(0);
+    await expect(page.getByRole('article').filter({ hasText: label })).toHaveCount(0);
+    await expect(page.getByText('Thanksgiving holiday')).toHaveCount(0);
     await expectAccessible(page);
 
     await page.goto('/admin');
@@ -114,6 +123,36 @@ test.describe('cancelled meetings and slides', () => {
       .getByRole('button', { name: 'Restore meeting' })
       .click();
     await expect(schedule.getByRole('form', { name: `Cancel ${label}` })).toBeVisible();
+    await page.goto('/group-meetings');
+    await expect(page.getByRole('article').filter({ hasText: label })).toHaveCount(1);
+  });
+
+  test('an admin hides an upcoming meeting from the website and shows it again (owner 2026-10-27)', async ({ page }) => {
+    await login(page, users.admin, undefined, '/admin');
+    const schedule = page.getByRole('region', { name: 'Meeting schedule' });
+    const hide = schedule.getByRole('form', { name: /^Hide / }).nth(2);
+    const label = (await hide.getAttribute('aria-label'))?.replace(/^Hide /, '') ?? '';
+    await hide.getByRole('button', { name: 'Hide from website' }).click();
+    const show = schedule.getByRole('form', { name: `Show ${label}` });
+    await expect(show.getByText('Hidden', { exact: true })).toBeVisible();
+    await expect(show.getByText('Meeting hidden from the website.')).toBeVisible();
+
+    // The meeting is not on the public pages, and its page is 404 for visitors and members.
+    const slug = (await db<{ slug: string }>(`meetings?title=eq.${encodeURIComponent(label)}&hidden=eq.true&select=slug`))[0]?.slug;
+    expect(slug).toBeTruthy();
+    await page.goto('/group-meetings');
+    await expect(page.getByRole('article').filter({ hasText: label })).toHaveCount(0);
+    await page.goto('/meetings');
+    await expect(page.getByRole('heading', { name: label })).toHaveCount(0);
+    await page.context().clearCookies();
+    await page.goto(`/events/${slug}`);
+    await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+
+    await login(page, users.admin, undefined, '/admin');
+    await schedule.getByRole('form', { name: `Show ${label}` }).getByRole('button', { name: 'Show on website' }).click();
+    await expect(schedule.getByRole('form', { name: `Hide ${label}` })).toBeVisible();
+    await page.goto('/group-meetings');
+    await expect(page.getByRole('article').filter({ hasText: label })).toHaveCount(1);
   });
 
   test('meeting pages describe the 5- and 10-minute presentations', async ({ page }) => {

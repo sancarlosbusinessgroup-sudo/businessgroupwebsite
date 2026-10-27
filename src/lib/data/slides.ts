@@ -74,6 +74,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
       .select('*, meeting_speakers(slot, display_name, business, profile_id, topic, topic_description)')
       .eq('category', 'Networking')
       .is('cancelled_reason', null)
+      .eq('hidden', false)
       .gt('starts_at', start)
       .order('starts_at')
       .limit(1)

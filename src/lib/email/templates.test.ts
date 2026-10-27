@@ -59,6 +59,7 @@ describe('email templates', () => {
         events: [],
       }),
       t.guestZoomLinkEmail({ siteUrl, firstName: 'Gus', when: 'Mon, Oct 26 at 8:15 AM PT', joinUrl: 'https://zoom.example/j/1' }),
+      t.presentationReminderEmail({ siteUrl, firstName: 'Laura', slot: 'presentation', when: 'Mon, Nov 9 at 8:15 AM PT', title: 'Regular meeting', topic: 'Prep 101' }),
       t.adminDigestEmail({
         siteUrl,
         firstName: 'Ana',
@@ -93,6 +94,19 @@ describe('email templates', () => {
     const without = t.meetingReminderEmail({ siteUrl, firstName: 'Ana', when: 'Mon', title: 'M' });
     expect(without.html).toContain(`${siteUrl}/meetings`);
     expect(without.text).toContain('Open');
+  });
+
+  it('presentation reminder names the slot, the topic or asks for one, and always goes out (no preferences footer)', () => {
+    const withTopic = t.presentationReminderEmail({ siteUrl, firstName: 'Laura', slot: 'presentation', when: 'Mon, Nov 9 at 8:15 AM PT', title: 'M', topic: 'Prep 101' });
+    expect(withTopic.subject).toBe('Your 10-Minute Presentation is in 5 days: Mon, Nov 9 at 8:15 AM PT');
+    expect(withTopic.text).toContain('Prep 101');
+    expect(withTopic.text).toContain('10 minutes');
+    expect(withTopic.text).not.toContain('/profile?tab=edit#email');
+    const noTopic = t.presentationReminderEmail({ siteUrl, firstName: 'David', slot: 'education', when: 'Mon', title: 'M' });
+    expect(noTopic.subject).toContain('5-Minute Member Education');
+    expect(noTopic.text).toContain('Not added yet');
+    expect(noTopic.html).toContain('Add your topic');
+    expect(noTopic.html).toContain(`${siteUrl}/meetings`);
   });
 
   it('closed-deal update congratulates the giver', () => {

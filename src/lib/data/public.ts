@@ -11,14 +11,21 @@ function fail(what: string, error: { message: string } | null): never {
   throw new Error(`Could not load ${what}${error ? `: ${error.message}` : ''}`);
 }
 
-export async function getUpcomingMeetings(limit = 10): Promise<MeetingWithSpeakers[]> {
+/**
+ * Upcoming group meetings and events for the website. Cancelled meetings and meetings an admin hid are left out
+ * (the owner's rule: don't show them). Pass `{ all: true }` for the admin schedule, which lists them so they can be
+ * restored or shown again.
+ */
+export async function getUpcomingMeetings(limit = 10, opts: { all?: boolean } = {}): Promise<MeetingWithSpeakers[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('meetings').select(MEETING_FIELDS).gt('ends_at', new Date().toISOString()).order('starts_at').limit(limit);
+  let q = supabase.from('meetings').select(MEETING_FIELDS).gt('ends_at', new Date().toISOString());
+  if (!opts.all) q = q.is('cancelled_reason', null).eq('hidden', false);
+  const { data, error } = await q.order('starts_at').limit(limit);
   if (error) fail('meetings', error);
   return data;
 }
 
-/** The next (or currently running) regular Monday meeting that isn't cancelled. */
+/** The next (or currently running) regular Monday meeting that isn't cancelled or hidden. */
 export async function getNextMeeting(): Promise<MeetingWithSpeakers | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -26,6 +33,7 @@ export async function getNextMeeting(): Promise<MeetingWithSpeakers | null> {
     .select(MEETING_FIELDS)
     .eq('category', 'Networking')
     .is('cancelled_reason', null)
+    .eq('hidden', false)
     .gt('ends_at', new Date().toISOString())
     .order('starts_at')
     .limit(1)
@@ -34,9 +42,17 @@ export async function getNextMeeting(): Promise<MeetingWithSpeakers | null> {
   return data;
 }
 
+/** Group meetings in a date range for the month view (cancelled and hidden ones left out). */
 export async function getMeetingsBetween(fromIso: string, toIso: string): Promise<MeetingWithSpeakers[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('meetings').select(MEETING_FIELDS).gte('starts_at', fromIso).lt('starts_at', toIso).order('starts_at');
+  const { data, error } = await supabase
+    .from('meetings')
+    .select(MEETING_FIELDS)
+    .is('cancelled_reason', null)
+    .eq('hidden', false)
+    .gte('starts_at', fromIso)
+    .lt('starts_at', toIso)
+    .order('starts_at');
   if (error) fail('meetings', error);
   return data;
 }

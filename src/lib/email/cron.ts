@@ -12,6 +12,7 @@ const DAY = 86_400_000;
 
 export type DailyReport = {
   meetingReminders: number;
+  presentationReminders: number;
   visitorFollowups: number;
   memberFollowups: number;
   onboardingReminders: number;
@@ -25,7 +26,7 @@ function pacificWeekday(now: Date): number {
 }
 
 export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
-  const report: DailyReport = { meetingReminders: 0, visitorFollowups: 0, memberFollowups: 0, onboardingReminders: 0, digests: 0, meetingRecaps: 0 };
+  const report: DailyReport = { meetingReminders: 0, presentationReminders: 0, visitorFollowups: 0, memberFollowups: 0, onboardingReminders: 0, digests: 0, meetingRecaps: 0 };
   const db = createAdminClient();
   if (!db) return report;
   const url = siteUrl();
@@ -41,6 +42,7 @@ export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
     .select('id, title, starts_at, cancelled_reason, meeting_speakers(slot, display_name)')
     .eq('category', 'Networking')
     .is('cancelled_reason', null)
+    .eq('hidden', false)
     .gte('starts_at', new Date(now.getTime() - DAY).toISOString())
     .lt('starts_at', new Date(now.getTime() + 2 * DAY).toISOString());
   const todays = (meetings ?? []).filter((m) => localDateKey(new Date(m.starts_at)) === today);
@@ -71,6 +73,45 @@ export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
         });
         report.meetingReminders += count(s);
       }
+    }
+  }
+
+  // 1b. Presenter reminder, 5 days before each regular meeting: to the member booked in the 5-minute and
+  // 10-minute slots, once per meeting and slot. The job runs once a day, so a 24-hour window centred on
+  // "5 days from now" catches each meeting exactly once.
+  const { data: inFiveDays } = await db
+    .from('meetings')
+    .select('id, title, starts_at, meeting_speakers(slot, profile_id, topic)')
+    .eq('category', 'Networking')
+    .is('cancelled_reason', null)
+    .eq('hidden', false)
+    .gte('starts_at', new Date(now.getTime() + 4.5 * DAY).toISOString())
+    .lt('starts_at', new Date(now.getTime() + 5.5 * DAY).toISOString());
+  const presenters = (inFiveDays ?? []).flatMap((m) =>
+    ((m.meeting_speakers ?? []) as { slot: string; profile_id: string | null; topic: string | null }[])
+      .filter((s): s is { slot: 'education' | 'presentation'; profile_id: string; topic: string | null } => !!s.profile_id && (s.slot === 'education' || s.slot === 'presentation'))
+      .map((s) => ({ meeting: m, slot: s.slot, profileId: s.profile_id, topic: s.topic })),
+  );
+  if (presenters.length) {
+    const people = await loadRecipients([...new Set(presenters.map((p) => p.profileId))]);
+    for (const p of presenters) {
+      const r = people.get(p.profileId);
+      if (!r || r.status !== 'approved') continue;
+      const start = new Date(p.meeting.starts_at);
+      const s = await deliver({
+        kind: 'presentation_reminder',
+        dedupeKey: `${p.meeting.id}:${p.slot}`,
+        to: { email: r.email, name: `${r.firstName} ${r.lastName}`, profileId: r.id },
+        email: T.presentationReminderEmail({
+          siteUrl: url,
+          firstName: r.firstName,
+          slot: p.slot,
+          when: `${formatMeetingDate(start)} at ${formatMeetingTime(start)} PT`,
+          title: p.meeting.title,
+          topic: p.topic,
+        }),
+      });
+      report.presentationReminders += count(s);
     }
   }
 
@@ -175,6 +216,7 @@ export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
         .select('starts_at, meeting_speakers(slot)')
         .eq('category', 'Networking')
         .is('cancelled_reason', null)
+        .eq('hidden', false)
         .gt('starts_at', nowIso)
         .order('starts_at')
         .limit(1)
@@ -239,6 +281,7 @@ export async function runRecaps(now: Date = new Date()): Promise<number> {
     .select('id, slug, title, meeting_speakers(slot, display_name, business, topic, topic_description)')
     .eq('category', 'Networking')
     .is('cancelled_reason', null)
+    .eq('hidden', false)
     .lte('ends_at', nowIso)
     .gte('ends_at', new Date(now.getTime() - 36 * 3_600_000).toISOString())
     .order('starts_at');

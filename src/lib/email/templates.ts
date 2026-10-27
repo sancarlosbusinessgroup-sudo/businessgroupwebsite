@@ -375,6 +375,44 @@ export function meetingReminderEmail(o: {
   };
 }
 
+/**
+ * Sent by the daily job to each presenter 5 days before their meeting (once per meeting and slot):
+ * a reminder to prepare, with the topic they saved (or a nudge to add one) and where to upload materials.
+ */
+export function presentationReminderEmail(o: {
+  siteUrl: string;
+  firstName: string;
+  slot: 'education' | 'presentation';
+  when: string;
+  title: string;
+  topic?: string | null;
+}): Email {
+  const slotTitle = slotTitles[o.slot];
+  const minutes = o.slot === 'education' ? '5 minutes' : '10 minutes';
+  return {
+    subject: `Your ${slotTitle} is in 5 days: ${o.when}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: `Time to prepare your ${minutes} for ${o.title}.`,
+      heading: `${o.firstName}, you're presenting on ${o.when}`,
+      blocks: [
+        { p: `A friendly reminder: you have the ${slotTitle} at ${o.title}, in 5 days. Now is a good time to prepare your ${minutes}.` },
+        { list: [['Meeting', `${o.title}, ${o.when}`], ['Your slot', slotTitle], ['Topic', o.topic ?? 'Not added yet']] },
+        {
+          p: o.topic
+            ? 'Keep your talk to the time allotted, and think about what members should listen for so they can refer you better.'
+            : 'Please add your topic on the Meetings page so it can appear in the meeting reminder, on the slides and in the recap.',
+        },
+        {
+          p: 'If you want to show slides, a PDF, a PowerPoint, an image, a video or a website during your presentation, send the file or link to an admin before the meeting and they will add it to the deck.',
+        },
+      ],
+      cta: { label: o.topic ? 'Open Meetings' : 'Add your topic', href: `${o.siteUrl}/meetings` },
+      footer: accountFooter,
+    }),
+  };
+}
+
 /** Admin "Send Zoom link" on the guest list: the meeting's Zoom link for someone who requested an invite. */
 export function guestZoomLinkEmail(o: { siteUrl: string; firstName: string; when: string; joinUrl: string; passcode?: string | null }): Email {
   return {

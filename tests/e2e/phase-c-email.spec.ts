@@ -208,7 +208,7 @@ test.describe('email notifications', () => {
     expect(admin?.textContent).toContain('Invited by: Morgan Member');
   });
 
-  test('daily job: refuses callers without the secret; sends the meeting-day reminder, visitor follow-ups and the Monday digest once', async ({ request }) => {
+  test('daily job: refuses callers without the secret; sends the presenter reminder 5 days before, the meeting-day reminder, visitor follow-ups and the Monday digest once', async ({ request }) => {
     expect((await request.get('/api/cron/daily')).status()).toBe(401);
     expect((await request.get('/api/cron/daily', { headers: { authorization: 'Bearer wrong' } })).status()).toBe(401);
 
@@ -222,12 +222,24 @@ test.describe('email notifications', () => {
     });
     const meetingId = m?.id as string;
     await rest('meeting_links', 'POST', { meeting_id: meetingId, join_url: 'https://zoom.example.test/j/123' });
+    // The member has the 10-minute slot: they get the "prepare your presentation" reminder 5 days before.
+    const [me] = await db<{ id: string }>('profiles?select=id&first_name=eq.Morgan&last_name=eq.Member');
+    await rest('meeting_speakers', 'POST', { meeting_id: meetingId, slot: 'presentation', profile_id: me?.id, display_name: 'Morgan Member', topic: 'Referral habits' });
     const guestEmail = `guest.followup.${Date.now()}@example.org`;
     const [g] = await rest('guest_requests', 'POST', { first_name: 'Fran', last_name: 'Follow', email: guestEmail, meeting_id: meetingId });
     try {
       // Guest was at the meeting (marked visited), and the job runs the next morning.
       await rest(`guest_requests?id=eq.${g?.id}`, 'PATCH', { status: 'visited' });
       const auth = { authorization: 'Bearer local-cron-secret' };
+      // Five days before (Wednesday morning): the presenter reminder, once. Four days before: nothing more.
+      const early = await (await request.get('/api/cron/daily?now=2027-02-24T14:00:00Z', { headers: auth })).json();
+      expect(early.presentationReminders).toBe(1);
+      const [prep] = await emailsTo(users.member, /^Your 10-Minute Presentation is in 5 days/);
+      expect(prep?.textContent).toContain('Referral habits');
+      const dayAfter = await (await request.get('/api/cron/daily?now=2027-02-25T14:00:00Z', { headers: auth })).json();
+      expect(dayAfter.presentationReminders).toBe(0);
+      expect(await emailsTo(users.member, /^Your 10-Minute Presentation is in 5 days/)).toHaveLength(1);
+
       const day = await request.get('/api/cron/daily?now=2027-03-01T15:00:00Z', { headers: auth });
       expect(day.status()).toBe(200);
       const body = await day.json();
