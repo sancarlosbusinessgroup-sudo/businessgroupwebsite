@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isoDateDaysAgo, localDateKey, pacificLocalToIso } from './dates';
+import { localDateKey, pacificLocalToIso } from './dates';
 import { SLIDE_KEYS, type SlideKey } from './slides';
 
 // Shared by client components (instant inline errors) and server actions (authoritative checks).
@@ -232,7 +232,8 @@ export const oneOnOneSchema = (now: Date = new Date()) =>
     metOn: z
       .string({ error: 'Choose the date' })
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose the date')
-      .refine((d) => d <= localDateKey(now) && d >= isoDateDaysAgo(14, now), 'Report activity from today or the previous 14 days'),
+      // Any past date (owner, 2026-10-27): the 14-day limit is gone; only future dates are refused.
+      .refine((d) => d <= localDateKey(now), 'The date can’t be in the future'),
     note: optionalText(1000, 'Note'),
   });
 

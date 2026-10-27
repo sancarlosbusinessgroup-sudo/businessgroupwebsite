@@ -12,7 +12,7 @@ import {
   getPendingConfirmations,
   type OneOnOneRequest,
 } from '@/lib/data/member';
-import { formatShortDate, isoDateDaysAgo, localDateKey } from '@/lib/dates';
+import { formatShortDate, localDateKey } from '@/lib/dates';
 import { periodRange } from '@/lib/periods';
 import { flagDuplicates } from '@/lib/stats';
 import { ConfirmDelete } from '@/components/ConfirmDelete';
@@ -142,7 +142,7 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
                 </ul>
               </section>
             ) : null}
-            <ReportForm members={memberOptions} today={localDateKey(new Date())} minDate={isoDateDaysAgo(14)} defaultPartner={defaultPartner} />
+            <ReportForm members={memberOptions} today={localDateKey(new Date())} defaultPartner={defaultPartner} />
             <RequestForm members={memberOptions} today={localDateKey(new Date())} />
           </div>
 
