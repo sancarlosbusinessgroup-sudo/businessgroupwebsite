@@ -1,6 +1,8 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { EventCard, NextMeetingCard } from '@/components/meetings';
+import { JsonLd, organizationJsonLd } from '@/components/site/JsonLd';
 import { EmptyState, Notice, SectionHead } from '@/components/ui';
 import { getViewer, isApproved } from '@/lib/auth';
 import { howItWorks, site } from '@/lib/content';
@@ -8,6 +10,11 @@ import { getUpcomingCalendar } from '@/lib/data/events';
 import { getGallery, getMemberCount, getNextMeeting } from '@/lib/data/public';
 import { formatShortDate } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
+
+export const metadata: Metadata = {
+  description:
+    'Bay Area Referral Partners is a San Carlos business networking group: one trusted member per category, meeting every other Monday to pass referrals and grow together across the SF Peninsula.',
+};
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ account?: string }> }) {
   const { account } = await searchParams;
@@ -23,6 +30,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   return (
     <>
+      <JsonLd data={organizationJsonLd()} />
       {account === 'deleted' ? (
         <div className="container-site pt-4">
           <Notice tone="success">Your account has been deleted. Thank you for being part of {site.name}.</Notice>

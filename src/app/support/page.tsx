@@ -9,7 +9,10 @@ import { SupportChatButton } from './SupportChatButton';
 
 const bands = ['bg-teal-tint', 'bg-green-tint', 'bg-amber-tint'];
 
-export const metadata: Metadata = { title: 'Support' };
+export const metadata: Metadata = {
+  title: 'Support',
+  description: 'Get help with your member account, logging in, or anything else about Bay Area Referral Partners.',
+};
 
 export default async function SupportPage() {
   // Members only (owner, 2026-10-23).

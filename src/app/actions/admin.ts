@@ -5,6 +5,7 @@ import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { bustPublic } from '@/lib/data/public';
 import { onMemberStatus, sendApplyInvite, sendGuestZoomLink, syncNewsletterList } from '@/lib/email/events';
 import { localDateKey } from '@/lib/dates';
 import { resendFailedEmail } from '@/lib/email/resend';
@@ -32,6 +33,7 @@ export async function setMemberStatus(formData: FormData): Promise<void> {
   const { data, error } = await supabase.from('profiles').update({ status: status.data }).eq('id', id.data).select('id');
   revalidatePath('/admin');
   revalidatePath('/members');
+  await bustPublic('directory', 'categories');
   if (error && /category is full/.test(error.message)) redirect('/admin?error=category_full');
   if (error || !data?.length) redirect('/admin?error=save');
   const [pid, st] = [id.data, status.data];
@@ -67,6 +69,7 @@ export async function setSeatLimit(_prev: ActionState, formData: FormData): Prom
   revalidatePath('/admin');
   revalidatePath('/visit');
   revalidatePath('/join');
+  await bustPublic('categories');
   return { status: 'success', message: 'Saved' };
 }
 
@@ -85,6 +88,7 @@ export async function addLeader(_prev: ActionState, formData: FormData): Promise
   if (error) return { status: 'error', message: GENERIC, values };
   revalidatePath('/admin/leadership');
   revalidatePath('/about');
+  await bustPublic('leadership');
   return { status: 'success', message: 'Added.' };
 }
 
@@ -99,6 +103,7 @@ export async function updateLeader(_prev: ActionState, formData: FormData): Prom
   if (error || !data?.length) return { status: 'error', message: GENERIC, values };
   revalidatePath('/admin/leadership');
   revalidatePath('/about');
+  await bustPublic('leadership');
   return { status: 'success', message: 'Saved' };
 }
 
@@ -109,6 +114,7 @@ export async function removeLeader(formData: FormData): Promise<void> {
   await supabase.from('leadership').delete().eq('id', id.data);
   revalidatePath('/admin/leadership');
   revalidatePath('/about');
+  await bustPublic('leadership');
 }
 
 const cancelSchema = z.object({
@@ -138,6 +144,7 @@ export async function setMeetingCancelled(_prev: ActionState, formData: FormData
     .select('id');
   if (error || !data?.length) return { status: 'error', message: GENERIC, values };
   for (const p of ['/admin', '/', '/group-meetings', '/meetings', '/dashboard']) revalidatePath(p);
+  await bustPublic('meetings');
   return { status: 'success', message: restoring ? 'Meeting restored.' : 'Meeting marked cancelled.' };
 }
 
