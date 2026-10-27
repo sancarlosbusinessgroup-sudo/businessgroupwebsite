@@ -25,6 +25,8 @@ export default async function EventDetail({ params }: Props) {
   const { slug } = await params;
   const [m, viewer] = await Promise.all([getCalendarItemBySlug(slug), getViewer()]);
   if (!m) notFound();
+  // A meeting an admin hid is not on the website; admins can still open its page from the admin schedule.
+  if (m.hidden && !isAdmin(viewer)) notFound();
   const member = isApproved(viewer);
   const canManage = m.kind === 'member' && member && (viewer?.userId === m.hostId || isAdmin(viewer));
   const start = new Date(m.starts_at);

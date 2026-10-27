@@ -6,6 +6,7 @@ import { guestStatusLabels } from '@/lib/content';
 import { getCategorySeats, getNextMeeting, getUpcomingMeetings } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime, formatShortDate } from '@/lib/dates';
 import { MeetingCancelForm } from './MeetingCancelForm';
+import { MeetingHideForm } from './MeetingHideForm';
 import { createClient } from '@/lib/supabase/server';
 import { absencesFor, memberSince } from '@/lib/data/attendance';
 import { ABSENCE_LIMIT, parseZoomMeetingId } from '@/lib/zoom';
@@ -55,7 +56,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       .select('id, format, created_at, profile:profiles(first_name, last_name)')
       .order('created_at', { ascending: false })
       .limit(20),
-    getUpcomingMeetings(10),
+    getUpcomingMeetings(10, { all: true }),
     supabase
       .from('member_onboarding')
       .select('profile_id, invited_at, reminded_at, completed_at, profile:profiles(first_name, last_name)')
@@ -432,8 +433,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             Meeting schedule
           </h2>
           <p className="text-ink-muted m-0 text-[15px]">
-            Cancel a meeting for a holiday or any other reason. It stays on the schedule, marked cancelled with your reason; the countdown and slides move to
-            the next meeting.
+            Cancel a meeting for a holiday or any other reason, or hide one from the website. Cancelled and hidden meetings are not shown anywhere on the site
+            (lists, countdown, slides, reminder emails); they stay here so you can restore or show them again.
           </p>
           <ul className="m-0 flex list-none flex-col p-0">
             {schedule.map((m) => (
@@ -445,7 +446,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     · {formatMeetingTime(new Date(m.starts_at))} PT · {m.title}
                   </span>
                 </span>
-                <MeetingCancelForm id={m.id} label={m.title} reason={m.cancelled_reason} />
+                <span className="flex flex-wrap items-center gap-3">
+                  <MeetingCancelForm id={m.id} label={m.title} reason={m.cancelled_reason} />
+                  <MeetingHideForm id={m.id} label={m.title} hidden={m.hidden} />
+                </span>
               </li>
             ))}
           </ul>

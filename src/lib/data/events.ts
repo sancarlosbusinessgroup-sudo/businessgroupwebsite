@@ -21,6 +21,8 @@ export type CalendarItem = {
   regular: boolean;
   /** Set when an admin cancelled a group meeting (e.g. a holiday). It stays on the schedule, marked cancelled. */
   cancelledReason: string | null;
+  /** Group meetings an admin hid from the website (Admin → Meeting schedule). */
+  hidden: boolean;
   onlineUrl: string | null;
   imagePath: string | null;
   hostId: string | null;
@@ -52,6 +54,7 @@ export function fromMeeting(m: MeetingWithSpeakers): CalendarItem {
     kind: 'group',
     regular: m.category === 'Networking',
     cancelledReason: m.cancelled_reason,
+    hidden: m.hidden,
     onlineUrl: null,
     imagePath: null,
     hostId: null,
@@ -77,6 +80,7 @@ export function fromMemberEvent(e: HostedEvent): CalendarItem {
     kind: 'member',
     regular: false,
     cancelledReason: null,
+    hidden: false,
     onlineUrl: e.online_url,
     imagePath: e.image_path,
     hostId: e.host_id,

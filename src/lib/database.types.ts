@@ -668,6 +668,7 @@ export type Database = {
       meetings: {
         Row: {
           cancelled_reason: string | null;
+          hidden: boolean;
           category: string;
           created_at: string;
           description: string | null;
@@ -683,6 +684,7 @@ export type Database = {
         };
         Insert: {
           cancelled_reason?: string | null;
+          hidden?: boolean;
           category?: string;
           created_at?: string;
           description?: string | null;
@@ -698,6 +700,7 @@ export type Database = {
         };
         Update: {
           cancelled_reason?: string | null;
+          hidden?: boolean;
           category?: string;
           created_at?: string;
           description?: string | null;

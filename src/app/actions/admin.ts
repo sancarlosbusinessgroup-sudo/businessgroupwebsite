@@ -132,6 +132,23 @@ export async function setMeetingCancelled(_prev: ActionState, formData: FormData
   return { status: 'success', message: restoring ? 'Meeting restored.' : 'Meeting marked cancelled.' };
 }
 
+const hideSchema = z.object({ id: z.uuid(), hidden: z.enum(['1', '0']) });
+
+/** Hide an upcoming meeting from the website (lists, countdown, slides, emails) or show it again. */
+export async function setMeetingHidden(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formToObject(formData);
+  const parsed = hideSchema.safeParse(values);
+  if (!parsed.success) return { status: 'error', message: GENERIC, values };
+  const supabase = await createClient();
+  const { data: isAdmin } = await supabase.rpc('is_admin');
+  if (!isAdmin) return { status: 'error', message: 'Admins only.' };
+  const hidden = parsed.data.hidden === '1';
+  const { data, error } = await supabase.from('meetings').update({ hidden }).eq('id', parsed.data.id).select('id');
+  if (error || !data?.length) return { status: 'error', message: GENERIC, values };
+  for (const p of ['/admin', '/', '/group-meetings', '/events', '/meetings', '/dashboard', '/visit']) revalidatePath(p);
+  return { status: 'success', message: hidden ? 'Meeting hidden from the website.' : 'Meeting shown again.' };
+}
+
 /** Push every approved member into the Brevo "Members" newsletter list. */
 export async function syncNewsletter(): Promise<ActionState> {
   const supabase = await createClient();
