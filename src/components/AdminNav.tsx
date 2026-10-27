@@ -2,6 +2,8 @@ import Link from 'next/link';
 
 const links = [
   { href: '/admin', label: 'Overview' },
+  { href: '/admin/members', label: 'Members' },
+  { href: '/admin/meetings', label: 'Meetings' },
   { href: '/admin/attendance', label: 'Attendance' },
   { href: '/admin/activity', label: 'Member activity' },
   { href: '/admin/champion', label: 'BARP Champion' },
@@ -9,6 +11,8 @@ const links = [
   { href: '/admin/leadership', label: 'Management' },
   { href: '/admin/recap', label: 'Recap preview' },
   { href: '/admin/materials', label: 'Presentation materials' },
+  { href: '/admin/gallery', label: 'Gallery' },
+  { href: '/admin/history', label: 'Change history' },
   { href: '/present/next', label: 'Meeting slides' },
 ] as const;
 
@@ -18,7 +22,7 @@ export function AdminNav({ current }: { current: (typeof links)[number]['href'] 
     // all of them fit (a pill that wrapped onto several rows looked like a blob on phones; owner, 2026-10-24).
     <nav
       aria-label="Admin sections"
-      className="bg-line-soft grid grid-cols-2 gap-1.5 rounded-[22px] p-1.5 sm:grid-cols-4 xl:flex xl:self-start xl:rounded-full xl:p-1"
+      className="bg-line-soft grid grid-cols-2 gap-1.5 rounded-[22px] p-1.5 sm:grid-cols-4 xl:flex xl:flex-wrap xl:self-start xl:rounded-[22px] xl:p-1"
     >
       {links.map((l) => (
         <Link

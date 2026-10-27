@@ -397,6 +397,45 @@ export function guestZoomLinkEmail(o: { siteUrl: string; firstName: string; when
   };
 }
 
+/** An admin gave the member a presentation slot (owner, 2026-10-27). */
+export function slotAssignedEmail(o: { siteUrl: string; firstName: string; slot: keyof typeof slotTitles; when: string; topic?: string | null }): Email {
+  const title = slotTitles[o.slot];
+  return {
+    subject: `You’re presenting: ${title}, ${o.when}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: `An admin signed you up for the ${title} slot.`,
+      heading: `You’re on, ${o.firstName}!`,
+      blocks: [
+        { p: `An admin has signed you up for the ${title} at the ${site.name} meeting.` },
+        { list: [['When', o.when], ['Slot', title], ...(o.topic ? ([['Topic', o.topic]] as [string, string][]) : [])] },
+        { p: 'You can add or change your topic on the Meetings page so it shows on the slides. If this doesn’t work for you, reply to let an admin know.' },
+      ],
+      cta: { label: 'See the meeting', href: `${o.siteUrl}/meetings` },
+      footer: accountFooter,
+    }),
+  };
+}
+
+/** An admin took the member off a presentation slot (owner, 2026-10-27). */
+export function slotRevokedEmail(o: { siteUrl: string; firstName: string; slot: keyof typeof slotTitles; when: string }): Email {
+  const title = slotTitles[o.slot];
+  return {
+    subject: `Change to your ${title} slot, ${o.when}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: `Your ${title} slot was released by an admin.`,
+      heading: `Hi ${o.firstName},`,
+      blocks: [
+        { p: `An admin has released your ${title} slot for the ${site.name} meeting on ${o.when}.` },
+        { p: 'If that’s a surprise, reply to this email and an admin will sort it out. You’re welcome to claim another open slot on the Meetings page.' },
+      ],
+      cta: { label: 'See open slots', href: `${o.siteUrl}/meetings` },
+      footer: accountFooter,
+    }),
+  };
+}
+
 export function visitorFollowupEmail(o: { siteUrl: string; firstName: string }): Email {
   return {
     subject: `Thanks for visiting ${site.name}`,

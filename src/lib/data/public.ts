@@ -72,11 +72,47 @@ export async function getDirectory(): Promise<DirectoryMember[]> {
   return data;
 }
 
-export type PublicProfile = Tables<'profiles'> & { categories: { name: string } | null };
+// Only the columns a public profile page shows. Visitors are granted exactly these (column grants, 2026-10-28);
+// a `select *` here would fail for them.
+export const PUBLIC_PROFILE_COLUMNS =
+  'id, slug, first_name, last_name, business_name, category_id, city, service_area, about, ideal_client, listen_for, services, website, logo_path, avatar_path, approved_at, member_since, weekly_ask, weekly_ask_updated_at, show_in_directory, show_phone_public, status, role, created_at';
+
+export type PublicProfile = Pick<
+  Tables<'profiles'>,
+  | 'id'
+  | 'slug'
+  | 'first_name'
+  | 'last_name'
+  | 'business_name'
+  | 'category_id'
+  | 'city'
+  | 'service_area'
+  | 'about'
+  | 'ideal_client'
+  | 'listen_for'
+  | 'services'
+  | 'website'
+  | 'logo_path'
+  | 'avatar_path'
+  | 'approved_at'
+  | 'member_since'
+  | 'weekly_ask'
+  | 'weekly_ask_updated_at'
+  | 'show_in_directory'
+  | 'show_phone_public'
+  | 'status'
+  | 'role'
+  | 'created_at'
+> & { categories: { name: string } | null };
 
 export async function getMemberBySlug(slug: string): Promise<PublicProfile | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('profiles').select('*, categories(name)').eq('slug', slug).eq('status', 'approved').maybeSingle();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(`${PUBLIC_PROFILE_COLUMNS}, categories(name)`)
+    .eq('slug', slug)
+    .eq('status', 'approved')
+    .maybeSingle();
   if (error) fail('this member', error);
   return data;
 }

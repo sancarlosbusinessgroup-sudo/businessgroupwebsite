@@ -11,20 +11,29 @@ import { resendFailedEmail } from '@/lib/email/resend';
 import { safely } from '@/lib/email/notify';
 import { type ActionState, fieldErrors, formToObject, leadershipSchema, seatLimitSchema } from '@/lib/validation';
 
-// Every write here is also restricted to admins by RLS (is_admin()).
+// Every write here is also restricted to admins by RLS (is_admin()). Actions with side effects outside the
+// database (emails, Brevo) check the caller first, so a non-admin can't trigger them (audit, 2026-10-27).
 
 const GENERIC = 'Something went wrong. Please try again.';
+
+/** The caller's Supabase client, or null when they are not an admin. */
+async function adminClient() {
+  const supabase = await createClient();
+  const { data: isAdmin } = await supabase.rpc('is_admin');
+  return isAdmin ? supabase : null;
+}
 
 export async function setMemberStatus(formData: FormData): Promise<void> {
   const id = z.uuid().safeParse(formData.get('id'));
   const status = z.enum(['approved', 'declined', 'inactive', 'pending']).safeParse(formData.get('status'));
   if (!id.success || !status.success) return;
-  const supabase = await createClient();
-  const { error } = await supabase.from('profiles').update({ status: status.data }).eq('id', id.data);
+  const supabase = await adminClient();
+  if (!supabase) redirect('/dashboard');
+  const { data, error } = await supabase.from('profiles').update({ status: status.data }).eq('id', id.data).select('id');
   revalidatePath('/admin');
   revalidatePath('/members');
   if (error && /category is full/.test(error.message)) redirect('/admin?error=category_full');
-  if (error) redirect('/admin?error=save');
+  if (error || !data?.length) redirect('/admin?error=save');
   const [pid, st] = [id.data, status.data];
   after(() => safely('member status', () => onMemberStatus(pid, st)));
 }
