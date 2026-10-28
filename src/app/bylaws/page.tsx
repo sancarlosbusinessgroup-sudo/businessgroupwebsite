@@ -9,7 +9,10 @@ import { meetingAgenda, site } from '@/lib/content';
 import { getLeadership } from '@/lib/data/public';
 import { bylaws, governanceEffective, procedures, purpose } from '@/lib/governance';
 
-export const metadata: Metadata = { title: 'Bylaws & Procedures' };
+export const metadata: Metadata = {
+  title: 'Bylaws & Procedures',
+  description: 'The bylaws and procedures Bay Area Referral Partners members agree to.',
+};
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (

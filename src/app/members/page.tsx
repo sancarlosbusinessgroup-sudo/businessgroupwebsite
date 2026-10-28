@@ -11,7 +11,10 @@ import { barpSheetUrl, site } from '@/lib/content';
 import { ChampionBadge } from '@/components/ChampionBadge';
 import { getCurrentChampion } from '@/lib/data/champion';
 
-export const metadata: Metadata = { title: 'Members' };
+export const metadata: Metadata = {
+  title: 'Members',
+  description: 'Meet our members: one trusted business per category across the SF Peninsula, with what each does and who they are looking to help.',
+};
 
 const PAGE_SIZE = 24;
 const bands = ['bg-teal-tint', 'bg-berry-tint', 'bg-green-tint', 'bg-amber-tint'];

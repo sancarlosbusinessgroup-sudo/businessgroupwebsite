@@ -6,7 +6,10 @@ import { leadership, metrics, timeline, values, site } from '@/lib/content';
 import { getLeadership } from '@/lib/data/public';
 import { mediaUrl } from '@/lib/env';
 
-export const metadata: Metadata = { title: 'About' };
+export const metadata: Metadata = {
+  title: 'About',
+  description: 'Who we are: a San Carlos–based referral networking group meeting every other Monday since 2016, our leadership, and how membership works.',
+};
 
 const icons = [
   'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',

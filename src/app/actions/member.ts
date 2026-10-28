@@ -5,6 +5,7 @@ import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { bustPublic } from '@/lib/data/public';
 import { onOneOnOneAnswered, onOneOnOneMessage, onOneOnOneReported, onOneOnOneRequested, onReferralSent, onReferralUpdated } from '@/lib/email/events';
 import { safely } from '@/lib/email/notify';
 import { prefKeys } from '@/lib/email/prefs';
@@ -94,6 +95,7 @@ export async function claimSpeakerSlot(_prev: ActionState, formData: FormData): 
   revalidatePath('/events');
   revalidatePath('/group-meetings');
   revalidatePath('/dashboard');
+  await bustPublic('meetings');
   return { status: 'success' };
 }
 
@@ -118,6 +120,7 @@ export async function updateSpeakerTopic(_prev: ActionState, formData: FormData)
   revalidatePath('/events');
   revalidatePath('/group-meetings');
   revalidatePath('/dashboard');
+  await bustPublic('meetings');
   return { status: 'success', values };
 }
 
@@ -129,6 +132,7 @@ export async function releaseSpeakerSlot(formData: FormData): Promise<void> {
   if (!user) return;
   await supabase.from('meeting_speakers').delete().eq('meeting_id', id.data).eq('slot', slot.data).eq('profile_id', user.id);
   revalidatePath('/meetings');
+  await bustPublic('meetings');
 }
 
 export async function requestCorrection(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -306,6 +310,7 @@ export async function updateProfile(_prev: ActionState, formData: FormData): Pro
     .eq('profile_id', user.id);
   revalidatePath('/profile');
   revalidatePath('/members');
+  await bustPublic('directory', 'categories');
   return { status: 'success', message: 'Profile saved.' };
 }
 
@@ -316,6 +321,7 @@ export async function saveWeeklyAsk(_prev: ActionState, formData: FormData): Pro
   const { supabase, user } = await session();
   if (!user) return { status: 'error', message: 'Please log in again.' };
   const { error } = await supabase.from('profiles').update({ weekly_ask: parsed.data.weeklyAsk }).eq('id', user.id);
+  await bustPublic('directory');
   if (error) return { status: 'error', message: GENERIC, values };
   revalidatePath('/dashboard');
   revalidatePath('/members');
@@ -332,6 +338,8 @@ export async function setProfileMedia(input: { kind: 'avatar' | 'logo'; path: st
   const { error } = await supabase.from('profiles').update(column).eq('id', user.id);
   if (error) return { status: 'error', message: GENERIC };
   revalidatePath('/profile');
+  revalidatePath('/members');
+  await bustPublic('directory');
   return { status: 'success' };
 }
 
@@ -347,6 +355,7 @@ export async function removeProfileMedia(input: { kind: 'avatar' | 'logo' }): Pr
   if (error) return { status: 'error', message: GENERIC };
   // Files shipped with the site start with "/"; only the member's own upload is removed from storage.
   if (old && old.startsWith(`${user.id}/`)) await supabase.storage.from('profile-media').remove([old]);
+  await bustPublic('directory');
   revalidatePath('/profile');
   revalidatePath('/members');
   revalidatePath('/dashboard');
@@ -396,6 +405,7 @@ export async function addGalleryPhoto(input: z.input<typeof galleryInput>): Prom
   if (error) return { status: 'error', message: GENERIC };
   revalidatePath('/gallery');
   revalidatePath('/');
+  await bustPublic('gallery');
   return { status: 'success' };
 }
 

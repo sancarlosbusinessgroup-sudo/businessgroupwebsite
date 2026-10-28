@@ -10,6 +10,7 @@ import { after } from 'next/server';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { bustPublic } from '@/lib/data/public';
 import { onMemberStatus, onSlotAssigned, onSlotRevoked } from '@/lib/email/events';
 import { safely } from '@/lib/email/notify';
 import { pacificLocalToIso } from '@/lib/dates';
@@ -84,6 +85,7 @@ export async function adminUpdateProfile(_prev: ActionState, formData: FormData)
     .eq('profile_id', d.id);
   if (cErr) return { status: 'error', message: 'Profile saved, but the phone could not be updated.', values };
   for (const p of memberPaths(d.id)) revalidatePath(p);
+  await bustPublic('directory', 'categories');
   if (before.status !== d.status) {
     const [pid, st] = [d.id, d.status];
     after(() => safely('member status', () => onMemberStatus(pid, st)));
@@ -126,6 +128,7 @@ export async function adminRemoveMedia(formData: FormData): Promise<void> {
   if (error) return;
   if (old && old.startsWith(`${id.data}/`)) await supabase.storage.from('profile-media').remove([old]);
   for (const p of memberPaths(id.data)) revalidatePath(p);
+  await bustPublic('directory');
 }
 
 // --- Meetings and presentation slots -----------------------------------------
@@ -176,6 +179,7 @@ export async function adminSaveMeeting(_prev: ActionState, formData: FormData): 
     await supabase.from('meeting_links').delete().eq('meeting_id', meetingId);
   }
   for (const p of [...meetingPaths, `/admin/meetings/${meetingId}`]) revalidatePath(p);
+  await bustPublic('meetings');
   if (!id?.success) redirect(`/admin/meetings/${meetingId}?added=1`);
   return { status: 'success', message: 'Saved.', values };
 }
@@ -188,6 +192,7 @@ export async function adminDeleteMeeting(formData: FormData): Promise<void> {
   if (!isAdmin) return;
   await supabase.from('meetings').delete().eq('id', id.data);
   for (const p of meetingPaths) revalidatePath(p);
+  await bustPublic('meetings');
   redirect('/admin/meetings?deleted=1');
 }
 
@@ -206,6 +211,7 @@ export async function adminRevokeSlot(formData: FormData): Promise<void> {
     .select('profile_id')
     .maybeSingle();
   for (const p of [...meetingPaths, `/admin/meetings/${meetingId.data}`]) revalidatePath(p);
+  await bustPublic('meetings');
   const who = gone?.profile_id;
   if (who) {
     const [m, s] = [meetingId.data, slot.data];
@@ -241,6 +247,7 @@ export async function adminAssignSlot(_prev: ActionState, formData: FormData): P
   });
   if (error) return { status: 'error', message: GENERIC, values };
   for (const p of [...meetingPaths, `/admin/meetings/${d.meetingId}`]) revalidatePath(p);
+  await bustPublic('meetings');
   const prev = previous?.profile_id;
   after(() =>
     safely('slot assigned', async () => {
@@ -269,6 +276,7 @@ export async function adminSetSlotTopic(_prev: ActionState, formData: FormData):
     .select('meeting_id');
   if (error || !data?.length) return { status: 'error', message: GENERIC, values };
   for (const p of [...meetingPaths, `/admin/meetings/${meetingId.data}`]) revalidatePath(p);
+  await bustPublic('meetings');
   return { status: 'success', message: 'Topic saved.', values };
 }
 
@@ -308,6 +316,7 @@ export async function adminUpdateGalleryPhoto(_prev: ActionState, formData: Form
   if (error || !data?.length) return { status: 'error', message: GENERIC, values };
   revalidatePath('/gallery');
   revalidatePath('/admin/gallery');
+  await bustPublic('gallery');
   return { status: 'success', message: 'Saved.', values };
 }
 
@@ -321,6 +330,7 @@ export async function adminDeleteGalleryPhoto(formData: FormData): Promise<void>
   if (gone) await supabase.storage.from('gallery').remove([gone.image_path, gone.thumb_path].filter(Boolean));
   revalidatePath('/gallery');
   revalidatePath('/admin/gallery');
+  await bustPublic('gallery');
   revalidatePath('/');
 }
 
