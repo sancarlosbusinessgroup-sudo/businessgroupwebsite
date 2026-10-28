@@ -30,6 +30,30 @@ export type Database = {
   __InternalSupabase: { PostgrestVersion: '12.2' };
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: 'insert' | 'update' | 'delete';
+          actor_id: string | null;
+          after: Json | null;
+          before: Json | null;
+          created_at: string;
+          id: number;
+          row_id: string | null;
+          subject_id: string | null;
+          table_name: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'admin_audit_log_actor_id_fkey';
+            columns: ['actor_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       attendance: {
         Row: {
           checked_in_at: string | null;
@@ -358,6 +382,7 @@ export type Database = {
           first_name: string;
           id: string;
           invited_by_text: string | null;
+          ip_hash: string | null;
           last_name: string;
           meeting_id: string | null;
           one_on_ones_done_at: string | null;
@@ -374,6 +399,7 @@ export type Database = {
           first_name: string;
           id?: string;
           invited_by_text?: string | null;
+          ip_hash?: string | null;
           last_name: string;
           meeting_id?: string | null;
           one_on_ones_done_at?: string | null;
@@ -390,6 +416,7 @@ export type Database = {
           first_name?: string;
           id?: string;
           invited_by_text?: string | null;
+          ip_hash?: string | null;
           last_name?: string;
           meeting_id?: string | null;
           one_on_ones_done_at?: string | null;
@@ -900,6 +927,7 @@ export type Database = {
           first_name: string;
           guest_meetings_attended: number;
           id: string;
+          is_owner: boolean;
           ideal_client: string | null;
           last_name: string;
           listen_for: string | null;
@@ -931,6 +959,7 @@ export type Database = {
           first_name: string;
           guest_meetings_attended?: number;
           id: string;
+          is_owner?: boolean;
           ideal_client?: string | null;
           last_name: string;
           listen_for?: string | null;
@@ -962,6 +991,7 @@ export type Database = {
           first_name?: string;
           guest_meetings_attended?: number;
           id?: string;
+          is_owner?: boolean;
           ideal_client?: string | null;
           last_name?: string;
           listen_for?: string | null;
@@ -1154,12 +1184,25 @@ export type Database = {
         Args: { p_to: string; p_contact_name: string; p_phone: string | null; p_email: string | null; p_amount: number | null; p_notes: string | null };
         Returns: string;
       };
+      file_closed_business_on: {
+        Args: {
+          p_to: string;
+          p_contact_name: string;
+          p_phone: string | null;
+          p_email: string | null;
+          p_amount: number | null;
+          p_notes: string | null;
+          p_closed_on?: string | null;
+        };
+        Returns: string;
+      };
       set_speaker_topic: { Args: { p_meeting: string; p_slot: string; p_topic: string; p_description: string }; Returns: undefined };
       admin_member_stats: { Args: { p_from?: string | null; p_to?: string | null }; Returns: MemberPeriodStats[] };
       confirm_one_on_one: { Args: { p_id: string }; Returns: undefined };
       complete_onboarding: { Args: { p_share_contacts: boolean; p_agreed: boolean }; Returns: undefined };
       group_totals: { Args: { p_from?: string | null; p_to?: string | null }; Returns: Json };
       is_admin: { Args: never; Returns: boolean };
+      is_owner: { Args: never; Returns: boolean };
       is_approved_member: { Args: never; Returns: boolean };
       join_meeting: { Args: { p_meeting: string }; Returns: string };
       leaderboard: {

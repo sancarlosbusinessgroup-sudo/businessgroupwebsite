@@ -7,9 +7,9 @@ import { Notice } from '@/components/ui';
 import { idle, oneOnOneSchema } from '@/lib/validation';
 import { reportOneOnOne } from '../actions/member';
 
-type Props = { members: { id: string; label: string }[]; today: string; minDate: string; defaultPartner?: string };
+type Props = { members: { id: string; label: string }[]; today: string; defaultPartner?: string };
 
-export function ReportForm({ members, today, minDate, defaultPartner }: Props) {
+export function ReportForm({ members, today, defaultPartner }: Props) {
   const [state, action] = useActionState(reportOneOnOne, idle);
   const { clientErrors, onSubmit } = useClientValidation(oneOnOneSchema());
   const errors = clientErrors ?? state.errors ?? {};
@@ -46,11 +46,10 @@ export function ReportForm({ members, today, minDate, defaultPartner }: Props) {
           type="date"
           label="Activity date"
           required
-          min={minDate}
           max={today}
           defaultValue={v.metOn ?? today}
           error={errors.metOn}
-          help="Today or the previous 14 days."
+          help="Today or any earlier date."
         />
       </div>
       <TextArea

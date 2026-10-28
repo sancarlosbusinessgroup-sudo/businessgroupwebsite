@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isoDateDaysAgo, localDateKey, pacificLocalToIso } from './dates';
+import { localDateKey, pacificLocalToIso } from './dates';
 import { SLIDE_KEYS, type SlideKey } from './slides';
 
 // Shared by client components (instant inline errors) and server actions (authoritative checks).
@@ -191,6 +191,15 @@ export const emailCodeSchema = z.object({
 
 export const referralStatuses = ['new', 'contacted', 'meeting_set', 'closed_deal', 'not_a_fit'] as const;
 
+/** An optional YYYY-MM-DD that is today or earlier (members may backdate what they forgot to file; owner, 2026-10-27). */
+const pastDate = (now: () => Date = () => new Date()) =>
+  z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined))
+    .refine((d) => d === undefined || /^\d{4}-\d{2}-\d{2}$/.test(d), 'Enter a valid date')
+    .refine((d) => d === undefined || d <= localDateKey(now()), 'The date can’t be in the future');
+
 export const referralSchema = z.object({
   toId: uuid('Choose a member to refer to'),
   contactName: z.string().trim().min(2, 'Enter the prospect’s name').max(120, 'Prospect name must be 120 characters or fewer'),
@@ -204,12 +213,16 @@ export const referralSchema = z.object({
     .refine((v) => v === undefined || (v.length <= 254 && z.email().safeParse(v).success), 'Enter a valid email address'),
   amount: money,
   notes: optionalText(1000, 'Notes'),
+  /** When it was referred (or, on the Closed Businesses page, when it closed). Empty = today. */
+  referredOn: pastDate(),
 });
 
 export const referralUpdateSchema = z.object({
   id: uuid('Missing referral'),
   status: z.enum(referralStatuses, { error: 'Choose a status' }),
   amount: money,
+  /** When the business closed; only used when the status is closed_deal. Empty = keep / today. */
+  closedOn: pastDate(),
 });
 
 /** Asking another member for a one-on-one that hasn't happened yet. */
@@ -232,7 +245,8 @@ export const oneOnOneSchema = (now: Date = new Date()) =>
     metOn: z
       .string({ error: 'Choose the date' })
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose the date')
-      .refine((d) => d <= localDateKey(now) && d >= isoDateDaysAgo(14, now), 'Report activity from today or the previous 14 days'),
+      // Any past date (owner, 2026-10-27): the 14-day limit is gone; only future dates are refused.
+      .refine((d) => d <= localDateKey(now), 'The date can’t be in the future'),
     note: optionalText(1000, 'Note'),
   });
 
@@ -377,6 +391,89 @@ export const memberEventSchema = (now: Date = new Date()) =>
       onlineUrl: v.format === 'online' ? v.onlineUrl : null,
       location: v.format === 'in_person' ? v.location : null,
     }));
+
+// --- Admin editing (owner, 2026-10-27) ---------------------------------------
+
+export const memberStatuses = ['pending', 'approved', 'declined', 'inactive'] as const;
+
+/** An admin editing any member's profile: the member's own form plus status. */
+export const adminProfileSchema = profileSchema.extend({
+  id: uuid('Missing member'),
+  status: z.enum(memberStatuses, { error: 'Choose a status' }),
+});
+
+/** A group meeting (Monday networking meeting) as an admin edits or adds it. */
+export const meetingSchema = z
+  .object({
+    title: text(160, 'Title'),
+    description: optionalText(2000, 'Description'),
+    startsAt: z.string({ error: 'Choose when it starts' }).transform((v, ctx) => {
+      const iso = pacificLocalToIso(v);
+      if (!iso) {
+        ctx.addIssue({ code: 'custom', message: 'Choose when it starts' });
+        return z.NEVER;
+      }
+      return iso;
+    }),
+    endsAt: z.string({ error: 'Choose when it ends' }).transform((v, ctx) => {
+      const iso = pacificLocalToIso(v);
+      if (!iso) {
+        ctx.addIssue({ code: 'custom', message: 'Choose when it ends' });
+        return z.NEVER;
+      }
+      return iso;
+    }),
+    location: optionalText(200, 'Location'),
+    isOnline: checkbox,
+    joinUrl: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => (v ? v : undefined))
+      .refine((v) => v === undefined || (/^https:\/\/[^\s]+\.[^\s]+$/i.test(v) && v.length <= 500), 'Use a secure link that starts with https://'),
+    passcode: optionalText(40, 'Passcode'),
+  })
+  .superRefine((v, ctx) => {
+    if (v.endsAt <= v.startsAt) ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'The end must be after the start' });
+  });
+
+/** Assigning a presentation slot to a member (the member is emailed). */
+export const assignSlotSchema = z.object({
+  meetingId: uuid('Missing meeting'),
+  slot: z.enum(['education', 'presentation'], { error: 'Choose a slot' }),
+  profileId: uuid('Choose a member'),
+  topic: z
+    .string()
+    .trim()
+    .max(120, 'Keep the topic under 120 characters')
+    .optional()
+    .transform((v) => (v ? v : null))
+    .refine((v) => v === null || v.length >= 3, 'Use at least 3 characters'),
+  topicDescription: z
+    .string()
+    .trim()
+    .max(500, 'Keep the description under 500 characters')
+    .optional()
+    .transform((v) => (v ? v : null)),
+});
+
+/** An admin correcting a referral slip. */
+export const adminReferralSchema = z.object({
+  id: uuid('Missing referral'),
+  contactName: z.string().trim().min(2, 'Enter the prospect’s name').max(120, 'Prospect name must be 120 characters or fewer'),
+  status: z.enum(referralStatuses, { error: 'Choose a status' }),
+  amount: money,
+  notes: optionalText(1000, 'Notes'),
+  referredOn: pastDate(),
+  closedOn: pastDate(),
+});
+
+/** An admin correcting a one-on-one (any date, confirmed or not). */
+export const adminOneOnOneSchema = z.object({
+  id: uuid('Missing one-on-one'),
+  metOn: z.string({ error: 'Choose the date' }).regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose the date'),
+  confirmed: checkbox,
+});
 
 export const speakerTopicSchema = z.object({
   topic: z.string({ error: 'Add a topic' }).trim().min(1, 'Add a topic').min(3, 'Use at least 3 characters').max(120, 'Keep the topic under 120 characters'),

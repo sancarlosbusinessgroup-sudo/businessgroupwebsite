@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { EmptyState } from '@/components/ui';
 import { requireMember } from '@/lib/auth';
+import { localDateKey } from '@/lib/dates';
 import { getMemberOptions } from '@/lib/data/member';
 import { createClient } from '@/lib/supabase/server';
 import { SendReferralForm } from './ReferralForms';
@@ -15,12 +16,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
   const supabase = await createClient();
   const [members, refsRes] = await Promise.all([
     getMemberOptions(me.id),
-    supabase
-      .from('referrals')
-      .select(referralSelect)
-      .or(`from_id.eq.${me.id},to_id.eq.${me.id}`)
-      .order('created_at', { ascending: false })
-      .limit(100),
+    supabase.from('referrals').select(referralSelect).or(`from_id.eq.${me.id},to_id.eq.${me.id}`).order('created_at', { ascending: false }).limit(100),
   ]);
   if (refsRes.error) throw new Error('Could not load your referrals');
   const rows = refsRes.data as unknown as ReferralRow[];
@@ -60,7 +56,11 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
               )}
             </section>
           </div>
-          <SendReferralForm members={members.map((m) => ({ id: m.id, label: `${m.first_name} ${m.last_name} · ${m.business_name}` }))} defaultTo={validTo} />
+          <SendReferralForm
+            members={members.map((m) => ({ id: m.id, label: `${m.first_name} ${m.last_name} · ${m.business_name}` }))}
+            defaultTo={validTo}
+            today={localDateKey(new Date())}
+          />
         </div>
       </div>
     </div>

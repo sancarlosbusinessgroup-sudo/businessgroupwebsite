@@ -1,7 +1,7 @@
 import { personName } from '@/lib/people';
 import { Pill } from '@/components/ui';
 import { referralStatusLabels } from '@/lib/content';
-import { formatMoney, formatShortDate } from '@/lib/dates';
+import { formatMoney, formatShortDate, localDateKey } from '@/lib/dates';
 import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { deleteReferral } from '../actions/member';
 import { UpdateReferralForm } from './ReferralForms';
@@ -40,6 +40,7 @@ export function ReferralSlip({ r, isReceived, isAdmin }: { r: ReferralRow; isRec
         </span>
         <span className="text-ink-muted flex flex-wrap items-center gap-2 text-sm">
           {formatShortDate(new Date(r.created_at))}
+          {r.status === 'closed_deal' && r.closed_at ? <span>· closed {formatShortDate(new Date(r.closed_at))}</span> : null}
           <Pill tone={refTone[r.status]}>{referralStatusLabels[r.status]}</Pill>
         </span>
       </div>
@@ -75,7 +76,16 @@ export function ReferralSlip({ r, isReceived, isAdmin }: { r: ReferralRow; isRec
           Value: <strong>{formatMoney(r.amount)}</strong>
         </span>
       ) : null}
-      {isReceived ? <UpdateReferralForm id={r.id} status={r.status} amount={r.amount} label={r.contact_name} /> : null}
+      {isReceived ? (
+        <UpdateReferralForm
+          id={r.id}
+          status={r.status}
+          amount={r.amount}
+          closedOn={r.closed_at ? localDateKey(new Date(r.closed_at)) : null}
+          today={localDateKey(new Date())}
+          label={r.contact_name}
+        />
+      ) : null}
       {!isReceived || isAdmin ? <ConfirmDelete action={deleteReferral} id={r.id} what={`referral slip for ${r.contact_name}`} className="self-start" /> : null}
     </li>
   );

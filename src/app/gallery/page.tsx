@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PageHero } from '@/components/ui';
-import { getViewer, isApproved } from '@/lib/auth';
+import { getViewer, isAdmin, isApproved } from '@/lib/auth';
 import { getGallery } from '@/lib/data/public';
 import { formatShortDate } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
@@ -33,6 +33,13 @@ export default async function GalleryPage() {
       </PageHero>
       <section className="container-site flex flex-col gap-6 pt-8 pb-16">
         {member && viewer ? <UploadPhoto userId={viewer.userId} /> : null}
+        {isAdmin(viewer) ? (
+          <p className="m-0">
+            <Link href="/admin/gallery" className="btn btn-outline btn-sm">
+              Edit as admin: captions, albums, remove photos
+            </Link>
+          </p>
+        ) : null}
         <GalleryGrid photos={items} />
       </section>
     </>

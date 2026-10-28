@@ -34,6 +34,39 @@ export async function onMemberStatus(profileId: string, status: string): Promise
   }
 }
 
+async function meetingWhen(meetingId: string): Promise<string | null> {
+  const db = createAdminClient();
+  if (!db) return null;
+  const { data: m } = await db.from('meetings').select('starts_at').eq('id', meetingId).maybeSingle();
+  if (!m) return null;
+  const d = new Date(m.starts_at);
+  return `${formatMeetingDate(d)} at ${formatMeetingTime(d)}`;
+}
+
+/** An admin assigned a presentation slot to a member (owner, 2026-10-27): the member is told. */
+export async function onSlotAssigned(meetingId: string, slot: 'education' | 'presentation', profileId: string, topic: string | null): Promise<void> {
+  const when = await meetingWhen(meetingId);
+  if (!when) return;
+  await notifyMembers([profileId], {
+    kind: 'slot_assigned',
+    dedupeKey: `${meetingId}:${slot}:${profileId}:${Date.now()}`,
+    pref: null,
+    build: (r) => T.slotAssignedEmail({ siteUrl: siteUrl(), firstName: r.firstName, slot, when, topic }),
+  });
+}
+
+/** An admin revoked a member's presentation slot (owner, 2026-10-27): the member is told. */
+export async function onSlotRevoked(meetingId: string, slot: 'education' | 'presentation', profileId: string): Promise<void> {
+  const when = await meetingWhen(meetingId);
+  if (!when) return;
+  await notifyMembers([profileId], {
+    kind: 'slot_revoked',
+    dedupeKey: `${meetingId}:${slot}:${profileId}:${Date.now()}`,
+    pref: null,
+    build: (r) => T.slotRevokedEmail({ siteUrl: siteUrl(), firstName: r.firstName, slot, when }),
+  });
+}
+
 export async function onReferralSent(referralId: string): Promise<void> {
   const db = createAdminClient();
   if (!db) return;

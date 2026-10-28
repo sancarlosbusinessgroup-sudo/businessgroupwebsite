@@ -164,12 +164,13 @@ describe('member forms', () => {
     expect(referralUpdateSchema.safeParse({ id, status: 'closed' }).success).toBe(false);
     expect(referralUpdateSchema.safeParse({ id, status: 'sent' }).success).toBe(false);
   });
-  it('one-on-one date must be within the last 14 days', () => {
+  it('one-on-one date may be any past date, not the future', () => {
     const now = new Date('2026-10-15T12:00:00Z');
     const schema = oneOnOneSchema(now);
     const partnerId = '00000000-0000-4000-8000-000000000001';
     expect(schema.safeParse({ partnerId, metOn: '2026-10-12', rating: '4' }).success).toBe(true);
-    expect(schema.safeParse({ partnerId, metOn: '2026-09-20' }).success).toBe(false);
+    expect(schema.safeParse({ partnerId, metOn: '2026-09-20' }).success).toBe(true);
+    expect(schema.safeParse({ partnerId, metOn: '2024-01-05' }).success).toBe(true);
     expect(schema.safeParse({ partnerId, metOn: '2026-10-20' }).success).toBe(false);
   });
   it('profile splits services into a list', () => {
