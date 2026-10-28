@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 import { bustPublic } from '@/lib/data/public';
 import { onMemberStatus, onSlotAssigned, onSlotRevoked } from '@/lib/email/events';
 import { safely } from '@/lib/email/notify';
-import { pacificLocalToIso } from '@/lib/dates';
+import { isoToPacificLocal, pacificLocalToIso } from '@/lib/dates';
 import {
   type ActionState,
   adminOneOnOneSchema,
@@ -182,6 +182,69 @@ export async function adminSaveMeeting(_prev: ActionState, formData: FormData): 
   await bustPublic('meetings');
   if (!id?.success) redirect(`/admin/meetings/${meetingId}?added=1`);
   return { status: 'success', message: 'Saved.', values };
+}
+
+/**
+ * Add a meeting every other Monday after the last scheduled one, until a year from today (owner, 2026-10-28). Copies the
+ * last meeting's time, length, title and location; skips dates that already have a meeting. Zoom links are added by hand.
+ */
+export async function adminScheduleYear(): Promise<ActionState> {
+  const { supabase, isAdmin } = await admin();
+  if (!isAdmin) return { status: 'error', message: 'Admins only.' };
+  const { data: last } = await supabase
+    .from('meetings')
+    .select('title, starts_at, ends_at, location, is_online, description')
+    .eq('category', 'Networking')
+    .order('starts_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!last) return { status: 'error', message: 'Add the first meeting with the form, then use this to fill in the rest.' };
+  const horizon = Date.now() + 366 * 86400000;
+  const { data: existing } = await supabase.from('meetings').select('slug').like('slug', 'group-meeting-%');
+  const taken = new Set((existing ?? []).map((m) => m.slug));
+  // Keep the Pacific wall-clock time (8:15 AM stays 8:15 AM across the daylight-saving change).
+  const startLocal = isoToPacificLocal(last.starts_at);
+  const endLocal = isoToPacificLocal(last.ends_at);
+  const timeOf = (local: string) => local.slice(11);
+  const baseTitle = last.title.replace(/:.*$/, '');
+  const shortDate = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric' });
+  const rows: {
+    slug: string;
+    title: string;
+    starts_at: string;
+    ends_at: string;
+    location: string | null;
+    is_online: boolean;
+    description: string | null;
+    category: string;
+  }[] = [];
+  for (let day = Date.parse(`${startLocal.slice(0, 10)}T12:00:00Z`) + 14 * 86400000; day <= horizon; day += 14 * 86400000) {
+    const date = new Date(day).toISOString().slice(0, 10);
+    const startsAt = pacificLocalToIso(`${date}T${timeOf(startLocal)}`);
+    const endsAt = pacificLocalToIso(`${date}T${timeOf(endLocal)}`);
+    if (!startsAt || !endsAt) continue;
+    const slug = meetingSlug(startsAt);
+    if (taken.has(slug)) continue;
+    rows.push({
+      slug,
+      title: `${baseTitle}: ${shortDate.format(new Date(startsAt))}`,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      location: last.location,
+      is_online: last.is_online,
+      description: last.description,
+      category: 'Networking',
+    });
+  }
+  if (rows.length === 0) return { status: 'success', message: 'The schedule already runs a year ahead. Nothing to add.' };
+  const { error } = await supabase.from('meetings').insert(rows);
+  if (error) return { status: 'error', message: GENERIC };
+  for (const p of meetingPaths) revalidatePath(p);
+  await bustPublic('meetings');
+  return {
+    status: 'success',
+    message: `Added ${rows.length} meeting${rows.length === 1 ? '' : 's'}, through ${rows[rows.length - 1]!.starts_at.slice(0, 10)}.`,
+  };
 }
 
 /** Remove a meeting from the schedule entirely (attendance, RSVPs and slots for it go with it). */

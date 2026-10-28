@@ -9,6 +9,8 @@ import { slotDescriptions, slotTitles } from '@/lib/content';
 import { formatMeetingDate, formatMeetingTime, isoToPacificLocal } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { adminDeleteMeeting, adminRevokeSlot, adminSetRsvp } from '../../../actions/admin-edit';
+import { MeetingCancelForm } from '../../MeetingCancelForm';
+import { MeetingHideForm } from '../../MeetingHideForm';
 import { AssignSlotForm, MeetingForm, SlotTopicForm } from '../MeetingForms';
 
 export const metadata: Metadata = { title: 'Edit meeting' };
@@ -50,6 +52,10 @@ export default async function AdminMeetingPage({ params, searchParams }: { param
         </div>
         <AdminNav current="/admin/meetings" />
         {added ? <Notice tone="success">Meeting added. It is on the schedule now.</Notice> : null}
+        <div className="card flex flex-wrap items-center gap-4 p-4">
+          <MeetingCancelForm id={m.id} label={m.title} reason={m.cancelled_reason} />
+          <MeetingHideForm id={m.id} label={m.title} hidden={m.hidden} />
+        </div>
 
         <div className="flex flex-wrap items-start gap-5">
           <div className="flex min-w-0 flex-[3_1_560px] flex-col gap-5">
