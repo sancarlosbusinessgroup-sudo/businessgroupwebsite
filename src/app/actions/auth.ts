@@ -11,6 +11,7 @@ import { deliver, loadAdmins, siteUrl } from '@/lib/email/notify';
 import { accountDeletedEmail } from '@/lib/email/templates';
 import { passwordErrorMessage } from '@/lib/password-errors';
 import { createClient } from '@/lib/supabase/server';
+import { LEAKED_MESSAGE, isLeakedPassword } from '@/lib/leaked-passwords';
 import { revalidatePath } from 'next/cache';
 import { cancelEmailChange, confirmEmailChange, startEmailChange } from '@/lib/email-change';
 import {
@@ -43,6 +44,7 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     return { status: 'error', message: 'Please fix the highlighted fields.', errors: fieldErrors(parsed.error), values: withoutSecrets(values) };
   }
   const d = parsed.data;
+  if (await isLeakedPassword(d.password)) return { status: 'error', errors: { password: LEAKED_MESSAGE }, values: withoutSecrets(values) };
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: d.email,
@@ -169,6 +171,7 @@ export async function updatePassword(_prev: ActionState, formData: FormData): Pr
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { status: 'error', message: 'Your reset link has expired. Please request a new one.' };
+  if (await isLeakedPassword(parsed.data.password)) return { status: 'error', errors: { password: LEAKED_MESSAGE } };
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { status: 'error', message: passwordErrorMessage(error, 'We could not update your password. Please try a different one.') };
   await clearTemporaryPassword(user.id, user.app_metadata?.must_change_password === true).catch(() => undefined);
@@ -200,6 +203,7 @@ export async function chooseOwnPassword(_prev: ActionState, formData: FormData):
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { status: 'error', message: 'Please log in again.' };
+  if (await isLeakedPassword(parsed.data.password)) return { status: 'error', errors: { password: LEAKED_MESSAGE } };
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { status: 'error', message: passwordErrorMessage(error, 'We could not save that password. Please try a different one.') };
   try {
@@ -268,6 +272,7 @@ export async function changePassword(_prev: ActionState, formData: FormData): Pr
   if (!user?.email) return { status: 'error', message: 'Please log in again.' };
   const check = await supabase.auth.signInWithPassword({ email: user.email, password: parsed.data.current });
   if (check.error) return { status: 'error', errors: { current: 'That isn’t your current password.' } };
+  if (await isLeakedPassword(parsed.data.password)) return { status: 'error', errors: { password: LEAKED_MESSAGE } };
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { status: 'error', message: passwordErrorMessage(error, 'We could not change your password. Please try a different one.') };
   await clearTemporaryPassword(user.id, user.app_metadata?.must_change_password === true).catch(() => undefined);
