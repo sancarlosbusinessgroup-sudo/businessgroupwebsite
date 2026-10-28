@@ -29,7 +29,8 @@ export async function requireMember(next: string): Promise<Viewer & { profile: T
   const viewer = await getViewer();
   if (!viewer) redirect(`/login?next=${encodeURIComponent(next)}`);
   // Only approved members can be logged in (owner, 2026-10-24); the proxy normally signs others out before this.
-  if (!viewer.profile || viewer.profile.status !== 'approved') redirect(`/login?notice=${viewer.profile?.status === 'declined' || viewer.profile?.status === 'inactive' ? 'inactive' : 'pending'}`);
+  if (!viewer.profile || viewer.profile.status !== 'approved')
+    redirect(`/login?notice=${viewer.profile?.status === 'declined' || viewer.profile?.status === 'inactive' ? 'inactive' : 'pending'}`);
   return viewer as Viewer & { profile: Tables<'profiles'> };
 }
 

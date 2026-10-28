@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { PageHero } from '@/components/ui';
 
-export const metadata: Metadata = { title: 'Privacy statement' };
+export const metadata: Metadata = {
+  title: 'Privacy statement',
+  description: 'How Bay Area Referral Partners collects and uses the information members and visitors share with us.',
+};
 
 export default function PrivacyPage() {
   return (

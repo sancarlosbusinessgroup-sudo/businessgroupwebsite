@@ -9,7 +9,10 @@ import { createClient } from '@/lib/supabase/server';
 import { referralCode as referralCodeSchema } from '@/lib/validation';
 import { GuestRequestForm } from './GuestRequestForm';
 
-export const metadata: Metadata = { title: 'Visit a meeting' };
+export const metadata: Metadata = {
+  title: 'Visit a meeting',
+  description: 'Visit a meeting as our guest: what to expect, when we meet, and how to request an invitation.',
+};
 
 export default async function VisitPage({ searchParams }: { searchParams: Promise<{ ref?: string }> }) {
   const { ref } = await searchParams;

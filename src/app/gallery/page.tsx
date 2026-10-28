@@ -8,7 +8,10 @@ import { mediaUrl } from '@/lib/env';
 import { GalleryGrid } from './GalleryGrid';
 import { UploadPhoto } from './UploadPhoto';
 
-export const metadata: Metadata = { title: 'Gallery' };
+export const metadata: Metadata = {
+  title: 'Gallery',
+  description: 'Photos from our meetings, mixers, member spotlights and community events.',
+};
 
 export default async function GalleryPage() {
   const [viewer, photos] = await Promise.all([getViewer(), getGallery(undefined, 120)]);

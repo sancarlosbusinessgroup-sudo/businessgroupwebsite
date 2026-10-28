@@ -47,6 +47,10 @@
   --placeholder-b: #e3ecdf;
   --placeholder-c: #ece3e6;
   --focus: #0c7b74;
+  /* Second ring around the focus outline, so focus is visible on any background (3:1 against light or dark; audit, 2026-10-27). */
+  --focus-halo: #ffffff;
+  /* Form field borders: 3:1 against the field background (WCAG 1.4.11); --line-strong is too faint for that. */
+  --field-line: #6b8a8a;
   color-scheme: light;
 }
 
@@ -90,6 +94,8 @@
     --placeholder-b: #213326;
     --placeholder-c: #33242a;
     --focus: #00c2cb;
+    --focus-halo: #0c1919;
+    --field-line: #7f9a9a;
     color-scheme: dark;
   }
 }
@@ -173,6 +179,7 @@
     outline: 3px solid var(--focus);
     outline-offset: 2px;
     border-radius: 6px;
+    box-shadow: 0 0 0 2px var(--focus-halo);
   }
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -292,7 +299,7 @@
     box-sizing: border-box;
     min-height: 48px;
     padding: 0 14px;
-    border: 1px solid var(--line-strong);
+    border: 1px solid var(--field-line);
     border-radius: var(--radius-field);
     font: inherit;
     font-size: 16px;
@@ -426,6 +433,8 @@
   --line: #d3ecec;
   --line-strong: #c0d4d4;
   --focus: #0c7b74;
+  --focus-halo: #ffffff;
+  --field-line: #6b8a8a;
   color: var(--ink);
   color-scheme: light;
 }

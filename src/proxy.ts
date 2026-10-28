@@ -6,7 +6,19 @@ import type { Database } from './lib/database.types';
 /** Pages still open while a member must choose a new password. */
 const CHOOSE_OK = ['/choose-password', '/auth', '/login', '/forgot-password', '/reset-password', '/privacy', '/terms'];
 
-const MEMBER_PATHS = ['/dashboard', '/meetings', '/referrals', '/closed-business', '/one-on-ones', '/profile', '/admin', '/pending', '/present', '/events/new', '/onboarding'];
+const MEMBER_PATHS = [
+  '/dashboard',
+  '/meetings',
+  '/referrals',
+  '/closed-business',
+  '/one-on-ones',
+  '/profile',
+  '/admin',
+  '/pending',
+  '/present',
+  '/events/new',
+  '/onboarding',
+];
 
 /** Pages a signed-in account that is not approved may still open: the email links and choosing a new password. */
 const NOT_APPROVED_OK = ['/auth', '/reset-password'];
@@ -35,9 +47,10 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() checks the session token's signature locally (one network call for the signing keys, then cached)
+  // instead of asking the Auth server on every request (audit, 2026-10-27); each page re-checks the user anyway.
+  const { data: claims } = await supabase.auth.getClaims();
+  const user = claims ? { id: claims.claims.sub, app_metadata: (claims.claims.app_metadata ?? {}) as Record<string, unknown> } : null;
 
   const path = request.nextUrl.pathname;
   // Only approved members can be logged in (owner, 2026-10-24): any other account is signed out and told why.
