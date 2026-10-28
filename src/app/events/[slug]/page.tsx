@@ -7,6 +7,8 @@ import { Countdown } from '@/components/Countdown';
 import { speakerFor } from '@/components/meetings';
 import { Avatar, PageHero } from '@/components/ui';
 import { getViewer, isAdmin, isApproved } from '@/lib/auth';
+import { JsonLd, eventJsonLd } from '@/components/site/JsonLd';
+import { env } from '@/lib/env';
 import { site, slotDescriptions, slotTitles } from '@/lib/content';
 import { getCalendarItemBySlug, listPathFor } from '@/lib/data/events';
 import { formatMeetingDate, formatMeetingTime, nowMs } from '@/lib/dates';
@@ -18,7 +20,14 @@ type Props = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const m = await getCalendarItemBySlug(slug);
-  return { title: m?.title ?? 'Event' };
+  return {
+    title: m?.title ?? 'Event',
+    description: m
+      ? m.description
+        ? m.description.slice(0, 160)
+        : `${m.kind === 'group' ? 'Group meeting' : 'Member event'} on ${new Date(m.starts_at).toDateString()}.`
+      : undefined,
+  };
 }
 
 export default async function EventDetail({ params }: Props) {
@@ -36,6 +45,17 @@ export default async function EventDetail({ params }: Props) {
 
   return (
     <>
+      <JsonLd
+        data={eventJsonLd({
+          name: m.title,
+          startsAt: m.starts_at,
+          endsAt: m.ends_at,
+          url: `${env.siteUrl}/events/${m.slug}`,
+          online: m.is_online,
+          location: m.location,
+          description: m.description,
+        })}
+      />
       <PageHero
         crumb={m.kind === 'group' ? 'Meetings' : 'Member events'}
         title={m.title}
