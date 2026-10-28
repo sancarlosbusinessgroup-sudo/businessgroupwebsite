@@ -27,7 +27,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const since = new Date(Math.max(Date.parse(me.approved_at ?? me.created_at), nowMs() - 365 * 86400000)).toISOString();
 
   const [upcoming, rsvpRes, pastRes, attRes, spokeRes] = await Promise.all([
-    getUpcomingMeetings(6),
+    getUpcomingMeetings(80),
     supabase.from('rsvps').select('meeting_id, attending').eq('profile_id', me.id),
     supabase
       .from('meetings')
@@ -55,6 +55,103 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const detail = new Map((attRes.data ?? []).map((a) => [a.meeting_id, a]));
   const missed = (await absencesFor(supabase, [{ id: me.id, since: memberSince(me) }])).get(me.id);
   const now = new Date();
+
+  /** One upcoming meeting with its RSVP, Zoom and presentation-slot controls. */
+  const row = (m: (typeof upcoming)[number]) => {
+    const start = new Date(m.starts_at);
+    const d = formatDayMonth(start);
+    const live = inCheckInWindow(start, new Date(m.ends_at), now);
+    const edu = speakerFor(m, 'education');
+    const main = speakerFor(m, 'presentation');
+    const cancelled = m.cancelled_reason;
+    return (
+      <li key={m.id} className="border-line flex flex-wrap items-center gap-4 rounded-[14px] border p-4">
+        <DateBadge day={d.day} month={d.month} />
+        <div className="min-w-0 flex-[1_1_260px]">
+          <h3 className={`font-display m-0 text-base font-bold ${cancelled ? 'line-through' : ''}`}>{m.title}</h3>
+          {cancelled ? <p className="text-red m-0 text-sm font-semibold">Cancelled: {cancelled}</p> : null}
+          <p className="text-ink-muted m-0 text-sm">
+            {formatMeetingDate(start)} · {formatMeetingTime(start)} PT · {m.location}
+          </p>
+          {m.category === 'Networking' && !cancelled ? (
+            <ul className="text-ink-soft m-0 mt-1 list-none p-0 text-sm">
+              {[
+                { k: '5-minute', s: edu },
+                { k: '10-minute', s: main },
+              ].map(({ k, s }) => (
+                <li key={k}>
+                  {k}: {s ? s.display_name : 'open'}
+                  {s?.topic ? <em> · “{s.topic}”</em> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+        <div className={`flex flex-wrap items-center gap-2 ${cancelled ? 'hidden' : ''}`}>
+          <RsvpSelect meetingId={m.id} meetingLabel={`${m.title}, ${formatMeetingDate(start)}`} value={rsvp.get(m.id) ?? ''} />
+          {m.category === 'Networking'
+            ? (['education', 'presentation'] as const).map((slot) => {
+                const s = speakerFor(m, slot);
+                if (s?.profile_id === me.id)
+                  return (
+                    <form key={slot} action={releaseSpeakerSlot}>
+                      <input type="hidden" name="meetingId" value={m.id} />
+                      <input type="hidden" name="slot" value={slot} />
+                      <button type="submit" className="btn btn-outline btn-sm">
+                        Release my {slotShort[slot]} slot
+                      </button>
+                    </form>
+                  );
+                return null;
+              })
+            : null}
+          {m.is_online ? (
+            <form action={joinMeeting}>
+              <input type="hidden" name="meetingId" value={m.id} />
+              <button type="submit" className={`btn btn-sm ${live ? 'btn-primary' : 'btn-outline'}`}>
+                {live ? 'Join now & check in' : 'Open Zoom link'}
+              </button>
+            </form>
+          ) : null}
+        </div>
+        {m.category === 'Networking' && !cancelled && start.getTime() > now.getTime()
+          ? (['education', 'presentation'] as const)
+              .filter((slot) => !speakerFor(m, slot))
+              .map((slot) => <ClaimSlotForm key={slot} meetingId={m.id} slot={slot} when={formatMeetingDate(start)} />)
+          : null}
+        {m.category === 'Networking' && !cancelled && start.getTime() > now.getTime()
+          ? (['education', 'presentation'] as const)
+              .map((slot) => ({ slot, s: speakerFor(m, slot) }))
+              .filter(({ s }) => s?.profile_id === me.id)
+              .map(({ slot, s }) => (
+                <SpeakerTopicForm
+                  key={`topic-${slot}`}
+                  meetingId={m.id}
+                  slot={slot}
+                  when={formatMeetingDate(start)}
+                  topic={s?.topic ?? null}
+                  description={s?.topic_description ?? null}
+                />
+              ))
+          : null}
+      </li>
+    );
+  };
+
+  // The next six meetings are open; the rest of the year is grouped by month under "Show the full year"
+  // (owner, 2026-10-28: show a year ahead, every meeting with its slots).
+  const yearAhead = new Date(now.getTime() + 366 * 86400000).toISOString();
+  const withinYear = upcoming.filter((m) => m.starts_at < yearAhead);
+  const soon = withinYear.slice(0, 6);
+  const later = withinYear.slice(6);
+  const monthLabel = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'long', year: 'numeric' });
+  const months: [string, typeof later][] = [];
+  for (const m of later) {
+    const label = monthLabel.format(new Date(m.starts_at));
+    const last = months[months.length - 1];
+    if (last && last[0] === label) last[1].push(m);
+    else months.push([label, [m]]);
+  }
 
   return (
     <div className="bg-canvas">
@@ -108,89 +205,23 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           {upcoming.length === 0 ? (
             <EmptyState title="No upcoming meetings scheduled" />
           ) : (
-            <ul className="m-0 flex list-none flex-col gap-3.5 p-0">
-              {upcoming.map((m) => {
-                const start = new Date(m.starts_at);
-                const d = formatDayMonth(start);
-                const live = inCheckInWindow(start, new Date(m.ends_at), now);
-                const edu = speakerFor(m, 'education');
-                const main = speakerFor(m, 'presentation');
-                const cancelled = m.cancelled_reason;
-                return (
-                  <li key={m.id} className="border-line flex flex-wrap items-center gap-4 rounded-[14px] border p-4">
-                    <DateBadge day={d.day} month={d.month} />
-                    <div className="min-w-0 flex-[1_1_260px]">
-                      <h3 className={`font-display m-0 text-base font-bold ${cancelled ? 'line-through' : ''}`}>{m.title}</h3>
-                      {cancelled ? <p className="text-red m-0 text-sm font-semibold">Cancelled: {cancelled}</p> : null}
-                      <p className="text-ink-muted m-0 text-sm">
-                        {formatMeetingDate(start)} · {formatMeetingTime(start)} PT · {m.location}
-                      </p>
-                      {m.category === 'Networking' && !cancelled ? (
-                        <ul className="text-ink-soft m-0 mt-1 list-none p-0 text-sm">
-                          {[
-                            { k: '5-minute', s: edu },
-                            { k: '10-minute', s: main },
-                          ].map(({ k, s }) => (
-                            <li key={k}>
-                              {k}: {s ? s.display_name : 'open'}
-                              {s?.topic ? <em> · “{s.topic}”</em> : null}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-                    <div className={`flex flex-wrap items-center gap-2 ${cancelled ? 'hidden' : ''}`}>
-                      <RsvpSelect meetingId={m.id} meetingLabel={`${m.title}, ${formatMeetingDate(start)}`} value={rsvp.get(m.id) ?? ''} />
-                      {m.category === 'Networking'
-                        ? (['education', 'presentation'] as const).map((slot) => {
-                            const s = speakerFor(m, slot);
-                            if (s?.profile_id === me.id)
-                              return (
-                                <form key={slot} action={releaseSpeakerSlot}>
-                                  <input type="hidden" name="meetingId" value={m.id} />
-                                  <input type="hidden" name="slot" value={slot} />
-                                  <button type="submit" className="btn btn-outline btn-sm">
-                                    Release my {slotShort[slot]} slot
-                                  </button>
-                                </form>
-                              );
-                            return null;
-                          })
-                        : null}
-                      {m.is_online ? (
-                        <form action={joinMeeting}>
-                          <input type="hidden" name="meetingId" value={m.id} />
-                          <button type="submit" className={`btn btn-sm ${live ? 'btn-primary' : 'btn-outline'}`}>
-                            {live ? 'Join now & check in' : 'Open Zoom link'}
-                          </button>
-                        </form>
-                      ) : null}
-                    </div>
-                    {m.category === 'Networking' && !cancelled && start.getTime() > now.getTime()
-                      ? (['education', 'presentation'] as const)
-                          .filter((slot) => !speakerFor(m, slot))
-                          .map((slot) => <ClaimSlotForm key={slot} meetingId={m.id} slot={slot} when={formatMeetingDate(start)} />)
-                      : null}
-                    {m.category === 'Networking' && !cancelled && start.getTime() > now.getTime()
-                      ? (['education', 'presentation'] as const)
-                          .map((slot) => ({ slot, s: speakerFor(m, slot) }))
-                          .filter(({ s }) => s?.profile_id === me.id)
-                          .map(({ slot, s }) => (
-                            <SpeakerTopicForm
-                              key={`topic-${slot}`}
-                              meetingId={m.id}
-                              slot={slot}
-                              when={formatMeetingDate(start)}
-                              topic={s?.topic ?? null}
-                              description={s?.topic_description ?? null}
-                            />
-                          ))
-                      : null}
-                  </li>
-                );
-              })}
-            </ul>
+            <ul className="m-0 flex list-none flex-col gap-3.5 p-0">{soon.map(row)}</ul>
           )}
+          {later.length > 0 ? (
+            <details className="group">
+              <summary className="text-teal-text cursor-pointer text-[15px] font-bold">
+                Show the full year ({later.length} more meeting{later.length === 1 ? '' : 's'})
+              </summary>
+              <div className="mt-3 flex flex-col gap-5">
+                {months.map(([label, items]) => (
+                  <div key={label} className="flex flex-col gap-3">
+                    <h3 className="font-display text-ink-muted m-0 text-sm font-bold tracking-wide uppercase">{label}</h3>
+                    <ul className="m-0 flex list-none flex-col gap-3.5 p-0">{items.map(row)}</ul>
+                  </div>
+                ))}
+              </div>
+            </details>
+          ) : null}
           <p className="text-ink-muted m-0 text-sm">
             Meeting slides: <Link href="/present/next">open the slides for the next meeting</Link>.
           </p>

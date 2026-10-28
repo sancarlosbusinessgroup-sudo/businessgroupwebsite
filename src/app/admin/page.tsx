@@ -3,10 +3,8 @@ import { AdminNav } from '@/components/AdminNav';
 import { EmptyState, Notice, Pill } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { guestStatusLabels } from '@/lib/content';
-import { getCategorySeats, getNextMeeting, getUpcomingMeetings } from '@/lib/data/public';
+import { getCategorySeats, getNextMeeting } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime, formatShortDate } from '@/lib/dates';
-import { MeetingCancelForm } from './MeetingCancelForm';
-import { MeetingHideForm } from './MeetingHideForm';
 import { createClient } from '@/lib/supabase/server';
 import { absencesFor, memberSince } from '@/lib/data/attendance';
 import { ABSENCE_LIMIT, parseZoomMeetingId } from '@/lib/zoom';
@@ -32,7 +30,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { error, zoomError } = await searchParams;
   await requireAdmin();
   const supabase = await createClient();
-  const [pendingRes, guestsRes, corrRes, seats, downloadsRes, schedule, onboardRes, mailRes, invitesRes, zoomSentRes] = await Promise.all([
+  const [pendingRes, guestsRes, corrRes, seats, downloadsRes, onboardRes, mailRes, invitesRes, zoomSentRes] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -56,7 +54,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       .select('id, format, created_at, profile:profiles(first_name, last_name)')
       .order('created_at', { ascending: false })
       .limit(20),
-    getUpcomingMeetings(10, { all: true }),
     supabase
       .from('member_onboarding')
       .select('profile_id, invited_at, reminded_at, completed_at, profile:profiles(first_name, last_name)')
@@ -428,31 +425,16 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           )}
           <p className="text-ink-muted m-0 text-sm">To change an attendance record, edit the attendance table in the Supabase dashboard (see README).</p>
         </section>
-        <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="sched-h">
-          <h2 id="sched-h" className="font-display m-0 text-[22px] font-extrabold">
-            Meeting schedule
-          </h2>
-          <p className="text-ink-muted m-0 text-[15px]">
-            Cancel a meeting for a holiday or any other reason, or hide one from the website. Cancelled and hidden meetings are not shown anywhere on the site
-            (lists, countdown, slides, reminder emails); they stay here so you can restore or show them again.
-          </p>
-          <ul className="m-0 flex list-none flex-col p-0">
-            {schedule.map((m) => (
-              <li key={m.id} className="border-line-soft flex flex-wrap items-center justify-between gap-3 border-t py-3">
-                <span>
-                  <strong>{formatMeetingDate(new Date(m.starts_at))}</strong>
-                  <span className="text-ink-muted">
-                    {' '}
-                    · {formatMeetingTime(new Date(m.starts_at))} PT · {m.title}
-                  </span>
-                </span>
-                <span className="flex flex-wrap items-center gap-3">
-                  <MeetingCancelForm id={m.id} label={m.title} reason={m.cancelled_reason} />
-                  <MeetingHideForm id={m.id} label={m.title} hidden={m.hidden} />
-                </span>
-              </li>
-            ))}
-          </ul>
+        <section className="card flex flex-wrap items-center justify-between gap-3 p-[22px]" aria-labelledby="sched-h">
+          <div>
+            <h2 id="sched-h" className="font-display m-0 text-[22px] font-extrabold">
+              Meeting schedule
+            </h2>
+            <p className="text-ink-muted m-0 text-[15px]">Cancel, hide, edit or add meetings, and manage presentation slots, on the Meetings page.</p>
+          </div>
+          <Link href="/admin/meetings" className="btn btn-outline">
+            Manage meetings →
+          </Link>
         </section>
 
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="seats-h">

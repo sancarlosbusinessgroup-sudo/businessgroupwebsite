@@ -6,6 +6,9 @@ import { requireAdmin } from '@/lib/auth';
 import { slotTitles } from '@/lib/content';
 import { formatMeetingDate, formatMeetingTime, isoToPacificLocal } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
+import { MeetingCancelForm } from '../MeetingCancelForm';
+import { MeetingHideForm } from '../MeetingHideForm';
+import { AddYearButton } from './AddYearButton';
 import { MeetingForm } from './MeetingForms';
 
 export const metadata: Metadata = { title: 'Meetings' };
@@ -19,9 +22,9 @@ export default async function AdminMeetingsPage({ searchParams }: { searchParams
   const showPast = past === '1';
   let q = supabase
     .from('meetings')
-    .select('id, slug, title, starts_at, ends_at, cancelled_reason, meeting_speakers(slot, display_name), meeting_links(join_url)')
+    .select('id, slug, title, starts_at, ends_at, cancelled_reason, hidden, meeting_speakers(slot, display_name), meeting_links(join_url)')
     .order('starts_at', { ascending: !showPast });
-  q = showPast ? q.lt('ends_at', now.toISOString()).limit(40) : q.gt('ends_at', now.toISOString()).limit(60);
+  q = showPast ? q.lt('ends_at', now.toISOString()).limit(40) : q.gt('ends_at', now.toISOString()).limit(120);
   const { data: meetings, error } = await q;
   if (error) throw new Error('Could not load meetings');
 
@@ -37,8 +40,9 @@ export default async function AdminMeetingsPage({ searchParams }: { searchParams
         <AdminNav current="/admin/meetings" />
         {deleted ? <Notice tone="success">Meeting removed.</Notice> : null}
         <p className="text-ink-muted m-0 max-w-[760px]">
-          Open a meeting to change its date, time or Zoom link, and to revoke or assign the 5- and 10-minute presentation slots. Cancelling a meeting (keeping
-          it on the schedule, marked cancelled) is on the <Link href="/admin">Overview</Link>.
+          Open a meeting to change its date, time or Zoom link, and to revoke or assign the 5- and 10-minute presentation slots. Cancel a meeting for a holiday
+          (it stays on the schedule, marked cancelled) or hide one from the website; cancelled and hidden meetings are not shown anywhere on the site (lists,
+          countdown, slides, reminder emails) and stay here so you can restore or show them again.
         </p>
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/meetings" className={`btn btn-sm ${showPast ? 'btn-outline' : 'btn-primary'}`} aria-current={showPast ? undefined : 'page'}>
@@ -71,9 +75,14 @@ export default async function AdminMeetingsPage({ searchParams }: { searchParams
                               <Pill tone="red">Cancelled</Pill>
                             </span>
                           ) : null}
+                          {m.hidden ? (
+                            <span className="ml-2">
+                              <Pill tone="amber">Hidden</Pill>
+                            </span>
+                          ) : null}
                           {!link ? (
                             <span className="ml-2">
-                              <Pill tone="amber">No Zoom link</Pill>
+                              <Pill tone="gray">No Zoom link</Pill>
                             </span>
                           ) : null}
                         </span>
@@ -82,16 +91,30 @@ export default async function AdminMeetingsPage({ searchParams }: { searchParams
                           5-min: {by('education') ?? <em>open</em>} · 10-min: {by('presentation') ?? <em>open</em>}
                         </span>
                       </div>
-                      <Link href={`/admin/meetings/${m.id}`} className="btn btn-outline btn-sm">
-                        Edit<span className="sr-only"> meeting on {formatMeetingDate(d)}</span>
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {!showPast ? <MeetingCancelForm id={m.id} label={m.title} reason={m.cancelled_reason} /> : null}
+                        {!showPast ? <MeetingHideForm id={m.id} label={m.title} hidden={m.hidden} /> : null}
+                        <Link href={`/admin/meetings/${m.id}`} className="btn btn-outline btn-sm">
+                          Edit<span className="sr-only"> meeting on {formatMeetingDate(d)}</span>
+                        </Link>
+                      </div>
                     </li>
                   );
                 })}
               </ul>
             )}
           </section>
-          <div className="min-w-0 flex-[2_1_360px]">
+          <div className="flex min-w-0 flex-[2_1_360px] flex-col gap-5">
+            <section className="card flex flex-col gap-3 p-[22px]" aria-labelledby="year-h">
+              <h2 id="year-h" className="h3">
+                Keep a year scheduled
+              </h2>
+              <p className="text-ink-muted m-0 text-sm">
+                Adds a meeting every other Monday after the last one on the schedule, until twelve months from today. Same time, title and location as the last
+                meeting; dates that already exist are skipped. Add Zoom links afterwards.
+              </p>
+              <AddYearButton />
+            </section>
             <MeetingForm
               heading="Add a meeting"
               defaults={{
