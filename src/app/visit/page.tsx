@@ -3,9 +3,8 @@ import Link from 'next/link';
 import { Countdown } from '@/components/Countdown';
 import { CheckIcon, PageHero, SectionHead } from '@/components/ui';
 import { joinSteps, meetingAgenda, visitTips, site } from '@/lib/content';
-import { getNextMeeting, getUpcomingMeetings } from '@/lib/data/public';
+import { getNextMeeting, getUpcomingMeetings, referrerByCode } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
-import { createClient } from '@/lib/supabase/server';
 import { referralCode as referralCodeSchema } from '@/lib/validation';
 import { GuestRequestForm } from './GuestRequestForm';
 
@@ -19,13 +18,8 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
   const code = referralCodeSchema.safeParse(ref);
   const referralCode = code.success ? code.data : undefined;
 
-  const supabase = await createClient();
-  const [next, upcoming, referrer] = await Promise.all([
-    getNextMeeting(),
-    getUpcomingMeetings(6),
-    referralCode ? supabase.from('profiles').select('first_name, last_name').eq('referral_code', referralCode).maybeSingle() : Promise.resolve({ data: null }),
-  ]);
-  const referrerName = referrer.data ? `${referrer.data.first_name} ${referrer.data.last_name}` : undefined;
+  const [next, upcoming, referrer] = await Promise.all([getNextMeeting(), getUpcomingMeetings(6), referrerByCode(referralCode)]);
+  const referrerName = referrer?.name;
   const meetingOptions = upcoming
     .filter((m) => m.category === 'Networking')
     .slice(0, 3)

@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Avatar, CheckIcon } from '@/components/ui';
-import { getCategorySeats } from '@/lib/data/public';
-import { createClient } from '@/lib/supabase/server';
+import { getCategorySeats, referrerByCode } from '@/lib/data/public';
 import { formatShortDate, nowMs } from '@/lib/dates';
 import { referralCode as referralCodeSchema } from '@/lib/validation';
 import { z } from 'zod';
@@ -33,12 +32,8 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
   const invited = await invitePrefill(invite);
   const code = referralCodeSchema.safeParse(ref ?? invited?.code ?? undefined);
   const referralCode = code.success ? code.data : undefined;
-  const supabase = await createClient();
-  const [categories, referrer] = await Promise.all([
-    getCategorySeats(),
-    referralCode ? supabase.from('profiles').select('first_name, last_name').eq('referral_code', referralCode).maybeSingle() : Promise.resolve({ data: null }),
-  ]);
-  const referrerName = referrer.data ? `${referrer.data.first_name} ${referrer.data.last_name}` : undefined;
+  const [categories, referrer] = await Promise.all([getCategorySeats(), referrerByCode(referralCode)]);
+  const referrerName = referrer?.name;
 
   return (
     <div className="bg-canvas">

@@ -1,6 +1,7 @@
 import 'server-only';
 import { revalidateTag, unstable_cache } from 'next/cache';
 import { cache } from 'react';
+import { createAdminClient } from '../supabase/admin';
 import { publicClient } from '../supabase/public';
 import type { Tables } from '../database.types';
 
@@ -198,4 +199,17 @@ export const getCategorySeats = shared('getCategorySeats', ['categories'], async
 /** Drop the shared public-data cache for a tag (see lib/data/public.ts) so the next visitor sees the change at once. */
 export async function bustPublic(...tags: ('meetings' | 'directory' | 'gallery' | 'categories' | 'leadership')[]) {
   for (const t of tags) revalidateTag(t, 'max');
+}
+
+/**
+ * The approved member behind a referral code, for "Invited by …" on the Visit and Join pages. Visitors can't read
+ * `profiles.referral_code` since the 2026-10-28 column grants, so this looks it up server-side with the service role
+ * (only the name leaves this function). Null when the code is unknown or email isn't configured.
+ */
+export async function referrerByCode(code: string | undefined): Promise<{ name: string } | null> {
+  if (!code) return null;
+  const db = createAdminClient();
+  if (!db) return null;
+  const { data } = await db.from('profiles').select('first_name, last_name').eq('referral_code', code).eq('status', 'approved').maybeSingle();
+  return data ? { name: `${data.first_name} ${data.last_name}` } : null;
 }
