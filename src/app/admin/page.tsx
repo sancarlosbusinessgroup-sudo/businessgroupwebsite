@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { AdminNav } from '@/components/AdminNav';
+import { HowThisWorks } from '@/components/HowThisWorks';
 import { EmptyState, Notice, Pill } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
-import { guestStatusLabels } from '@/lib/content';
+import { guestStatusLabels, visitorSignInPath } from '@/lib/content';
+import { env } from '@/lib/env';
 import { getCategorySeats, getNextMeeting } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime, formatShortDate } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
@@ -18,6 +20,7 @@ import { ResendEmailButton } from './ResendEmailButton';
 import { resendTarget } from '@/lib/email/resend-target';
 import { NewsletterSyncForm } from './NewsletterSyncForm';
 import { SeatForm } from './SeatForm';
+import { CopySignInLink } from './CopySignInLink';
 
 export const metadata: Metadata = { title: 'Admin' };
 
@@ -40,7 +43,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       .order('created_at'),
     supabase
       .from('guest_requests')
-      .select('id, first_name, last_name, email, business_name, phone, website, invited_by_text, status, created_at, one_on_ones_done_at')
+      .select('id, first_name, last_name, email, business_name, phone, website, invited_by_text, status, created_at, one_on_ones_done_at, source')
       .order('created_at', { ascending: false })
       .limit(50),
     supabase
@@ -94,6 +97,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Admin</h1>
+        <HowThisWorks tab="/admin" />
         <AdminNav current="/admin" />
         {atLimit.length ? (
           <Notice tone="error">
@@ -247,6 +251,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           )}
         </section>
 
+        <section className="card flex flex-col gap-3 p-[22px]" aria-labelledby="signin-h">
+          <h2 id="signin-h" className="font-display m-0 text-[22px] font-extrabold">
+            Visitor sign-in link
+          </h2>
+          <p className="text-ink-muted m-0 text-sm">
+            For visitors who join the Zoom without having asked for an invite. Copy this link and paste it in the Zoom chat during the meeting. Visitors fill in
+            their name, email, phone, business and who invited them, and appear in the list below, already marked as visited and “Signed in at the meeting”.
+          </p>
+          <CopySignInLink url={`${env.siteUrl}${visitorSignInPath}`} />
+        </section>
+
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="gr-h">
           <h2 id="gr-h" className="font-display m-0 text-[22px] font-extrabold">
             Guest invite requests
@@ -297,7 +312,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                       </td>
                       <td className="whitespace-nowrap">{g.phone ?? '—'}</td>
                       <td>{g.invited_by_text ?? '—'}</td>
-                      <td className="whitespace-nowrap">{formatShortDate(new Date(g.created_at))}</td>
+                      <td className="whitespace-nowrap">
+                        {formatShortDate(new Date(g.created_at))}
+                        {g.source === 'meeting_sign_in' ? (
+                          <div className="mt-1">
+                            <Pill tone="teal">Signed in at the meeting</Pill>
+                          </div>
+                        ) : null}
+                      </td>
                       <td>
                         {g.status === 'joined' ? (
                           '—'

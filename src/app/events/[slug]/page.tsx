@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { AddToCalendar } from '@/components/AddToCalendar';
 import { ConfirmDelete } from '@/components/ConfirmDelete';
+import { calendarEventFor } from '@/lib/calendar-links';
 import { notFound } from 'next/navigation';
 import { Countdown } from '@/components/Countdown';
 import { speakerFor } from '@/components/meetings';
@@ -135,9 +137,7 @@ export default async function EventDetail({ params }: Props) {
             </a>
           ) : null}
           {upcoming ? (
-            <a className="btn btn-outline" href={`/events/${m.slug}/calendar.ics`}>
-              Add to calendar
-            </a>
+            <AddToCalendar event={calendarEventFor(m, env.siteUrl)} icsHref={`/events/${m.slug}/calendar.ics`} buttonClass="btn btn-outline w-full" />
           ) : null}
           {!member && upcoming && m.kind === 'group' ? (
             <Link className="btn btn-outline" href="/visit#request">

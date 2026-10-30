@@ -144,7 +144,7 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
             </h2>
             <p className="m-0">
               {site.name} is a group of local business owners from across the Peninsula who meet every other Monday to build trusted relationships and pass each
-              other real referrals. We keep one member per profession, so every introduction counts. Come see how it works.
+              other real referrals. It&apos;s one business profession per person. Come see how it works.
             </p>
           </div>
           <GuestRequestForm meetings={meetingOptions} referralCode={referralCode} referrerName={referrerName} />

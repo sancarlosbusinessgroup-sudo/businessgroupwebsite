@@ -2,7 +2,10 @@ import Link from 'next/link';
 import { slotLabels, site } from '@/lib/content';
 import type { CalendarItem } from '@/lib/data/events';
 import type { MeetingWithSpeakers, Speaker } from '@/lib/data/public';
+import { calendarEventFor } from '@/lib/calendar-links';
 import { formatDayMonth, formatMeetingDate, formatMeetingTime } from '@/lib/dates';
+import { env } from '@/lib/env';
+import { AddToCalendar } from './AddToCalendar';
 import { Avatar, DateBadge } from './ui';
 import { Countdown } from './Countdown';
 
@@ -95,9 +98,11 @@ export function NextMeetingCard({ meeting, member, variant = 'dark' }: { meeting
         <Link className={t.primary} href={member ? '/meetings' : '/login?next=/meetings'}>
           {member ? 'Join on Zoom' : 'Members: log in to join'}
         </Link>
-        <a className={t.secondary} href={`/events/${meeting.slug}/calendar.ics`}>
-          Add to calendar
-        </a>
+        <AddToCalendar
+          event={calendarEventFor({ ...meeting, kind: 'group', cancelledReason: meeting.cancelled_reason }, env.siteUrl)}
+          icsHref={`/events/${meeting.slug}/calendar.ics`}
+          buttonClass={t.secondary}
+        />
       </div>
     </section>
   );
@@ -145,9 +150,12 @@ export function EventCard({ item, member }: { item: CalendarItem; member: boolea
               {member ? 'Join on Zoom' : 'Join · members'}
             </Link>
           ) : null}
-          <a className="btn btn-outline btn-sm" href={`/events/${item.slug}/calendar.ics`}>
-            Add to calendar<span className="sr-only"> for {item.title}</span>
-          </a>
+          <AddToCalendar
+            event={calendarEventFor(item, env.siteUrl)}
+            icsHref={`/events/${item.slug}/calendar.ics`}
+            buttonClass="btn btn-outline btn-sm"
+            srSuffix={` for ${item.title}`}
+          />
           <Link className="btn btn-sm text-teal-text" href={`/events/${item.slug}`}>
             View details<span className="sr-only"> for {item.title}</span>
           </Link>

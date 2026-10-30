@@ -59,7 +59,14 @@ describe('email templates', () => {
         events: [],
       }),
       t.guestZoomLinkEmail({ siteUrl, firstName: 'Gus', when: 'Mon, Oct 26 at 8:15 AM PT', joinUrl: 'https://zoom.example/j/1' }),
-      t.presentationReminderEmail({ siteUrl, firstName: 'Laura', slot: 'presentation', when: 'Mon, Nov 9 at 8:15 AM PT', title: 'Regular meeting', topic: 'Prep 101' }),
+      t.presentationReminderEmail({
+        siteUrl,
+        firstName: 'Laura',
+        slot: 'presentation',
+        when: 'Mon, Nov 9 at 8:15 AM PT',
+        title: 'Regular meeting',
+        topic: 'Prep 101',
+      }),
       t.adminDigestEmail({
         siteUrl,
         firstName: 'Ana',
@@ -97,7 +104,14 @@ describe('email templates', () => {
   });
 
   it('presentation reminder names the slot, the topic or asks for one, and always goes out (no preferences footer)', () => {
-    const withTopic = t.presentationReminderEmail({ siteUrl, firstName: 'Laura', slot: 'presentation', when: 'Mon, Nov 9 at 8:15 AM PT', title: 'M', topic: 'Prep 101' });
+    const withTopic = t.presentationReminderEmail({
+      siteUrl,
+      firstName: 'Laura',
+      slot: 'presentation',
+      when: 'Mon, Nov 9 at 8:15 AM PT',
+      title: 'M',
+      topic: 'Prep 101',
+    });
     expect(withTopic.subject).toBe('Your 10-Minute Presentation is in 5 days: Mon, Nov 9 at 8:15 AM PT');
     expect(withTopic.text).toContain('Prep 101');
     expect(withTopic.text).toContain('10 minutes');
@@ -218,5 +232,62 @@ describe('email templates', () => {
     expect(e.text).toContain('60-second introduction');
     expect(e.text).not.toContain('/profile?tab=edit#email');
     expect(t.guestZoomLinkEmail({ siteUrl, firstName: 'K', when: 'W', joinUrl: 'https://zoom.example/j/1' }).text).not.toContain('Passcode');
+  });
+});
+
+describe('management recap email (owner, 2026-10-30)', () => {
+  const base: t.ManagementRecap = {
+    meetingTitle: 'Networking',
+    meetingWhen: 'Monday, November 9',
+    taken: { source: 'zoom' },
+    totalMembers: 5,
+    present: ['Ana Ames', 'Bo Bell'],
+    substitutes: ['Cy Cole'],
+    excused: [],
+    absent: ['Di Dunn', 'Ed Eke'],
+    late: ['Bo Bell'],
+    leftEarly: [],
+    visitors: [{ name: 'Vera Visitor', business: 'Vera Dental', invitedBy: 'Ana Ames', email: 'vera@example.org', phone: '650-555-0100', signedIn: true }],
+    atLimit: [{ name: 'Ed Eke', missed: 2 }],
+    unmatchedZoom: 3,
+    pendingApplications: 1,
+    guestsAwaitingOneOnOnes: ['Vera Visitor'],
+    next: { when: 'Monday, November 23 at 8:15 AM', openSlots: ['10-minute'] },
+  };
+
+  it('shows attendance, visitors and the notes for the team', () => {
+    const e = t.managementRecapEmail({ siteUrl, firstName: 'Viv', ...base });
+    expect(e.subject).toBe('Management recap: Monday, November 9');
+    expect(e.text).toContain('Members present: 3 of 5 (from Zoom)');
+    expect(e.text).toContain('Present: Ana Ames, Bo Bell');
+    expect(e.text).toContain('Sent a substitute: Cy Cole');
+    expect(e.text).toContain('Late (after 8:30): Bo Bell');
+    expect(e.text).toContain('Absent: Di Dunn, Ed Eke');
+    expect(e.text).toContain('Signed in at the meeting');
+    expect(e.text).toContain('Invited by: Ana Ames');
+    expect(e.text).toContain('Ed Eke has missed 2 meetings in the last 6 months');
+    expect(e.text).toContain('3 Zoom names need matching');
+    expect(e.text).toContain('1 membership application is waiting');
+    expect(e.text).toContain('the 10-minute slot is still open');
+    expect(e.text).not.toContain('has not been taken');
+    expect(e.html).toContain(`${siteUrl}/admin/attendance`);
+  });
+
+  it('warns when attendance has not been taken, and reads well with nothing to report', () => {
+    const e = t.managementRecapEmail({
+      siteUrl,
+      firstName: 'Viv',
+      ...base,
+      taken: null,
+      visitors: [],
+      atLimit: [],
+      unmatchedZoom: 0,
+      pendingApplications: 0,
+      guestsAwaitingOneOnOnes: [],
+      next: null,
+    });
+    expect(e.text).toContain('Attendance has not been taken for this meeting yet');
+    expect(e.text).toContain('No visitors were recorded');
+    expect(e.text).toContain('Nothing needs attention right now.');
   });
 });

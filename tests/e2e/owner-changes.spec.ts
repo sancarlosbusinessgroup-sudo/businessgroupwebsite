@@ -149,7 +149,10 @@ test.describe('cancelled meetings and slides', () => {
     await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
 
     await login(page, users.admin, undefined, '/admin');
-    await schedule.getByRole('form', { name: `Show ${label}` }).getByRole('button', { name: 'Show on website' }).click();
+    await schedule
+      .getByRole('form', { name: `Show ${label}` })
+      .getByRole('button', { name: 'Show on website' })
+      .click();
     await expect(schedule.getByRole('form', { name: `Hide ${label}` })).toBeVisible();
     await page.goto('/group-meetings');
     await expect(page.getByRole('article').filter({ hasText: label })).toHaveCount(1);
@@ -217,7 +220,7 @@ test.describe('cancelled meetings and slides', () => {
 test.describe('banners, directory, profile and support (second request of the day)', () => {
   test('home hero: brighter photo, new guest wording and section titles', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('You may come as a guest if it is your first time to join.')).toBeVisible();
+    await expect(page.getByText('We meet every other Monday at 8:15 AM - 9:30AM on Zoom', { exact: true })).toBeVisible();
     await expect(page.getByText(/Come as a guest up to two times/)).toHaveCount(0);
     await expect(page.getByRole('heading', { level: 2, name: 'A system for business growth.' })).toBeVisible();
     await expect(page.getByRole('heading', { name: /More than networking/ })).toHaveCount(0);
@@ -331,7 +334,7 @@ test.describe('fourth request of the day', () => {
   test('visit page: the invite section describes the group', async ({ page }) => {
     await page.goto('/visit');
     const section = page.getByRole('region', { name: 'Request a guest invite' });
-    await expect(section.getByText(/We keep one member per profession/)).toBeVisible();
+    await expect(section.getByText(/It's one business profession per person\./)).toBeVisible();
     await expect(section.getByText(/We'll send the Zoom link/)).toHaveCount(0);
   });
 });

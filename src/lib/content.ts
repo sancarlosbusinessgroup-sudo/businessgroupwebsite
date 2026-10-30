@@ -64,7 +64,7 @@ export const metrics = [
 ];
 
 export const timeline = [
-  { year: '2016', text: 'Founded within the San Carlos Chamber of Commerce' },
+  { year: '2016', text: 'Originally founded with the San Carlos Chamber of Commerce.' },
   { year: '2020', text: 'Chamber closes. Members choose to keep going and move to Zoom' },
   { year: 'Today', text: 'Meeting every other Monday, 8:15am–9:30am' },
 ];
@@ -142,6 +142,9 @@ export const leaderboardMetrics = [
   { key: 'closed_deals', label: 'Closed business' },
   { key: 'visitors', label: 'Visitors brought' },
 ] as const;
+
+/** The visitor sign-in page management shares in the Zoom chat (owner, 2026-10-30). */
+export const visitorSignInPath = '/visitor-sign-in';
 
 export const guestStatusLabels = {
   requested: 'Invited',

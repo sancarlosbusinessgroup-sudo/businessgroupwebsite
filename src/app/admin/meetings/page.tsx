@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminNav } from '@/components/AdminNav';
+import { HowThisWorks } from '@/components/HowThisWorks';
 import { EmptyState, Notice, Pill } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { slotTitles } from '@/lib/content';
@@ -37,6 +38,7 @@ export default async function AdminMeetingsPage({ searchParams }: { searchParams
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Meetings</h1>
+        <HowThisWorks tab="/admin/meetings" />
         <AdminNav current="/admin/meetings" />
         {deleted ? <Notice tone="success">Meeting removed.</Notice> : null}
         <p className="text-ink-muted m-0 max-w-[760px]">

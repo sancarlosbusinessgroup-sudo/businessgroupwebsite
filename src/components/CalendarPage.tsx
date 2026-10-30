@@ -22,7 +22,7 @@ const copy = {
     basePath: '/group-meetings',
     crumb: 'Meetings',
     title: 'Meeting Schedules',
-    lead: `We meet ${site.meetingCadence.toLowerCase()} at ${site.meetingTime} on Zoom, with occasional in-person gatherings. You may come as a guest if it is your first time to join.`,
+    lead: 'We meet every other Monday at 8:15 AM - 9:30AM on Zoom',
     heading: 'Upcoming meetings',
     noun: ['meeting', 'meetings'],
     empty: 'No upcoming meetings in this category',

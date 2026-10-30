@@ -55,8 +55,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               Local businesses, growing through real referrals.
             </h1>
             <p className="text-on-band m-0 max-w-[560px] text-xl font-medium [text-shadow:0_1px_10px_rgb(0_0_0/0.6)]">
-              We meet every other Monday at 8:15 AM, mostly on Zoom with occasional in-person gatherings. You may come as a guest if it is your first time to
-              join.
+              We meet every other Monday at 8:15 AM - 9:30AM on Zoom
             </p>
             <div className="flex flex-wrap gap-3">
               {member ? (
@@ -79,14 +78,15 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <section className="container-site py-10" aria-label="At a glance">
         <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
           {[
-            { v: String(site.founded), l: 'Founded with the San Carlos Chamber of Commerce' },
+            { v: String(site.founded), l: 'Originally founded with the San Carlos Chamber of Commerce.' },
             { v: String(count), l: 'Member businesses in the directory' },
             { v: site.meetingCadence, l: '8:15am–9:30am' },
-            { v: '$0', l: 'No membership fees. Participation, not payment' },
+            { v: '$0', l: 'No membership fees. We just ask for full participation.' },
           ].map((s) => (
-            <div key={s.l} className="flex flex-col-reverse px-1 py-2">
+            // Label after the value visually (column-reverse keeps dt before dd for screen readers); justify-end = top in reverse
+            <div key={s.l} className="card flex flex-col-reverse justify-end gap-1.5 p-6">
               <dt className="text-ink-muted">{s.l}</dt>
-              <dd className="font-display text-teal-text m-0 text-[34px] font-extrabold">{s.v}</dd>
+              <dd className="font-display text-teal-text m-0 text-[34px] leading-tight font-extrabold">{s.v}</dd>
             </div>
           ))}
         </dl>

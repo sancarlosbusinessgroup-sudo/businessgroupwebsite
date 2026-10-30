@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminNav } from '@/components/AdminNav';
+import { HowThisWorks } from '@/components/HowThisWorks';
 import { EmptyState } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { formatShortDate } from '@/lib/dates';
@@ -33,6 +34,7 @@ export default async function AdminMaterialsPage() {
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Presentation materials</h1>
+        <HowThisWorks tab="/admin/materials" />
         <AdminNav current="/admin/materials" />
 
         <section className="card flex flex-col gap-3 p-[22px]" aria-labelledby="space-h">

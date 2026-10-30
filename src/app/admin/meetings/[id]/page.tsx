@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AdminNav } from '@/components/AdminNav';
+import { HowThisWorks } from '@/components/HowThisWorks';
 import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { EmptyState, Notice, Pill } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
@@ -50,6 +51,7 @@ export default async function AdminMeetingPage({ params, searchParams }: { param
             {m.title} · <Link href={`/events/${m.slug}`}>public page</Link>
           </p>
         </div>
+        <HowThisWorks tab="/admin/meetings" />
         <AdminNav current="/admin/meetings" />
         {added ? <Notice tone="success">Meeting added. It is on the schedule now.</Notice> : null}
         <div className="card flex flex-wrap items-center gap-4 p-4">

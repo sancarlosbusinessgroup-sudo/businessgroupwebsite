@@ -287,9 +287,9 @@ export type Database = {
         Relationships: [];
       };
       email_settings: {
-        Row: { id: number; meeting_recaps_enabled: boolean; updated_by: string | null; updated_at: string };
-        Insert: { id?: number; meeting_recaps_enabled?: boolean; updated_by?: string | null; updated_at?: string };
-        Update: { meeting_recaps_enabled?: boolean; updated_by?: string | null; updated_at?: string };
+        Row: { id: number; meeting_recaps_enabled: boolean; management_recaps_enabled: boolean; updated_by: string | null; updated_at: string };
+        Insert: { id?: number; meeting_recaps_enabled?: boolean; management_recaps_enabled?: boolean; updated_by?: string | null; updated_at?: string };
+        Update: { meeting_recaps_enabled?: boolean; management_recaps_enabled?: boolean; updated_by?: string | null; updated_at?: string };
         Relationships: [];
       };
       email_preferences: {
@@ -390,6 +390,7 @@ export type Database = {
           website: string | null;
           referral_code: string | null;
           referrer_id: string | null;
+          source: string;
           status: E['guest_status'];
         };
         Insert: {
@@ -407,6 +408,7 @@ export type Database = {
           website?: string | null;
           referral_code?: string | null;
           referrer_id?: string | null;
+          source?: string;
           status?: E['guest_status'];
         };
         Update: {
@@ -424,6 +426,7 @@ export type Database = {
           website?: string | null;
           referral_code?: string | null;
           referrer_id?: string | null;
+          source?: string;
           status?: E['guest_status'];
         };
         Relationships: [

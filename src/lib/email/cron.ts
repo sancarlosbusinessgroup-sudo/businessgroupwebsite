@@ -5,6 +5,7 @@ import 'server-only';
 import { formatMeetingDate, formatMeetingTime, formatMoney, formatShortDate, localDateKey } from '../dates';
 import { createAdminClient } from '../supabase/admin';
 import { deliver, loadAdmins, loadOptOuts, loadRecipients, siteUrl } from './notify';
+import { managementRecapFor } from './management-recap';
 import { recapForMeeting, recapShared } from './recap';
 import * as T from './templates';
 
@@ -18,6 +19,7 @@ export type DailyReport = {
   onboardingReminders: number;
   digests: number;
   meetingRecaps: number;
+  managementRecaps: number;
 };
 
 function pacificWeekday(now: Date): number {
@@ -26,7 +28,16 @@ function pacificWeekday(now: Date): number {
 }
 
 export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
-  const report: DailyReport = { meetingReminders: 0, presentationReminders: 0, visitorFollowups: 0, memberFollowups: 0, onboardingReminders: 0, digests: 0, meetingRecaps: 0 };
+  const report: DailyReport = {
+    meetingReminders: 0,
+    presentationReminders: 0,
+    visitorFollowups: 0,
+    memberFollowups: 0,
+    onboardingReminders: 0,
+    digests: 0,
+    meetingRecaps: 0,
+    managementRecaps: 0,
+  };
   const db = createAdminClient();
   if (!db) return report;
   const url = siteUrl();
@@ -89,7 +100,10 @@ export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
     .lt('starts_at', new Date(now.getTime() + 5.5 * DAY).toISOString());
   const presenters = (inFiveDays ?? []).flatMap((m) =>
     ((m.meeting_speakers ?? []) as { slot: string; profile_id: string | null; topic: string | null }[])
-      .filter((s): s is { slot: 'education' | 'presentation'; profile_id: string; topic: string | null } => !!s.profile_id && (s.slot === 'education' || s.slot === 'presentation'))
+      .filter(
+        (s): s is { slot: 'education' | 'presentation'; profile_id: string; topic: string | null } =>
+          !!s.profile_id && (s.slot === 'education' || s.slot === 'presentation'),
+      )
       .map((s) => ({ meeting: m, slot: s.slot, profileId: s.profile_id, topic: s.topic })),
   );
   if (presenters.length) {
@@ -259,6 +273,8 @@ export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
 
   // 5. Meeting recap, as a fallback for one the after-meeting job missed.
   report.meetingRecaps = await runRecaps(now);
+  // 6. Management recap, sent by now even if attendance was never taken (with a note to take it).
+  report.managementRecaps = await runManagementRecaps(now);
 
   return report;
 }
@@ -313,4 +329,52 @@ export async function runRecaps(now: Date = new Date()): Promise<number> {
 export async function recapsEnabled(db: NonNullable<ReturnType<typeof createAdminClient>>): Promise<boolean> {
   const { data } = await db.from('email_settings').select('meeting_recaps_enabled').eq('id', 1).maybeSingle();
   return data?.meeting_recaps_enabled !== false;
+}
+
+/** The admin on/off switch for the Management recap. A missing row or column counts as on. */
+export async function managementRecapsEnabled(db: NonNullable<ReturnType<typeof createAdminClient>>): Promise<boolean> {
+  const { data } = await db.from('email_settings').select('*').eq('id', 1).maybeSingle();
+  return (data as { management_recaps_enabled?: boolean } | null)?.management_recaps_enabled !== false;
+}
+
+/**
+ * Management recap (owner, 2026-10-30): the attendance and notes for every admin after a regular meeting. Sent by the
+ * after-meeting job once the meeting's attendance has been taken (Zoom import or by hand); if it still hasn't been
+ * taken 20 hours after the meeting ended (the next morning's daily job), it goes out anyway with a note to take it.
+ * Meetings that ended in the past 36 hours, once per admin per meeting.
+ */
+export async function runManagementRecaps(now: Date = new Date()): Promise<number> {
+  const db = createAdminClient();
+  if (!db) return 0;
+  if (!(await managementRecapsEnabled(db))) return 0;
+  const url = siteUrl();
+  const { data: ended } = await db
+    .from('meetings')
+    .select('id, title, starts_at, ends_at')
+    .eq('category', 'Networking')
+    .is('cancelled_reason', null)
+    .eq('hidden', false)
+    .lte('ends_at', now.toISOString())
+    .gte('ends_at', new Date(now.getTime() - 36 * 3_600_000).toISOString())
+    .order('starts_at');
+  if (!ended?.length) return 0;
+  const admins = await loadAdmins();
+  if (!admins.length) return 0;
+  let sent = 0;
+  for (const m of ended) {
+    const { data: imp } = await db.from('attendance_imports').select('status').eq('meeting_id', m.id).maybeSingle();
+    const waitedLongEnough = now.getTime() - new Date(m.ends_at).getTime() >= 20 * 3_600_000;
+    if (imp?.status !== 'done' && !waitedLongEnough) continue;
+    const content = await managementRecapFor(db, m, now);
+    for (const a of admins) {
+      const s = await deliver({
+        kind: 'management_recap',
+        dedupeKey: m.id,
+        to: { email: a.email, name: `${a.firstName} ${a.lastName}`, profileId: a.id },
+        email: T.managementRecapEmail({ siteUrl: url, firstName: a.firstName, ...content }),
+      });
+      if (s === 'sent') sent += 1;
+    }
+  }
+  return sent;
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AdminNav } from '@/components/AdminNav';
+import { HowThisWorks } from '@/components/HowThisWorks';
 import { EmptyState, Notice } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { absencesFor, memberSince } from '@/lib/data/attendance';
@@ -151,6 +152,7 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Attendance</h1>
+        <HowThisWorks tab="/admin/attendance" />
         <AdminNav current="/admin/attendance" />
 
         {alerts.length ? (

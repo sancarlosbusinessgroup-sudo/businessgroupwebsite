@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminNav } from '@/components/AdminNav';
+import { HowThisWorks } from '@/components/HowThisWorks';
 import { EmptyState, Pill } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
@@ -84,6 +85,7 @@ export default async function AdminHistoryPage({ searchParams }: { searchParams:
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Change history</h1>
+        <HowThisWorks tab="/admin/history" />
         <AdminNav current="/admin/history" />
         <p className="text-ink-muted m-0 max-w-[760px]">
           Every change an admin makes to another member&apos;s profile, slots, events, photos or activity records: who, what, before and after. Members

@@ -85,6 +85,18 @@ export const guestRequestSchema = z.object({
   company: z.string().max(0, 'Leave this field empty').optional(),
 });
 
+/**
+ * Visitor sign-in during a meeting (owner, 2026-10-30): visitors who came without an invite request. Same details as
+ * the invite request, but the meeting is today's, and "Who invited you?" can be a member picked from a list.
+ */
+export const visitorSignInSchema = guestRequestSchema.omit({ meetingId: true, referralCode: true }).extend({
+  invitedById: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined))
+    .refine((v) => v === undefined || z.uuid().safeParse(v).success, 'Choose a member from the list'),
+});
+
 const refEmail = z
   .string()
   .trim()

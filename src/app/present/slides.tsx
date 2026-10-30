@@ -832,7 +832,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                     ) : null}
                     {typeof pts.points === 'number' ? (
                       <p className="m-0 text-[1.7cqw]" style={{ color: MUTED }}>
-                        {pts.points} points
+                        {pts.points} {pts.points === 1 ? 'point' : 'points'}
                       </p>
                     ) : null}
                   </div>
@@ -876,7 +876,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                       {l.name}
                     </span>
                     <span className="text-[1.7cqw] font-semibold" style={{ color: MUTED }}>
-                      {l.points} points
+                      {l.points} {l.points === 1 ? 'point' : 'points'}
                     </span>
                   </div>
                 ))}

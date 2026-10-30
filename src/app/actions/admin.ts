@@ -288,3 +288,27 @@ export async function setRecapsEnabled(_prev: ActionState, formData: FormData): 
     message: on ? 'Recap email is on. Members get it after each meeting.' : 'Recap email is off. Nothing will be sent until you turn it back on.',
   };
 }
+
+/** Admin → Management recap: turn the automatic Management recap email on or off. */
+export async function setManagementRecapsEnabled(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const enabled = z.enum(['on', 'off']).safeParse(formData.get('recaps'));
+  if (!enabled.success) return { status: 'error', message: GENERIC };
+  const supabase = await createClient();
+  const { data: isAdmin } = await supabase.rpc('is_admin');
+  if (!isAdmin) return { status: 'error', message: 'Admins only.' };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const on = enabled.data === 'on';
+  const { data, error } = await supabase
+    .from('email_settings')
+    .update({ management_recaps_enabled: on, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
+    .eq('id', 1)
+    .select('id');
+  if (error || !data?.length) return { status: 'error', message: GENERIC };
+  revalidatePath('/admin/management-recap');
+  return {
+    status: 'success',
+    message: on ? 'Management recap is on. Admins get it after each meeting.' : 'Management recap is off. Nothing will be sent until you turn it back on.',
+  };
+}

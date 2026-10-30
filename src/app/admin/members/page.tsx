@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminNav } from '@/components/AdminNav';
+import { HowThisWorks } from '@/components/HowThisWorks';
 import { EmptyState, Pill } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
@@ -43,6 +44,7 @@ export default async function AdminMembersPage({ searchParams }: { searchParams:
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Members</h1>
+        <HowThisWorks tab="/admin/members" />
         <AdminNav current="/admin/members" />
         <p className="text-ink-muted m-0 max-w-[760px]">
           Open a member to edit their profile, contact phone, category, status, photo and logo, and to fix anything they filed. Every change you make to someone

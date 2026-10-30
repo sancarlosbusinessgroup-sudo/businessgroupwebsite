@@ -47,7 +47,7 @@ test.describe('meeting recap preview', () => {
       await rest(`guest_requests?id=eq.${guest?.id}`, 'PATCH', { status: 'visited', referrer_id: morgan?.id });
 
       await login(page, users.admin, undefined, '/admin/recap');
-      await expect(page.getByRole('heading', { name: 'Meeting recap preview' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Member recap', exact: true })).toBeVisible();
       await expect(page.getByText('Recap preview test', { exact: false }).first()).toBeVisible();
       const frame = page.frameLocator('iframe[title="Recap email preview"]');
       await expect(frame.getByText('Vera Visitor')).toBeVisible();
@@ -63,7 +63,7 @@ test.describe('meeting recap preview', () => {
   test('members are kept out of the preview', async ({ page }) => {
     await login(page, users.member, undefined, '/dashboard');
     await page.goto('/admin/recap');
-    await expect(page.getByRole('heading', { name: 'Meeting recap preview' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Member recap', exact: true })).toHaveCount(0);
   });
 
   test('admins can switch the automatic recap off (the job then sends nothing) and back on', async ({ page, request }) => {

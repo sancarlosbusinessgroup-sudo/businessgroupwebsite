@@ -1,14 +1,12 @@
-// BARP Champion scoring (owner agreed 2026-10-23). Pure functions: the data is loaded in lib/data/champion.ts.
+// BARP Champion scoring. Pure functions: the data is loaded in lib/data/champion.ts.
+// Owner, 2026-10-30: just three things score, one point each: a referral given, a one-on-one done, a meeting
+// attended. (Was referral 5, closed +10, one-on-one 3, visitor 4/+10, meeting 2/substitute 1, presentation 3.)
+// Closed business, visitors, substitutes and presentations are still counted and shown, but earn no points.
 
 export const CHAMPION_POINTS = {
-  referral: 5,
-  closedBusiness: 10,
-  oneOnOne: 3,
-  visitorAttended: 4,
-  visitorJoined: 10,
-  meeting: 2,
-  substitute: 1,
-  presentation: 3,
+  referral: 1,
+  oneOnOne: 1,
+  meeting: 1,
 } as const;
 
 /** Members must attend at least this share of the month's meetings (where attendance was taken) to qualify. */
@@ -119,15 +117,7 @@ export function scoreChampion(input: ChampionInput): ChampionRow[] {
 
   const P = CHAMPION_POINTS;
   for (const row of rows.values()) {
-    row.points =
-      row.referrals * P.referral +
-      row.closed * P.closedBusiness +
-      row.oneOnOnes * P.oneOnOne +
-      row.visitors * P.visitorAttended +
-      row.joined * P.visitorJoined +
-      row.meetings * P.meeting +
-      row.substitutes * P.substitute +
-      row.presentations * P.presentation;
+    row.points = row.referrals * P.referral + row.oneOnOnes * P.oneOnOne + row.meetings * P.meeting;
     if (input.meetingsTaken > 0) {
       row.attendanceShare = (row.meetings + row.substitutes) / input.meetingsTaken;
       row.eligible = row.attendanceShare >= CHAMPION_MIN_ATTENDANCE;

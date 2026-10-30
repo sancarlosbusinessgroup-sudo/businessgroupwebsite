@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AdminNav } from '@/components/AdminNav';
+import { HowThisWorks } from '@/components/HowThisWorks';
 import { EmptyState } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { CHAMPION_MIN_ATTENDANCE, CHAMPION_POINTS, monthOf, monthRange, previousMonth } from '@/lib/champion';
@@ -37,12 +38,12 @@ export default async function AdminChampionPage({ searchParams }: { searchParams
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">BARP Champion</h1>
+        <HowThisWorks tab="/admin/champion" />
         <AdminNav current="/admin/champion" />
         <p className="text-ink-muted m-0 max-w-[820px]">
-          Points per month: referral slip {P.referral}, referral that becomes closed business +{P.closedBusiness}, confirmed one-on-one {P.oneOnOne} (once per
-          pair), invited visitor attends {P.visitorAttended}, invited visitor becomes a member +{P.visitorJoined}, meeting attended {P.meeting} (substitute{' '}
-          {P.substitute}), presentation {P.presentation}. To qualify, a member attends at least {Math.round(CHAMPION_MIN_ATTENDANCE * 100)}% of the month’s
-          meetings. Ties go to more closed business, then more referrals.
+          Points per month: {P.referral} point for each referral given, {P.oneOnOne} for each one-on-one done (once per pair) and {P.meeting} for each meeting
+          attended. Nothing else earns points. To qualify, a member attends at least {Math.round(CHAMPION_MIN_ATTENDANCE * 100)}% of the month’s meetings (a
+          substitute counts for this, but earns no point). Ties go to more closed business, then more referrals.
         </p>
 
         <form action="/admin/champion" className="card flex flex-wrap items-end gap-3 p-5" aria-label="Choose a month">

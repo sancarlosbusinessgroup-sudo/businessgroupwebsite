@@ -2,6 +2,7 @@
 // Each returns a subject plus HTML and plain-text bodies in the site's look (logo, brand colours).
 
 import { site, slotTitles } from '../content';
+import { ABSENCE_LIMIT } from '../zoom';
 
 export type Email = { subject: string; html: string; text: string };
 
@@ -397,7 +398,13 @@ export function presentationReminderEmail(o: {
       heading: `${o.firstName}, you're presenting on ${o.when}`,
       blocks: [
         { p: `A friendly reminder: you have the ${slotTitle} at ${o.title}, in 5 days. Now is a good time to prepare your ${minutes}.` },
-        { list: [['Meeting', `${o.title}, ${o.when}`], ['Your slot', slotTitle], ['Topic', o.topic ?? 'Not added yet']] },
+        {
+          list: [
+            ['Meeting', `${o.title}, ${o.when}`],
+            ['Your slot', slotTitle],
+            ['Topic', o.topic ?? 'Not added yet'],
+          ],
+        },
         {
           p: o.topic
             ? 'Keep your talk to the time allotted, and think about what members should listen for so they can refer you better.'
@@ -482,7 +489,7 @@ export function visitorFollowupEmail(o: { siteUrl: string; firstName: string }):
       preheader: 'We hope you enjoyed the meeting.',
       heading: `Thanks for joining us, ${o.firstName}!`,
       blocks: [
-        { p: 'It was great to have you at our meeting. We keep one member per profession, so every introduction counts.' },
+        { p: "It was great to have you at our meeting. It's one business profession per person." },
         { p: 'If it felt like a good fit, the next step is a short application. The Membership Committee will be in touch about one-to-ones.' },
       ],
       cta: { label: 'Apply to join', href: `${o.siteUrl}/join` },
@@ -724,6 +731,112 @@ export function emailChangedNoticeEmail(o: { siteUrl: string; firstName: string;
       ],
       cta: { label: 'Contact Support', href: `${o.siteUrl}/support` },
       footer: accountFooter,
+    }),
+  };
+}
+
+export type MgmtVisitor = {
+  name: string;
+  business?: string | null;
+  invitedBy?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  signedIn?: boolean;
+};
+
+export type ManagementRecap = {
+  meetingTitle: string;
+  meetingWhen: string;
+  /** null = attendance not taken yet. */
+  taken: { source: 'zoom' | 'manual' } | null;
+  totalMembers: number;
+  present: string[];
+  substitutes: string[];
+  excused: string[];
+  absent: string[];
+  late: string[];
+  leftEarly: string[];
+  visitors: MgmtVisitor[];
+  atLimit: { name: string; missed: number }[];
+  unmatchedZoom: number;
+  pendingApplications: number;
+  guestsAwaitingOneOnOnes: string[];
+  next?: { when: string; openSlots: string[] } | null;
+};
+
+/**
+ * Management recap (owner, 2026-10-30): sent to every admin (the Management Team) after each meeting, once its
+ * attendance is taken: who was there, the visitors, and what needs the team's attention.
+ */
+export function managementRecapEmail(o: ManagementRecap & { siteUrl: string; firstName: string }): Email {
+  const names = (xs: string[]) => (xs.length ? xs.join(', ') : 'None');
+  const blocks: Block[] = [];
+  const attendanceHref = `${o.siteUrl}/admin/attendance`;
+  if (!o.taken) {
+    blocks.push({
+      quote: 'Attendance has not been taken for this meeting yet, so everyone shows as absent below. Take it on Admin → Attendance (from Zoom or by hand).',
+    });
+  }
+  const attended = o.present.length + o.substitutes.length;
+  blocks.push({ h: 'Attendance' });
+  blocks.push({
+    list: [
+      ['Members present', `${attended} of ${o.totalMembers}${o.taken ? (o.taken.source === 'zoom' ? ' (from Zoom)' : ' (taken by hand)') : ''}`],
+      ['Visitors', String(o.visitors.length)],
+      ['Absent', String(o.absent.length + o.excused.length)],
+    ],
+  });
+  blocks.push({
+    list: [
+      ['Present', names(o.present)],
+      ...(o.substitutes.length ? ([['Sent a substitute', names(o.substitutes)]] as [string, string][]) : []),
+      ['Late (after 8:30)', names(o.late)],
+      ['Left early (before 9:30)', names(o.leftEarly)],
+      ...(o.excused.length ? ([['Excused (counts as missed)', names(o.excused)]] as [string, string][]) : []),
+      ['Absent', names(o.absent)],
+    ],
+  });
+  blocks.push({ button: ['Open attendance', attendanceHref] });
+
+  blocks.push({ h: 'Visitors' });
+  if (!o.visitors.length) blocks.push({ p: 'No visitors were recorded for this meeting.' });
+  for (const v of o.visitors) {
+    const lines: (string | Link)[] = [];
+    if (v.business) lines.push(v.business);
+    lines.push(`Invited by: ${v.invitedBy || 'not given'}`);
+    if (v.email) lines.push([v.email, `mailto:${v.email}`]);
+    if (v.phone) lines.push([v.phone, `tel:${v.phone.replace(/[^0-9+]/g, '')}`]);
+    blocks.push({ item: { eyebrow: v.signedIn ? 'Signed in at the meeting' : undefined, title: v.name, lines } });
+  }
+  if (o.visitors.length) blocks.push({ p: 'Next steps for each visitor are on Admin → Guest invite requests: Invite to apply, one-on-ones, then Approved.' });
+
+  const notes: string[] = [];
+  for (const m of o.atLimit) notes.push(`${m.name} has missed ${m.missed} meetings in the last 6 months (the limit is ${ABSENCE_LIMIT}).`);
+  if (o.unmatchedZoom)
+    notes.push(`${o.unmatchedZoom} Zoom ${o.unmatchedZoom === 1 ? 'name needs' : 'names need'} matching to a member or visitor on Admin → Attendance.`);
+  if (o.pendingApplications)
+    notes.push(`${o.pendingApplications} membership ${o.pendingApplications === 1 ? 'application is' : 'applications are'} waiting for approval.`);
+  if (o.guestsAwaitingOneOnOnes.length) notes.push(`One-on-ones with the Membership Committee not done yet: ${o.guestsAwaitingOneOnOnes.join(', ')}.`);
+  if (o.next) {
+    notes.push(
+      o.next.openSlots.length
+        ? `Next meeting (${o.next.when}): the ${andList(o.next.openSlots)} ${o.next.openSlots.length === 1 ? 'slot is' : 'slots are'} still open.`
+        : `Next meeting (${o.next.when}): both presentation slots are booked.`,
+    );
+  }
+  blocks.push({ h: 'Notes for the team' });
+  if (notes.length) blocks.push({ list: notes.map((n, i): [string, string] => [`${i + 1}.`, n]) });
+  else blocks.push({ p: 'Nothing needs attention right now.' });
+
+  return {
+    subject: `Management recap: ${o.meetingWhen}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: `${attended} of ${o.totalMembers} members present, ${o.visitors.length} visitor${o.visitors.length === 1 ? '' : 's'}.`,
+      heading: `Management recap, ${o.meetingWhen}`,
+      blocks: [{ p: `Hi ${o.firstName}, here is the attendance for ${o.meetingTitle} and the notes for the Management Team.` }, ...blocks],
+      cta: { label: 'Open Admin', href: `${o.siteUrl}/admin` },
+      footer: `You get this email as an admin of ${site.name}. Admins can turn it off on Admin → Management recap.`,
     }),
   };
 }

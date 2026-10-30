@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AdminNav } from '@/components/AdminNav';
+import { HowThisWorks } from '@/components/HowThisWorks';
 import { EmptyState } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
@@ -10,7 +11,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { recapsEnabled } from '@/lib/email/cron';
 import { RecapSwitchForm } from './RecapSwitchForm';
 
-export const metadata: Metadata = { title: 'Meeting recap preview' };
+export const metadata: Metadata = { title: 'Member recap' };
 
 /**
  * The meeting recap email as members receive it after a meeting ends, built from the live data of the most recent
@@ -39,7 +40,8 @@ export default async function AdminRecapPage() {
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
-        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Meeting recap preview</h1>
+        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Member recap</h1>
+        <HowThisWorks tab="/admin/recap" />
         <AdminNav current="/admin/recap" />
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="recap-h">
           <h2 id="recap-h" className="font-display m-0 text-[22px] font-extrabold">

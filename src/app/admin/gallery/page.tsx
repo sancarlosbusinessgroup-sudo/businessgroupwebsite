@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminNav } from '@/components/AdminNav';
+import { HowThisWorks } from '@/components/HowThisWorks';
 import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { EmptyState } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
@@ -27,6 +28,7 @@ export default async function AdminGalleryPage() {
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Gallery</h1>
+        <HowThisWorks tab="/admin/gallery" />
         <AdminNav current="/admin/gallery" />
         <p className="text-ink-muted m-0 max-w-[760px]">
           Every photo members have uploaded, newest first. Fix a caption, move a photo to another album, or remove it. Members upload photos on the{' '}

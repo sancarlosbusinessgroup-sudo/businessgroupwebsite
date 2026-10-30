@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AdminNav } from '@/components/AdminNav';
+import { HowThisWorks } from '@/components/HowThisWorks';
 import { EmptyState } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { getLeadership } from '@/lib/data/public';
@@ -23,6 +24,7 @@ export default async function AdminLeadershipPage() {
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Management</h1>
+        <HowThisWorks tab="/admin/leadership" />
         <AdminNav current="/admin/leadership" />
         <p className="text-ink-muted m-0 max-w-[760px]">
           The people listed here appear in the Management section of the About page, in sort order. While the list is empty, About shows the original leadership

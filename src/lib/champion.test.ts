@@ -18,7 +18,7 @@ const base: ChampionInput = {
 };
 
 describe('BARP Champion scoring', () => {
-  it('adds the agreed points for each activity', () => {
+  it('gives one point per referral, one-on-one and meeting attended', () => {
     const rows = scoreChampion({
       ...base,
       referrals: [{ from_id: 'a' }, { from_id: 'a' }],
@@ -35,11 +35,12 @@ describe('BARP Champion scoring', () => {
       ],
       presentations: [{ profile_id: 'b' }],
     });
-    // Ana: 2 referrals (10) + 1 closed (10) + 1 one-on-one (3) + 1 meeting (2) + 1 substitute (1) = 26
-    // Bob: 1 one-on-one (3) + visitor (4) + joined (10) + 2 meetings (4) + presentation (3) = 24
+    // One point each for a referral, a one-on-one and a meeting attended (owner, 2026-10-30); nothing else scores.
+    // Ana: 2 referrals + 1 one-on-one + 1 meeting = 4 (closed business and the substitute earn nothing)
+    // Bob: 1 one-on-one + 2 meetings = 3 (visitor, joined and presentation earn nothing)
     expect(rows.map((r) => [r.name, r.points])).toEqual([
-      ['Ana', 26],
-      ['Bob', 24],
+      ['Ana', 4],
+      ['Bob', 3],
     ]);
     expect(rows[0]).toMatchObject({
       referrals: 2,
@@ -81,8 +82,10 @@ describe('BARP Champion scoring', () => {
   });
 
   it('breaks ties on closed business, then referrals given', () => {
+    // One referral each (1 point each; closed business earns no points since 2026-10-30, it only breaks ties).
     const rows = scoreChampion({
       ...base,
+      referrals: [{ from_id: 'a' }, { from_id: 'b' }],
       closed: [
         { from_id: 'a', amount: 500 },
         { from_id: 'b', amount: 900 },
