@@ -136,9 +136,10 @@ describe('stats', () => {
     await tx(async (c) => {
       const from = (await c.query(`select ${today}::text as d`)).rows[0]?.d as string;
       const before = await statsFor(c, from);
-      // confirmed + unconfirmed one-on-one today
+      // confirmed one-on-one today, plus an unconfirmed one with someone else (the same pair counts once per day
+      // since the 2026-10-28 audit index), which must not count for either side
       await c.query(`insert into one_on_ones (reporter_id, partner_id, met_on, confirmed_at) values ($1,$2,${today},now())`, [ids.member, ids.member3]);
-      await c.query(`insert into one_on_ones (reporter_id, partner_id, met_on) values ($1,$2,${today})`, [ids.member, ids.member3]);
+      await c.query(`insert into one_on_ones (reporter_id, partner_id, met_on) values ($1,$2,${today})`, [ids.member, ids.admin]);
       // two referrals member -> member3, one becomes a closed deal
       const r = await c.query(`insert into referrals (from_id,to_id,contact_name) values ($1,$2,'Lead A'),($1,$2,'Lead B') returning id`, [
         ids.member,

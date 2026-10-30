@@ -32,7 +32,14 @@ test.describe('sign up → admin approval → member access', () => {
     await you.getByLabel('Business phone').fill('(650) 555-0142');
     await you.getByLabel(/^Password/).fill('short');
     await you.getByLabel('Business name').fill('Jamie Applicant Design');
-    await you.getByLabel('Category').selectOption({ label: 'Marketing' });
+    // By value, not by exact label: the seat list is cached for 60 s (also on disk across `next start` restarts), so right
+    // after an earlier run approved the previous test applicant the option can still read "Marketing (full)". The
+    // database decides on approval, and the previous applicant is deleted in global-setup, so the seat is really open.
+    const marketing = await you
+      .getByLabel('Category')
+      .locator('option', { hasText: /^Marketing/ })
+      .getAttribute('value');
+    await you.getByLabel('Category').selectOption(marketing ?? '');
     await you.getByLabel('Website').fill('ftp://bad');
     await you.getByLabel('Business address').fill('10 Laurel St, San Carlos, CA');
     await you.getByLabel('How long have you been in this business?').fill('8 years');

@@ -27,11 +27,21 @@ describe('visitors (anon)', () => {
   });
 
   it('cannot read contact details, Zoom links, attendance, referrals or one-on-ones', async () => {
+    // Contact details are not even granted to anon (column grants, 2026-10-28): the query itself is refused.
+    await expect(as(anon, (q) => q(`select * from member_contacts`))).rejects.toThrow(/permission denied/);
     await as(anon, async (q) => {
-      for (const t of ['member_contacts', 'meeting_links', 'attendance', 'referrals', 'one_on_ones', 'one_on_one_feedback', 'guest_requests']) {
+      for (const t of ['meeting_links', 'attendance', 'referrals', 'one_on_ones', 'one_on_one_feedback', 'guest_requests']) {
         expect(await q(`select * from ${t}`), t).toEqual([]);
       }
     });
+  });
+
+  it('can read only the public profile columns, never referral codes', async () => {
+    await as(anon, async (q) => {
+      expect((await q(`select id, first_name, last_name, business_name, category_id from profiles`)).length).toBeGreaterThan(0);
+    });
+    await expect(as(anon, (q) => q(`select referral_code from profiles`))).rejects.toThrow(/permission denied/);
+    await expect(as(anon, (q) => q(`select * from profiles`))).rejects.toThrow(/permission denied/);
   });
 
   it('can read meetings, speakers, gallery and categories', async () => {
@@ -85,10 +95,8 @@ describe('visitors (anon)', () => {
   });
 
   it('cannot write members, meetings or gallery rows', async () => {
-    await as(anon, async (q) => {
-      const upd = await q(`update profiles set business_name = 'hacked' returning id`);
-      expect(upd).toEqual([]);
-    });
+    // Writes to profiles are not granted to anon at all (column grants, 2026-10-28).
+    await expect(as(anon, (q) => q(`update profiles set business_name = 'hacked' returning id`))).rejects.toThrow(/permission denied/);
     await expect(as(anon, (q) => q(`insert into meetings (slug,title,starts_at,ends_at) values ('x-y','Hack',now(),now()+interval '1h')`))).rejects.toThrow(
       /row-level security/,
     );
@@ -107,7 +115,10 @@ describe('pending applicants', () => {
 
   it('cannot approve themselves or become admin', async () => {
     await expect(as(user(ids.pending), (q) => q(`update profiles set status = 'approved' where id = $1`, [ids.pending]))).rejects.toThrow(/not allowed/);
-    await expect(as(user(ids.pending), (q) => q(`update profiles set role = 'admin' where id = $1`, [ids.pending]))).rejects.toThrow(/not allowed/);
+    // Since owner roles (2026-10-27) the role guard has its own message; the change is still refused.
+    await expect(as(user(ids.pending), (q) => q(`update profiles set role = 'admin' where id = $1`, [ids.pending]))).rejects.toThrow(
+      /only owners can add or remove admins/,
+    );
   });
 
   it('cannot see member contacts, Zoom links or one-on-ones', async () => {
@@ -172,10 +183,18 @@ describe('approved members', () => {
     });
   });
 
-  it('cannot report a one-on-one older than 14 days', async () => {
+  it('can report a one-on-one from any past date, but not a future one', async () => {
+    // The 14-day limit was removed on the owner's request (2026-10-27).
+    await as(user(ids.member), async (q) => {
+      const rows = await q(`insert into one_on_ones (reporter_id, partner_id, met_on) values ($1,$2,current_date - 90) returning id`, [
+        ids.member,
+        ids.member3,
+      ]);
+      expect(rows).toHaveLength(1);
+    });
     await expect(
-      as(user(ids.member), (q) => q(`insert into one_on_ones (reporter_id, partner_id, met_on) values ($1,$2,current_date - 20)`, [ids.member, ids.member3])),
-    ).rejects.toThrow(/14 days/);
+      as(user(ids.member), (q) => q(`insert into one_on_ones (reporter_id, partner_id, met_on) values ($1,$2,current_date + 1)`, [ids.member, ids.member3])),
+    ).rejects.toThrow();
   });
 
   it('can see their own attendance only', async () => {
