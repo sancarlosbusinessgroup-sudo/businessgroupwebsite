@@ -148,6 +148,24 @@ test('temporary password: the member must choose their own before using the site
     expect(flag).toBe('false');
     await page.goto('/dashboard');
     await expect(page).toHaveURL('/dashboard');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+
+    // Regression (member report, 2026-10-30): the flag is cleared on the server while the session token still says
+    // "must change". The proxy must trust the server, not the token, or the member bounces between the proxy and
+    // /choose-password and sees an empty page. Simulate it: log in flagged, clear the flag behind the site's back.
+    await page.context().clearCookies();
+    await setTemp();
+    await login(page, users.member2, 'BARP', '/one-on-ones');
+    await expect(page).toHaveURL(/\/choose-password\?next=%2Fone-on-ones/);
+    await db.query(`update auth.users set raw_app_meta_data = raw_app_meta_data || '{"must_change_password": false}'::jsonb where email = $1`, [users.member2]);
+    await page.goto('/one-on-ones');
+    await expect(page).toHaveURL('/one-on-ones');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await page.goto('/choose-password?next=%2Fdashboard');
+    await expect(page).toHaveURL('/dashboard');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    // Restore the member's own password for the next check.
+    await db.query(`update auth.users set encrypted_password = crypt($2, gen_salt('bf')) where email = $1`, [users.member2, 'my-own-password-1']);
 
     // The temporary password no longer works; the new one does.
     await page.context().clearCookies();

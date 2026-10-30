@@ -174,7 +174,7 @@ export async function updatePassword(_prev: ActionState, formData: FormData): Pr
   if (await isLeakedPassword(parsed.data.password)) return { status: 'error', errors: { password: LEAKED_MESSAGE } };
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { status: 'error', message: passwordErrorMessage(error, 'We could not update your password. Please try a different one.') };
-  await clearTemporaryPassword(user.id, user.app_metadata?.must_change_password === true).catch(() => undefined);
+  await clearTemporaryPassword(supabase, user.id, user.app_metadata?.must_change_password === true).catch(() => undefined);
   // Not approved yet: the new password is saved, then they are signed out until approved (owner, 2026-10-24).
   const { data: profile } = await supabase.from('profiles').select('status').eq('id', user.id).maybeSingle();
   if (profile?.status !== 'approved') {
@@ -185,12 +185,16 @@ export async function updatePassword(_prev: ActionState, formData: FormData): Pr
 }
 
 /** Clears the "choose your own password" flag once a member has set a password of their own. */
-async function clearTemporaryPassword(userId: string, flagged: boolean) {
+async function clearTemporaryPassword(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, flagged: boolean) {
   if (!flagged) return;
   const admin = createAdminClient();
   if (!admin) throw new Error('SUPABASE_SERVICE_ROLE_KEY is needed to clear the temporary-password flag');
   const { error } = await admin.auth.admin.updateUserById(userId, { app_metadata: { must_change_password: false } });
   if (error) throw new Error('Could not clear the temporary-password flag');
+  // The session cookie still holds a token issued with the flag set, and updateUser() keeps that token. Without a
+  // refresh the proxy (which reads the token) kept sending the member to /choose-password while the page (which asks
+  // the Auth server) sent them away again: an empty page that no link escaped (member report, 2026-10-30).
+  await supabase.auth.refreshSession().catch(() => undefined);
 }
 
 /** First login with a temporary password: the member chooses their own (owner, 2026-10-23). */
@@ -207,7 +211,7 @@ export async function chooseOwnPassword(_prev: ActionState, formData: FormData):
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { status: 'error', message: passwordErrorMessage(error, 'We could not save that password. Please try a different one.') };
   try {
-    await clearTemporaryPassword(user.id, user.app_metadata?.must_change_password === true);
+    await clearTemporaryPassword(supabase, user.id, user.app_metadata?.must_change_password === true);
   } catch {
     return { status: 'error', message: 'Your password was saved, but something went wrong. Please try again.' };
   }
@@ -275,7 +279,7 @@ export async function changePassword(_prev: ActionState, formData: FormData): Pr
   if (await isLeakedPassword(parsed.data.password)) return { status: 'error', errors: { password: LEAKED_MESSAGE } };
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { status: 'error', message: passwordErrorMessage(error, 'We could not change your password. Please try a different one.') };
-  await clearTemporaryPassword(user.id, user.app_metadata?.must_change_password === true).catch(() => undefined);
+  await clearTemporaryPassword(supabase, user.id, user.app_metadata?.must_change_password === true).catch(() => undefined);
   return { status: 'success', message: 'Your password has been changed.' };
 }
 
