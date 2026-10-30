@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { personName } from '@/lib/people';
 import Link from 'next/link';
+import { InstallAppCard } from '@/components/InstallAppCard';
 import { InviteCard } from '@/components/InviteCard';
 import { Leaderboard } from '@/components/Leaderboard';
 import { NextMeetingCard } from '@/components/meetings';
@@ -165,6 +166,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               )}
             </section>
             <InviteCard link={`${env.siteUrl}/visit?ref=${me.referral_code}`} guests={guests} />
+            <InstallAppCard />
           </div>
         </div>
       </div>

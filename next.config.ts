@@ -25,7 +25,11 @@ const nextConfig: NextConfig = {
       : [],
   },
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      // The service worker must always be re-checked, so a new version takes over on the next visit.
+      { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }] },
+    ];
   },
 };
 

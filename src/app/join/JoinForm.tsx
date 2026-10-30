@@ -125,8 +125,8 @@ export function JoinForm({ categories, referralCode, referrerName, today, prefil
             error={errors.categoryId}
             help={
               fullCategory
-                ? `${fullCategory.name} already has a member, and we keep one member per profession. You can still apply; the Membership Committee will contact you about fit.`
-                : 'One member per profession. Categories marked “full” already have a member.'
+                ? `${fullCategory.name} already has a member, and it's one business profession per person. You can still apply; the Membership Committee will contact you about fit.`
+                : 'One business profession per person. Categories marked “full” already have a member.'
             }
           >
             <option value="" disabled>

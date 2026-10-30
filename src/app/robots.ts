@@ -25,6 +25,7 @@ export default function robots(): MetadataRoute.Robots {
         '/login',
         '/join',
         '/visitor-sign-in',
+        '/offline',
       ],
     },
     sitemap: `${env.siteUrl}/sitemap.xml`,

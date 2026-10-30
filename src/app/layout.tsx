@@ -4,6 +4,7 @@ import { Footer } from '@/components/site/Footer';
 import { Header } from '@/components/site/Header';
 import { LiveChat } from '@/components/site/LiveChat';
 import { MobileMeetingBar } from '@/components/site/MobileMeetingBar';
+import { ServiceWorker } from '@/components/site/ServiceWorker';
 import { getViewer } from '@/lib/auth';
 import { chatVisitor, tidioConfigFromEnv } from '@/lib/chat';
 import { site } from '@/lib/content';
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(env.siteUrl),
   title: { default: site.name, template: `%s · ${site.shortName}` },
   description: 'A local business networking group: meet every other Monday, refer each other, and grow together across the SF Peninsula.',
+  appleWebApp: { capable: true, title: 'BARP', statusBarStyle: 'default' },
 };
 
 export const viewport: Viewport = {
@@ -34,6 +36,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="en" className={`${jakarta.variable} ${sourceSans.variable}`}>
       <body>
+        <ServiceWorker />
         <Header />
         <main id="main">{children}</main>
         <Footer />

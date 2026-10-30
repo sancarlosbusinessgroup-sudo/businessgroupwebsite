@@ -8,7 +8,7 @@ import { site } from '@/lib/content';
 export const metadata: Metadata = { title: 'Member login' };
 
 const features = [
-  { t: 'No membership fees', d: `Participation, not payment, is what ${site.name} values.` },
+  { t: 'No membership fees', d: `${site.name} has no dues. We just ask for full participation.` },
   { t: 'Local San Carlos & Peninsula focus', d: 'Connections that are relevant to your local market.' },
   { t: 'Community beyond business', d: 'Friendly and collaborative, inside and outside of meetings.' },
   { t: 'Accountability through tracking', d: 'One-on-ones, referrals and closed business keep results real.' },
