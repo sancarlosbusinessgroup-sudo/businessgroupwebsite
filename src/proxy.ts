@@ -72,7 +72,15 @@ export async function proxy(request: NextRequest) {
     }
   }
   // Members given a temporary password must choose their own before using the site (owner, 2026-10-23).
-  if (user?.app_metadata?.must_change_password === true && !CHOOSE_OK.some((p) => path === p || path.startsWith(`${p}/`))) {
+  // The token's claims can lag behind the Auth server for up to an hour after the flag is cleared, so confirm with
+  // the server before redirecting; otherwise this and /choose-password (which asks the server) bounce the member
+  // back and forth, leaving an empty page (member report, 2026-10-30). Only flagged tokens pay for this call.
+  let mustChoose = user?.app_metadata?.must_change_password === true;
+  if (mustChoose) {
+    const { data } = await supabase.auth.getUser();
+    if (data.user) mustChoose = data.user.app_metadata?.must_change_password === true;
+  }
+  if (mustChoose && !CHOOSE_OK.some((p) => path === p || path.startsWith(`${p}/`))) {
     const choose = request.nextUrl.clone();
     choose.pathname = '/choose-password';
     choose.search = path === '/' ? '' : `?next=${encodeURIComponent(path)}`;
