@@ -67,7 +67,7 @@ export default async function AdminMeetingsPage({ searchParams }: { searchParams
                   const by = (slot: keyof typeof slotTitles) => m.meeting_speakers.find((s) => s.slot === slot)?.display_name;
                   const link = Array.isArray(m.meeting_links) ? m.meeting_links[0] : m.meeting_links;
                   return (
-                    <li key={m.id} className="border-line flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
+                    <li key={m.id} className="border-line flex flex-col gap-3 rounded-xl border p-4">
                       <div className="flex min-w-0 flex-col gap-1">
                         <span className="font-bold">
                           {formatMeetingDate(d)}, {formatMeetingTime(d)}
@@ -92,12 +92,14 @@ export default async function AdminMeetingsPage({ searchParams }: { searchParams
                           5-min: {by('education') ?? <em>open</em>} · 10-min: {by('presentation') ?? <em>open</em>}
                         </span>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {!showPast ? <MeetingCancelForm id={m.id} label={m.title} reason={m.cancelled_reason} /> : null}
-                        {!showPast ? <MeetingHideForm id={m.id} label={m.title} hidden={m.hidden} /> : null}
-                        <Link href={`/admin/meetings/${m.id}`} className="btn btn-outline btn-sm">
-                          Edit<span className="sr-only"> meeting on {formatMeetingDate(d)}</span>
-                        </Link>
+                      <div className="border-line flex flex-wrap items-start justify-between gap-x-4 gap-y-3 border-t pt-3">
+                        {!showPast ? <MeetingCancelForm id={m.id} label={m.title} reason={m.cancelled_reason} /> : <span />}
+                        <div className="flex flex-wrap items-start gap-2">
+                          {!showPast ? <MeetingHideForm id={m.id} label={m.title} hidden={m.hidden} /> : null}
+                          <Link href={`/admin/meetings/${m.id}`} className="btn btn-outline btn-sm">
+                            Edit<span className="sr-only"> meeting on {formatMeetingDate(d)}</span>
+                          </Link>
+                        </div>
                       </div>
                     </li>
                   );

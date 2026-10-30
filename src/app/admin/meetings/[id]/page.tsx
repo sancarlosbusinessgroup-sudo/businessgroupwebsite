@@ -46,6 +46,7 @@ export default async function AdminMeetingPage({ params, searchParams }: { param
           <h1 className="font-display m-0 mt-3 flex flex-wrap items-center gap-3 text-[clamp(28px,3.4vw,40px)] font-extrabold">
             {formatMeetingDate(d)}, {formatMeetingTime(d)}
             {m.cancelled_reason ? <Pill tone="red">Cancelled: {m.cancelled_reason}</Pill> : null}
+            {m.hidden ? <Pill tone="amber">Hidden</Pill> : null}
           </h1>
           <p className="text-ink-muted m-0 mt-1">
             {m.title} · <Link href={`/events/${m.slug}`}>public page</Link>
@@ -54,7 +55,7 @@ export default async function AdminMeetingPage({ params, searchParams }: { param
         <AdminNav current="/admin/meetings" />
         <HowThisWorks tab="/admin/meetings" />
         {added ? <Notice tone="success">Meeting added. It is on the schedule now.</Notice> : null}
-        <div className="card flex flex-wrap items-center gap-4 p-4">
+        <div className="card flex flex-wrap items-start justify-between gap-x-4 gap-y-3 p-4">
           <MeetingCancelForm id={m.id} label={m.title} reason={m.cancelled_reason} />
           <MeetingHideForm id={m.id} label={m.title} hidden={m.hidden} />
         </div>
