@@ -38,14 +38,13 @@ export default async function AdminMeetingsPage({ searchParams }: { searchParams
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Meetings</h1>
-        <HowThisWorks tab="/admin/meetings" />
         <AdminNav current="/admin/meetings" />
         {deleted ? <Notice tone="success">Meeting removed.</Notice> : null}
-        <p className="text-ink-muted m-0 max-w-[760px]">
+        <HowThisWorks tab="/admin/meetings">
           Open a meeting to change its date, time or Zoom link, and to revoke or assign the 5- and 10-minute presentation slots. Cancel a meeting for a holiday
           (it stays on the schedule, marked cancelled) or hide one from the website; cancelled and hidden meetings are not shown anywhere on the site (lists,
           countdown, slides, reminder emails) and stay here so you can restore or show them again.
-        </p>
+        </HowThisWorks>
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/meetings" className={`btn btn-sm ${showPast ? 'btn-outline' : 'btn-primary'}`} aria-current={showPast ? undefined : 'page'}>
             Upcoming

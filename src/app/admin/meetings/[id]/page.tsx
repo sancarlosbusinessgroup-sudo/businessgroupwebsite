@@ -51,8 +51,8 @@ export default async function AdminMeetingPage({ params, searchParams }: { param
             {m.title} · <Link href={`/events/${m.slug}`}>public page</Link>
           </p>
         </div>
-        <HowThisWorks tab="/admin/meetings" />
         <AdminNav current="/admin/meetings" />
+        <HowThisWorks tab="/admin/meetings" />
         {added ? <Notice tone="success">Meeting added. It is on the schedule now.</Notice> : null}
         <div className="card flex flex-wrap items-center gap-4 p-4">
           <MeetingCancelForm id={m.id} label={m.title} reason={m.cancelled_reason} />

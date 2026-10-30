@@ -24,12 +24,11 @@ export default async function AdminLeadershipPage() {
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Management</h1>
-        <HowThisWorks tab="/admin/leadership" />
         <AdminNav current="/admin/leadership" />
-        <p className="text-ink-muted m-0 max-w-[760px]">
+        <HowThisWorks tab="/admin/leadership">
           The people listed here appear in the Management section of the About page, in sort order. While the list is empty, About shows the original leadership
           text.
-        </p>
+        </HowThisWorks>
         <div className="flex flex-wrap items-start gap-5">
           <section className="card flex min-w-0 flex-[3_1_520px] flex-col gap-3.5 p-[22px]" aria-labelledby="team-h">
             <h2 id="team-h" className="h3">

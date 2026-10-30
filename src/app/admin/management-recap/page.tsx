@@ -38,8 +38,8 @@ export default async function AdminManagementRecapPage() {
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Management recap</h1>
-        <HowThisWorks tab="/admin/management-recap" />
         <AdminNav current="/admin/management-recap" />
+        <HowThisWorks tab="/admin/management-recap" />
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="mrecap-h">
           <h2 id="mrecap-h" className="font-display m-0 text-[22px] font-extrabold">
             The email the Management Team receives after a meeting

@@ -44,12 +44,11 @@ export default async function AdminMembersPage({ searchParams }: { searchParams:
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Members</h1>
-        <HowThisWorks tab="/admin/members" />
         <AdminNav current="/admin/members" />
-        <p className="text-ink-muted m-0 max-w-[760px]">
+        <HowThisWorks tab="/admin/members">
           Open a member to edit their profile, contact phone, category, status, photo and logo, and to fix anything they filed. Every change you make to someone
           else&apos;s record is kept in the <Link href="/admin/history">change history</Link>.
-        </p>
+        </HowThisWorks>
         <form action="/admin/members" method="get" role="search" className="flex flex-wrap items-end gap-3">
           <div className="min-w-[240px] flex-1">
             <label className="label" htmlFor="q">

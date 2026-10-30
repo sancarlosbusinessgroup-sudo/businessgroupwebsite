@@ -88,7 +88,7 @@ test('add to calendar: Google, Outlook, Microsoft 365, Yahoo, Apple and an .ics 
   await expect(google).toBeHidden();
 });
 
-test('every admin tab has a closed "How This Works" accordion under the title', async ({ page }) => {
+test('every admin tab: short description under the menu, "Read more" drops down How This Works', async ({ page }) => {
   await login(page, users.admin, undefined, '/admin');
   for (const path of [
     '/admin',
@@ -106,12 +106,17 @@ test('every admin tab has a closed "How This Works" accordion under the title', 
     '/admin/history',
   ]) {
     await page.goto(path);
-    const how = page.locator('details.how-this-works');
+    const how = page.locator('.how-this-works');
     await expect(how, path).toHaveCount(1);
-    await expect(how).not.toHaveAttribute('open', '');
-    await expect(how.locator('li').first()).toBeHidden();
-    await how.getByText('How This Works').click();
+    // The short description, then "Read more" drops down the bullets.
+    const more = how.getByRole('button', { name: 'Read more' });
+    await expect(more).toHaveAttribute('aria-expanded', 'false');
+    await expect(how.getByRole('heading', { name: 'How This Works' })).toBeHidden();
+    await more.click();
+    await expect(how.getByRole('heading', { name: 'How This Works' })).toBeVisible();
     await expect(how.locator('li').first()).toBeVisible();
+    await how.getByRole('button', { name: 'Show less' }).click();
+    await expect(how.locator('li').first()).toBeHidden();
   }
   await page.goto('/admin/champion');
   await expect(page.getByText(/1 point for each referral given, 1 for each one-on-one done/).first()).toBeVisible();

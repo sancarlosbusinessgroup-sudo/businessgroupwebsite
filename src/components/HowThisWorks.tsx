@@ -1,25 +1,47 @@
+'use client';
+
+import { useId, useState, type ReactNode } from 'react';
 import { adminHelp, type AdminTab } from '@/lib/admin-help';
 
-/** "How This Works" under each Admin page title: a closed accordion that opens when clicked (owner, 2026-10-30). */
-export function HowThisWorks({ tab }: { tab: AdminTab }) {
+/**
+ * The short description under each Admin tab's menu, ending in "Read more" (owner, 2026-10-30). Clicking it drops
+ * down "How This Works": the step-by-step bullets for that tab. Pass the page's own description as children when it
+ * has links or live counts; otherwise the one from admin-help.ts is used.
+ */
+export function HowThisWorks({ tab, children }: { tab: AdminTab; children?: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const help = adminHelp[tab];
   return (
-    <details className="how-this-works card group overflow-hidden">
-      <summary className="font-display text-heading hover:bg-teal-tint flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-base font-bold [&::-webkit-details-marker]:hidden">
-        <span className="flex items-center gap-2.5">
-          <span aria-hidden="true" className="bg-teal-tint text-teal-text flex h-7 w-7 items-center justify-center rounded-full text-sm font-extrabold">
+    <div className="how-this-works flex max-w-[820px] flex-col gap-3">
+      <p className="text-ink-muted m-0">
+        {children ?? help.summary}{' '}
+        <button
+          type="button"
+          className="text-teal-text inline cursor-pointer border-0 bg-transparent p-0 font-bold whitespace-nowrap underline-offset-2 hover:underline"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() => setOpen((o) => !o)}
+        >
+          {open ? 'Show less' : 'Read more'}
+          <span aria-hidden="true" className={`ml-1 inline-block text-[0.8em] transition-transform ${open ? 'rotate-180' : ''}`}>
+            ▾
+          </span>
+        </button>
+      </p>
+      <section id={id} hidden={!open} aria-labelledby={`${id}-h`} className="border-teal/40 bg-teal-tint/60 rounded-[14px] border p-5">
+        <h2 id={`${id}-h`} className="font-display text-heading m-0 mb-2.5 flex items-center gap-2.5 text-base font-bold">
+          <span aria-hidden="true" className="bg-surface text-teal-text flex h-7 w-7 items-center justify-center rounded-full text-sm font-extrabold">
             ?
           </span>
           How This Works
-        </span>
-        <span aria-hidden="true" className="text-teal-text transition-transform group-open:rotate-180">
-          ▾
-        </span>
-      </summary>
-      <ul className="text-ink-soft border-line m-0 flex list-disc flex-col gap-2 border-t py-4 pr-5 pl-10 text-[15px] leading-relaxed">
-        {adminHelp[tab].map((t) => (
-          <li key={t}>{t}</li>
-        ))}
-      </ul>
-    </details>
+        </h2>
+        <ul className="text-ink-soft m-0 flex list-disc flex-col gap-2 pl-5 text-[15px] leading-relaxed">
+          {help.steps.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+      </section>
+    </div>
   );
 }

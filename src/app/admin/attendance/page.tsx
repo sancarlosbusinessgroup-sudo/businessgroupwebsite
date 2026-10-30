@@ -152,8 +152,8 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Attendance</h1>
-        <HowThisWorks tab="/admin/attendance" />
         <AdminNav current="/admin/attendance" />
+        <HowThisWorks tab="/admin/attendance" />
 
         {alerts.length ? (
           <section aria-labelledby="alerts-h" className="border-red bg-red-tint flex flex-col gap-2 rounded-2xl border p-5">

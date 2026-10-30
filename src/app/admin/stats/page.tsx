@@ -29,12 +29,11 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Member stats</h1>
-        <HowThisWorks tab="/admin/stats" />
         <AdminNav current="/admin/stats" />
-        <p className="text-ink-muted m-0 max-w-[760px]">
+        <HowThisWorks tab="/admin/stats">
           Per-member counts are visible to admins only. Members see the leaderboard and group totals. One-on-ones count for both members once confirmed;
           referrals and closed business count for the member who gave the referral. Business given and received add up the dollar value of closed business.
-        </p>
+        </HowThisWorks>
 
         <form action="/admin/stats" className="card flex flex-wrap items-end gap-4 p-5" aria-label="Choose a period">
           <div className="min-w-0 flex-[1_1_200px]">

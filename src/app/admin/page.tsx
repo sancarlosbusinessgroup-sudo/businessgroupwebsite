@@ -97,8 +97,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Admin</h1>
-        <HowThisWorks tab="/admin" />
         <AdminNav current="/admin" />
+        <HowThisWorks tab="/admin" />
         {atLimit.length ? (
           <Notice tone="error">
             {atLimit.length === 1 ? '1 member has' : `${atLimit.length} members have`} reached the absence limit ({ABSENCE_LIMIT} missed meetings in 6 months):{' '}

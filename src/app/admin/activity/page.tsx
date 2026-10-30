@@ -51,11 +51,10 @@ export default async function AdminActivityPage() {
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Member activity</h1>
-        <HowThisWorks tab="/admin/activity" />
         <AdminNav current="/admin/activity" />
-        <p className="text-ink-muted m-0 max-w-[760px]">
+        <HowThisWorks tab="/admin/activity">
           Referral slips, one-on-ones and member events, newest first. Delete a duplicate or a mistake here; it is removed for everyone and from the stats.
-        </p>
+        </HowThisWorks>
 
         <section className="card flex flex-col gap-3 p-5" aria-labelledby="refs-h">
           <h2 id="refs-h" className="font-display m-0 text-xl font-extrabold">

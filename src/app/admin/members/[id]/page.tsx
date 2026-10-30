@@ -91,8 +91,8 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
             {p.status === 'approved' ? <Link href={`/members/${p.slug}`}>public profile</Link> : <span>not listed ({p.status})</span>}
           </p>
         </div>
-        <HowThisWorks tab="/admin/members" />
         <AdminNav current="/admin/members" />
+        <HowThisWorks tab="/admin/members" />
         {isSelf ? <Notice tone="info">This is your own profile. Changes you make here are not written to the change history.</Notice> : null}
 
         <div className="flex flex-wrap items-start gap-5">

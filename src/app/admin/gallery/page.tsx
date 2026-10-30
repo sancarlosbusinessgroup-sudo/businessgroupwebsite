@@ -28,12 +28,11 @@ export default async function AdminGalleryPage() {
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Gallery</h1>
-        <HowThisWorks tab="/admin/gallery" />
         <AdminNav current="/admin/gallery" />
-        <p className="text-ink-muted m-0 max-w-[760px]">
+        <HowThisWorks tab="/admin/gallery">
           Every photo members have uploaded, newest first. Fix a caption, move a photo to another album, or remove it. Members upload photos on the{' '}
           <Link href="/gallery">Gallery page</Link>.
-        </p>
+        </HowThisWorks>
         {photos.length === 0 ? (
           <EmptyState title="No photos yet" />
         ) : (

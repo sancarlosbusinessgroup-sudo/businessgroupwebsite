@@ -85,9 +85,8 @@ export default async function AdminHistoryPage({ searchParams }: { searchParams:
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Change history</h1>
-        <HowThisWorks tab="/admin/history" />
         <AdminNav current="/admin/history" />
-        <p className="text-ink-muted m-0 max-w-[760px]">
+        <HowThisWorks tab="/admin/history">
           Every change an admin makes to another member&apos;s profile, slots, events, photos or activity records: who, what, before and after. Members
           can&apos;t see this. Changes members make to their own data are not listed.
           {member ? (
@@ -96,7 +95,7 @@ export default async function AdminHistoryPage({ searchParams }: { searchParams:
               Showing one member: <Link href="/admin/history">show everyone</Link>.
             </>
           ) : null}
-        </p>
+        </HowThisWorks>
         {rows.length === 0 ? (
           <EmptyState title="No changes recorded yet">Admin edits will appear here as they happen.</EmptyState>
         ) : (

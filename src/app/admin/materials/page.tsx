@@ -34,8 +34,8 @@ export default async function AdminMaterialsPage() {
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Presentation materials</h1>
-        <HowThisWorks tab="/admin/materials" />
         <AdminNav current="/admin/materials" />
+        <HowThisWorks tab="/admin/materials" />
 
         <section className="card flex flex-col gap-3 p-[22px]" aria-labelledby="space-h">
           <h2 id="space-h" className="font-display m-0 text-[22px] font-extrabold">
