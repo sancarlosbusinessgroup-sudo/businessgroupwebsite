@@ -80,6 +80,7 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
     summary: "The month's ranking by points, the automatic pick, and where you confirm the champion or choose someone else with a reason.",
     steps: [
       'Points per month: 1 for each referral given, 1 for each one-on-one done (once per pair of members), 1 for each meeting attended and 1 for each visitor brought who attended.',
+      'From January 2027 also: 1 point for a 5-minute presentation, 2 for a 10-minute presentation, and 1 for attending every meeting of the month (perfect attendance).',
       'To qualify, a member must attend at least 75% of the month’s meetings that had attendance taken.',
       'The top qualifying member is the automatic pick. Ties go to more closed business, then more referrals.',
       'You can confirm the automatic pick or choose someone else with a reason. The champion gets a badge on their profile and directory card, and appears on the BARP Champion slide.',

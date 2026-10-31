@@ -507,6 +507,58 @@ export function visitorFollowupEmail(o: { siteUrl: string; firstName: string }):
   };
 }
 
+/** Guest follow-up survey (owner meeting 2026-10-30): sent with the visitor follow-up, on top of it. */
+export function guestSurveyEmail(o: { siteUrl: string; firstName: string; link: string }): Email {
+  return {
+    subject: `Quick question about your visit to ${site.name}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: 'Five short questions, about a minute.',
+      heading: `How was the meeting, ${o.firstName}?`,
+      blocks: [
+        { p: 'We’d love to hear what you thought. It’s five short questions and takes about a minute.' },
+        { p: 'Are you coming back? Interested in joining? What was most interesting? Who would you like a one-on-one with?' },
+      ],
+      cta: { label: 'Answer the survey', href: o.link },
+      footer: `You get this email because you visited ${site.name}.`,
+    }),
+  };
+}
+
+const answerLabel = (v: string | null) => (v === 'yes' ? 'Yes' : v === 'maybe' ? 'Maybe' : v === 'no' ? 'No' : '—');
+
+/** A guest answered the survey: to admins and the member who invited them. */
+export function guestSurveyAnswerEmail(o: {
+  siteUrl: string;
+  toFirstName: string;
+  guestName: string;
+  guestBusiness: string | null;
+  comingBack: string | null;
+  interestedInJoining: string | null;
+  mostInteresting: string | null;
+  oneOnOneWith: string | null;
+  comments: string | null;
+}): Email {
+  const list: [string, string][] = [
+    ['Coming back?', answerLabel(o.comingBack)],
+    ['Interested in joining?', answerLabel(o.interestedInJoining)],
+    ['Most interesting part', o.mostInteresting || '—'],
+    ['Would like a one-on-one with', o.oneOnOneWith || '—'],
+  ];
+  if (o.comments) list.push(['Anything else', o.comments]);
+  return {
+    subject: `Survey answers from ${o.guestName}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: `${o.guestName} answered the visitor survey.`,
+      heading: `${o.guestName} answered the visitor survey`,
+      blocks: [{ p: `Hi ${o.toFirstName}, here is what ${o.guestName}${o.guestBusiness ? ` (${o.guestBusiness})` : ''} said about the meeting.` }, { list }],
+      cta: { label: 'Open the guest list', href: `${o.siteUrl}/admin#guests` },
+      footer: `You get this email because you are an admin of ${site.name} or invited this guest.`,
+    }),
+  };
+}
+
 export function memberFollowupEmail(o: { siteUrl: string; toFirstName: string; guests: string[] }): Email {
   return {
     subject: o.guests.length === 1 ? `Follow up with your guest ${o.guests[0]}` : `Follow up with your ${o.guests.length} guests`,

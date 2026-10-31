@@ -2,6 +2,7 @@
 // Every email it sends is de-duplicated in email_log, so running it twice in a day is harmless.
 import 'server-only';
 
+import { randomBytes } from 'node:crypto';
 import { formatMeetingDate, formatMeetingTime, formatMoney, formatShortDate, localDateKey } from '../dates';
 import { createAdminClient } from '../supabase/admin';
 import { deliver, loadAdmins, loadOptOuts, loadRecipients, siteUrl } from './notify';
@@ -15,6 +16,7 @@ export type DailyReport = {
   meetingReminders: number;
   presentationReminders: number;
   visitorFollowups: number;
+  guestSurveys: number;
   memberFollowups: number;
   onboardingReminders: number;
   digests: number;
@@ -32,6 +34,7 @@ export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
     meetingReminders: 0,
     presentationReminders: 0,
     visitorFollowups: 0,
+    guestSurveys: 0,
     memberFollowups: 0,
     onboardingReminders: 0,
     digests: 0,
@@ -172,6 +175,7 @@ export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
       email: T.visitorFollowupEmail({ siteUrl: url, firstName: g.first_name }),
     });
     report.visitorFollowups += count(s);
+    report.guestSurveys += count(await sendGuestSurvey(g, url));
     if (s === 'sent' && g.referrer_id) byReferrer.set(g.referrer_id, [...(byReferrer.get(g.referrer_id) ?? []), `${g.first_name} ${g.last_name}`]);
   }
   if (byReferrer.size) {
@@ -377,4 +381,22 @@ export async function runManagementRecaps(now: Date = new Date()): Promise<numbe
     }
   }
   return sent;
+}
+
+/**
+ * Guest follow-up survey (owner meeting 2026-10-30): one per guest, a separate email on top of the visitor follow-up.
+ * The survey row (with its random link token) is created once; the email is de-duplicated per guest in email_log.
+ */
+export async function sendGuestSurvey(g: { id: string; first_name: string; last_name: string; email: string }, url: string) {
+  const db = createAdminClient();
+  if (!db) return 'skipped' as const;
+  await db.from('guest_surveys').upsert({ guest_id: g.id, token: randomBytes(24).toString('base64url') }, { onConflict: 'guest_id', ignoreDuplicates: true });
+  const { data: survey } = await db.from('guest_surveys').select('token, answered_at').eq('guest_id', g.id).maybeSingle();
+  if (!survey || survey.answered_at) return 'skipped' as const;
+  return deliver({
+    kind: 'guest_survey',
+    dedupeKey: g.id,
+    to: { email: g.email, name: `${g.first_name} ${g.last_name}` },
+    email: T.guestSurveyEmail({ siteUrl: url, firstName: g.first_name, link: `${url}/guest-survey/${survey.token}` }),
+  });
 }

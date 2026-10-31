@@ -19,6 +19,7 @@ import {
   oneOnOneRequestSchema,
   oneOnOneRequestStatuses,
   oneOnOneSchema,
+  birthdayErrors,
   profileSchema,
   referralSchema,
   referralUpdateSchema,
@@ -275,11 +276,16 @@ export async function updateProfile(_prev: ActionState, formData: FormData): Pro
   const parsed = profileSchema.safeParse(values);
   if (!parsed.success) return { status: 'error', message: 'Please fix the highlighted fields.', errors: fieldErrors(parsed.error), values };
   const d = parsed.data;
+  const bErr = birthdayErrors(d);
+  if (bErr) return { status: 'error', message: 'Please fix the highlighted fields.', errors: bErr, values };
   const { supabase, user } = await session();
   if (!user) return { status: 'error', message: 'Please log in again.' };
   const { error } = await supabase
     .from('profiles')
     .update({
+      second_business_name: d.secondBusinessName ?? null,
+      birthday_month: d.birthdayMonth,
+      birthday_day: d.birthdayDay,
       first_name: d.firstName,
       last_name: d.lastName,
       business_name: d.businessName,

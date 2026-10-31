@@ -32,7 +32,7 @@ export async function getChampionRanking(month: string, db?: Db): Promise<{ rows
     client.from('profiles').select('referred_by').not('referred_by', 'is', null).gte('approved_at', from).lt('approved_at', to),
     client
       .from('meetings')
-      .select('id, attendance_imports(status), meeting_speakers(profile_id)')
+      .select('id, attendance_imports(status), meeting_speakers(profile_id, slot)')
       .eq('category', 'Networking')
       .is('cancelled_reason', null)
       .gte('starts_at', from)
@@ -72,7 +72,8 @@ export async function getChampionRanking(month: string, db?: Db): Promise<{ rows
     joined: joinedRes.data ?? [],
     meetingsTaken: taken.length,
     attendance: att ?? [],
-    presentations: meetings.flatMap((m) => (m.meeting_speakers ?? []) as { profile_id: string | null }[]),
+    presentations: meetings.flatMap((m) => (m.meeting_speakers ?? []) as { profile_id: string | null; slot: string | null }[]),
+    month,
   });
   return { rows, auto: autoChampion(rows), meetingsTaken: taken.length };
 }

@@ -128,11 +128,12 @@ export const visitTips = [
   "Bring any events or promos you'd like to share during the closing round.",
 ];
 
+/** Visit page steps, aligned with the Home steps the group reworded (owner, 2026-11-01). */
 export const joinSteps = [
   { title: 'Get invited', text: 'Through a member, or request an invite below.' },
-  { title: 'Attend as a guest', text: 'Up to two meetings. No membership fees.' },
+  { title: 'Visit up to twice as a guest', text: 'Attend up to two meetings, then submit your application.' },
   { title: '3 one-on-ones', text: 'With three Membership Committee members, then the committee reviews your application.' },
-  { title: 'Join & grow', text: 'Mutual fit? Welcome aboard.' },
+  { title: 'Connect & grow', text: 'Keep having one-on-ones with your fellow referral partners and grow your business by referral.' },
 ];
 
 /** Agreement terms from the Member Application Form. */
@@ -239,3 +240,7 @@ export const supportFaq = [
     a: 'Use “Request an invite” at the top of any page. The Membership Committee will be in touch about the next meeting.',
   },
 ] as const;
+
+/** "Vabrato Real Estate | Fedora Fiduciary": business name plus the optional second business (owner meeting 2026-10-30). */
+export const businessLine = (p: { business_name: string; second_business_name?: string | null }) =>
+  p.second_business_name ? `${p.business_name} | ${p.second_business_name}` : p.business_name;

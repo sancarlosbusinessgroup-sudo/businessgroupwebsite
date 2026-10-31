@@ -253,6 +253,10 @@ test.describe('email notifications', () => {
       const next = await (await request.get('/api/cron/daily?now=2027-03-02T15:00:00Z', { headers: auth })).json();
       expect(next.visitorFollowups).toBe(1);
       expect(await emailsTo(guestEmail, /^Thanks for visiting/)).toHaveLength(1);
+      // Owner meeting 2026-10-30: the guest also gets the short survey, as its own email with a private link.
+      expect(next.guestSurveys).toBe(1);
+      const [survey] = await emailsTo(guestEmail, /^Quick question about your visit/);
+      expect(survey?.htmlContent).toMatch(/\/guest-survey\/[A-Za-z0-9_-]{32}/);
 
       // Running again sends nothing new.
       const again = await (await request.get('/api/cron/daily?now=2027-03-01T15:30:00Z', { headers: auth })).json();

@@ -7,7 +7,7 @@ import { getCategories, getDirectory, getMemberCount } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
 import { filterDirectory, paginate } from '@/lib/directory';
 import { mediaUrl } from '@/lib/env';
-import { barpSheetUrl, site } from '@/lib/content';
+import { barpSheetUrl, businessLine, site } from '@/lib/content';
 import { ChampionBadge } from '@/components/ChampionBadge';
 import { getActivityPoints, getCurrentChampion } from '@/lib/data/champion';
 
@@ -203,7 +203,7 @@ function MemberCard({
             {name}
           </Link>
         </h2>
-        <span className="text-heading text-[15px] font-semibold">{p.business_name}</span>
+        <span className="text-heading text-[15px] font-semibold">{businessLine(p)}</span>
         {p.weekly_ask ? (
           <p className="bg-teal-tint text-heading m-0 rounded-lg px-2.5 py-1.5 text-[14px]">
             <span className="text-teal-hover font-bold">Looking for: </span>

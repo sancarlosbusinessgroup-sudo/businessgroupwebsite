@@ -44,7 +44,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     supabase
       .from('guest_requests')
       .select(
-        'id, first_name, last_name, email, business_name, business_description, phone, website, invited_by_text, status, created_at, one_on_ones_done_at, source',
+        'id, first_name, last_name, email, business_name, business_description, phone, website, invited_by_text, status, created_at, one_on_ones_done_at, source, guest_surveys(answered_at, coming_back, interested_in_joining, most_interesting, one_on_one_with, comments)',
       )
       .order('created_at', { ascending: false })
       .limit(50),
@@ -264,7 +264,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <CopySignInLink url={`${env.siteUrl}${visitorSignInPath}`} />
         </section>
 
-        <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="gr-h">
+        <section id="guests" className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="gr-h">
           <h2 id="gr-h" className="font-display m-0 text-[22px] font-extrabold">
             Guest invite requests
           </h2>
@@ -307,6 +307,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                             <p className="m-0 mt-1 max-w-[36ch] whitespace-pre-line">{g.business_description}</p>
                           </details>
                         ) : null}
+                        <SurveyAnswers survey={g.guest_surveys} />
                         {g.website ? (
                           <div className="text-sm">
                             <a href={g.website} target="_blank" rel="noopener noreferrer">
@@ -607,5 +608,55 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </section>
       </div>
     </div>
+  );
+}
+
+type Survey = {
+  answered_at: string | null;
+  coming_back: string | null;
+  interested_in_joining: string | null;
+  most_interesting: string | null;
+  one_on_one_with: string | null;
+  comments: string | null;
+};
+
+/** Guest follow-up survey answers (owner meeting 2026-10-30), under the guest's name. */
+function SurveyAnswers({ survey }: { survey: Survey | Survey[] | null }) {
+  const s = Array.isArray(survey) ? survey[0] : survey;
+  if (!s) return null;
+  if (!s.answered_at) return <div className="text-ink-muted text-sm">Survey sent, no answer yet</div>;
+  const yn = (v: string | null) => (v === 'yes' ? 'Yes' : v === 'maybe' ? 'Maybe' : v === 'no' ? 'No' : '—');
+  return (
+    <details className="text-sm">
+      <summary className="cursor-pointer font-semibold">Survey answers</summary>
+      <dl className="m-0 mt-1 flex max-w-[36ch] flex-col gap-1">
+        <div>
+          <dt className="inline font-semibold">Coming back: </dt>
+          <dd className="inline">{yn(s.coming_back)}</dd>
+        </div>
+        <div>
+          <dt className="inline font-semibold">Interested in joining: </dt>
+          <dd className="inline">{yn(s.interested_in_joining)}</dd>
+        </div>
+        {s.most_interesting ? (
+          <div>
+            <dt className="font-semibold">Most interesting</dt>
+            <dd className="m-0 whitespace-pre-line">{s.most_interesting}</dd>
+          </div>
+        ) : null}
+        {s.one_on_one_with ? (
+          <div>
+            <dt className="font-semibold">One-on-one with</dt>
+            <dd className="m-0">{s.one_on_one_with}</dd>
+          </div>
+        ) : null}
+        {s.comments ? (
+          <div>
+            <dt className="font-semibold">Anything else</dt>
+            <dd className="m-0 whitespace-pre-line">{s.comments}</dd>
+          </div>
+        ) : null}
+      </dl>
+    </details>
   );
 }

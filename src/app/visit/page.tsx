@@ -32,7 +32,7 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
         title={`Come visit ${site.name}`}
         lead={
           <>
-            You&apos;re welcome to attend up to <strong>two meetings as a guest</strong>, with no membership fees. No pressure, just connection.
+            You&apos;re welcome to attend up to <strong>two meetings as a guest</strong>. No pressure, just connection.
           </>
         }
       >

@@ -55,6 +55,36 @@ describe('BARP Champion scoring', () => {
     });
   });
 
+  it('from January 2027 adds presentation points (5-minute 1, 10-minute 2) and 1 for perfect attendance (owner meeting 2026-10-30)', () => {
+    const input: ChampionInput = {
+      ...base,
+      meetingsTaken: 2,
+      attendance: [
+        { profile_id: 'a', status: 'present', substitute: false },
+        { profile_id: 'a', status: 'present', substitute: false },
+        { profile_id: 'b', status: 'present', substitute: false },
+        { profile_id: 'b', status: 'present', substitute: true },
+      ],
+      presentations: [
+        { profile_id: 'a', slot: 'presentation' },
+        { profile_id: 'b', slot: 'education' },
+      ],
+    };
+    // December 2026: old rules, meetings only. Ana 2, Bob 1 (the substitute earns nothing).
+    expect(scoreChampion({ ...input, month: '2026-12' }).map((r) => [r.name, r.points])).toEqual([
+      ['Ana', 2],
+      ['Bob', 1],
+    ]);
+    // January 2027: Ana 2 meetings + 10-minute (2) + perfect attendance (1) = 5; Bob 1 meeting + 5-minute (1) = 2 (a substitute isn't perfect attendance).
+    const jan = scoreChampion({ ...input, month: '2027-01' });
+    expect(jan.map((r) => [r.name, r.points])).toEqual([
+      ['Ana', 5],
+      ['Bob', 2],
+    ]);
+    expect(jan[0]).toMatchObject({ presentationPoints: 2, perfectAttendance: true });
+    expect(jan[1]).toMatchObject({ presentationPoints: 1, perfectAttendance: false });
+  });
+
   it('counts a one-on-one once per pair per month', () => {
     const rows = scoreChampion({
       ...base,

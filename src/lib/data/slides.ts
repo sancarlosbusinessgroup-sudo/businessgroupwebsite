@@ -46,6 +46,8 @@ export type DeckData = {
   next: (MeetingWithSpeakers & { five: SpeakerCard | null; ten: SpeakerCard | null }) | null;
   /** BARP Champion slide: the chosen champion (this month's, else last month's) at every meeting; otherwise this month's leaders so far. */
   champion: { award: ChampionAward | null; monthLabel: string; leaders: { id: string; name: string; points: number; avatar: string | null }[] };
+  /** Members whose birthday is in the meeting's month (owner meeting 2026-10-30): a slide before the BARP Champion. */
+  birthdays: { id: string; name: string; day: number; avatar: string | null }[];
 };
 
 function fail(what: string, error: { message: string } | null): never {
@@ -91,31 +93,39 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
   // Photos for today's presenters and the next meeting's (shown on the closing slide).
   const nextSpeakers = ((nextRes.data as MeetingWithSpeakers | null)?.meeting_speakers ?? []) as Speaker[];
   const speakerIds = [...meeting.meeting_speakers, ...nextSpeakers].map((s) => s.profile_id).filter((x): x is string => !!x);
-  const [visitorsRes, newRes, asksRes, avatarsRes, seats, cycleT, monthT, yearT, leaders, groupEvents, memberEvents, leadership] = await Promise.all([
-    supabase.rpc('meeting_visitors', { p_meeting: meeting.id }),
-    supabase
-      .from('profiles')
-      .select('first_name, last_name, business_name')
-      .eq('status', 'approved')
-      .gte('approved_at', prevStart)
-      .lte('approved_at', start)
-      .order('first_name'),
-    supabase
-      .from('profiles')
-      .select('first_name, last_name, business_name, weekly_ask')
-      .eq('status', 'approved')
-      .not('weekly_ask', 'is', null)
-      .order('first_name'),
-    speakerIds.length ? supabase.from('profiles').select('id, avatar_path').in('id', speakerIds) : Promise.resolve({ data: [], error: null }),
-    getCategorySeats(),
-    getGroupTotals(cycle),
-    getGroupTotals(periodRange({ period: 'month' })),
-    getGroupTotals(periodRange({ period: 'year' })),
-    getLeaderboard(periodRange({ period: 'month' })),
-    getUpcomingMeetings(12),
-    getUpcomingMemberEvents(12),
-    getLeadership(),
-  ]);
+  const meetingMonth = Number(meetingDay.slice(5, 7));
+  const [visitorsRes, newRes, asksRes, avatarsRes, seats, cycleT, monthT, yearT, leaders, groupEvents, memberEvents, leadership, birthdaysRes] =
+    await Promise.all([
+      supabase.rpc('meeting_visitors', { p_meeting: meeting.id }),
+      supabase
+        .from('profiles')
+        .select('first_name, last_name, business_name')
+        .eq('status', 'approved')
+        .gte('approved_at', prevStart)
+        .lte('approved_at', start)
+        .order('first_name'),
+      supabase
+        .from('profiles')
+        .select('first_name, last_name, business_name, weekly_ask')
+        .eq('status', 'approved')
+        .not('weekly_ask', 'is', null)
+        .order('first_name'),
+      speakerIds.length ? supabase.from('profiles').select('id, avatar_path').in('id', speakerIds) : Promise.resolve({ data: [], error: null }),
+      getCategorySeats(),
+      getGroupTotals(cycle),
+      getGroupTotals(periodRange({ period: 'month' })),
+      getGroupTotals(periodRange({ period: 'year' })),
+      getLeaderboard(periodRange({ period: 'month' })),
+      getUpcomingMeetings(12),
+      getUpcomingMemberEvents(12),
+      getLeadership(),
+      supabase
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_path, birthday_day')
+        .eq('status', 'approved')
+        .eq('birthday_month', meetingMonth)
+        .order('birthday_day'),
+    ]);
   if (visitorsRes.error || newRes.error || asksRes.error || avatarsRes.error) fail('the slides', visitorsRes.error ?? newRes.error ?? asksRes.error);
 
   const avatar = new Map((avatarsRes.data ?? []).map((a) => [a.id, a.avatar_path]));
@@ -194,6 +204,12 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     leaders,
     events,
     champion,
+    birthdays: (birthdaysRes.data ?? []).map((b) => ({
+      id: b.id,
+      name: `${b.first_name} ${b.last_name}`,
+      day: b.birthday_day ?? 1,
+      avatar: b.avatar_path,
+    })),
     next: next
       ? {
           ...next,

@@ -11,6 +11,13 @@ export const CHAMPION_POINTS = {
   visitor: 1,
 } as const;
 
+/**
+ * From January 2027 (owner meeting 2026-10-30): presentations and perfect attendance score too.
+ * 5-minute presentation 1 point, 10-minute presentation 2 points, every meeting of the month attended 1 point.
+ */
+export const CHAMPION_2027_FROM = '2027-01';
+export const CHAMPION_2027_POINTS = { fiveMinute: 1, tenMinute: 2, perfectAttendance: 1 } as const;
+
 /** Members must attend at least this share of the month's meetings (where attendance was taken) to qualify. */
 export const CHAMPION_MIN_ATTENDANCE = 0.75;
 
@@ -30,8 +37,10 @@ export type ChampionInput = {
   meetingsTaken: number;
   /** Attendance rows for those meetings. */
   attendance: { profile_id: string; status: string; substitute: boolean }[];
-  /** Presentations (5- or 10-minute) given at meetings in the month. */
-  presentations: { profile_id: string | null }[];
+  /** Presentations (5- or 10-minute) given at meetings in the month. `slot`: 'education' = 5-minute, 'presentation' = 10-minute. */
+  presentations: { profile_id: string | null; slot?: string | null }[];
+  /** "2026-10": the month being scored. Presentation and perfect-attendance points apply from CHAMPION_2027_FROM. */
+  month?: string;
 };
 
 export type ChampionRow = {
@@ -47,6 +56,10 @@ export type ChampionRow = {
   meetings: number;
   substitutes: number;
   presentations: number;
+  /** Points from presentations (5-minute 1, 10-minute 2), from January 2027. */
+  presentationPoints: number;
+  /** Attended every meeting of the month that had attendance taken (from January 2027 worth a point). */
+  perfectAttendance: boolean;
   attendanceShare: number | null;
   eligible: boolean;
 };
@@ -68,6 +81,8 @@ export function scoreChampion(input: ChampionInput): ChampionRow[] {
         meetings: 0,
         substitutes: 0,
         presentations: 0,
+        presentationPoints: 0,
+        perfectAttendance: false,
         attendanceShare: null,
         eligible: true,
       },
@@ -112,14 +127,24 @@ export function scoreChampion(input: ChampionInput): ChampionRow[] {
     if (a.status === 'present' && a.substitute) row.substitutes++;
     else if (a.status === 'present') row.meetings++;
   }
+  const newRules = !!input.month && input.month >= CHAMPION_2027_FROM;
+  const P27 = CHAMPION_2027_POINTS;
   for (const p of input.presentations) {
     const row = get(p.profile_id);
-    if (row) row.presentations++;
+    if (!row) continue;
+    row.presentations++;
+    if (newRules) row.presentationPoints += p.slot === 'presentation' ? P27.tenMinute : P27.fiveMinute;
   }
 
   const P = CHAMPION_POINTS;
   for (const row of rows.values()) {
-    row.points = row.referrals * P.referral + row.oneOnOnes * P.oneOnOne + row.meetings * P.meeting + row.visitors * P.visitor;
+    row.perfectAttendance = input.meetingsTaken > 0 && row.meetings >= input.meetingsTaken;
+    row.points =
+      row.referrals * P.referral +
+      row.oneOnOnes * P.oneOnOne +
+      row.meetings * P.meeting +
+      row.visitors * P.visitor +
+      (newRules ? row.presentationPoints + (row.perfectAttendance ? P27.perfectAttendance : 0) : 0);
     if (input.meetingsTaken > 0) {
       row.attendanceShare = (row.meetings + row.substitutes) / input.meetingsTaken;
       row.eligible = row.attendanceShare >= CHAMPION_MIN_ATTENDANCE;

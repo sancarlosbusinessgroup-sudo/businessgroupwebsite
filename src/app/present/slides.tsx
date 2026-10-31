@@ -223,6 +223,27 @@ function Hero({ ctx, kicker, title, children }: { ctx: Ctx; kicker: string; titl
   );
 }
 
+/** Three party balloons for the birthday slide (decorative). */
+function Balloons() {
+  const colors = ['#f472b6', '#38bdf8', '#fbbf24'];
+  return (
+    <svg viewBox="0 0 120 90" style={{ width: '14cqw', height: '10.5cqw' }} aria-hidden="true">
+      {colors.map((c, i) => {
+        const x = 30 + i * 30;
+        const y = i === 1 ? 26 : 32;
+        return (
+          <g key={c}>
+            <path d={`M${x} ${y + 18} q 4 18 -2 40`} stroke="#94a3b8" strokeWidth="1.2" fill="none" />
+            <ellipse cx={x} cy={y} rx="14" ry="18" fill={c} />
+            <ellipse cx={x - 5} cy={y - 7} rx="3.5" ry="5" fill="white" opacity="0.5" />
+            <path d={`M${x - 3} ${y + 18} h6 l-3 4 z`} fill={c} />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 function Face({ name, path, size = 12, square = false }: { name: string; path: string | null; size?: number; square?: boolean }) {
   const url = mediaUrl('profile-media', path);
   return (
@@ -808,6 +829,40 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       }
       case 'champion': {
+        // Owner meeting 2026-10-30: before the BARP Champion, wish this month's birthdays a happy birthday (with a balloon).
+        // Not a slide of its own in the deck settings: it appears whenever someone has a birthday in the meeting's month.
+        if (d.birthdays.length) {
+          const monthName = new Date(d.meeting.starts_at).toLocaleString('en-US', { month: 'long', timeZone: 'America/Los_Angeles' });
+          specs.push({
+            id: 'birthdays',
+            label: 'Happy birthday',
+            render: (ctx) => (
+              <Page ctx={ctx} title="Happy birthday!" center>
+                <div className="flex flex-col items-center gap-[2cqw]">
+                  <Balloons />
+                  <p className="font-display m-0 text-[2cqw] font-bold tracking-[0.18em] uppercase" style={{ color: BLUE }}>
+                    Celebrating in {monthName}
+                  </p>
+                  <ul className="m-0 flex list-none flex-wrap justify-center gap-[2.4cqw] p-0">
+                    {d.birthdays.map((b) => (
+                      <li key={b.id} className="flex flex-col items-center gap-[0.8cqw]">
+                        <span className="rounded-full shadow-[0_0.5cqw_1.6cqw_rgba(18,52,110,0.22)] ring-[0.35cqw] ring-[#f472b6]">
+                          <Face name={b.name} path={b.avatar} size={10} />
+                        </span>
+                        <span className="font-display text-[2.4cqw] leading-tight font-extrabold" style={{ color: NAVY }}>
+                          {b.name}
+                        </span>
+                        <span className="text-[1.6cqw] font-semibold" style={{ color: MUTED }}>
+                          {monthName.slice(0, 3)} {b.day}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Page>
+            ),
+          });
+        }
         // BARP Champion (owner, 2026-10-23/24): the chosen champion at every meeting (this month's, else last month's), otherwise the leaders so far.
         const c = d.champion;
         const award = c.award;

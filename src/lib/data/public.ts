@@ -93,14 +93,28 @@ export const getCategories = shared('getCategories', ['categories'], async (): P
 
 export type DirectoryMember = Pick<
   Tables<'profiles'>,
-  'id' | 'slug' | 'first_name' | 'last_name' | 'business_name' | 'about' | 'logo_path' | 'avatar_path' | 'approved_at' | 'city' | 'website' | 'weekly_ask'
+  | 'id'
+  | 'slug'
+  | 'first_name'
+  | 'last_name'
+  | 'business_name'
+  | 'second_business_name'
+  | 'about'
+  | 'logo_path'
+  | 'avatar_path'
+  | 'approved_at'
+  | 'city'
+  | 'website'
+  | 'weekly_ask'
 > & { categories: { name: string } | null };
 
 export const getDirectory = shared('getDirectory', ['directory'], async (): Promise<DirectoryMember[]> => {
   const supabase = publicClient();
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, slug, first_name, last_name, business_name, about, logo_path, avatar_path, approved_at, city, website, weekly_ask, categories(name)')
+    .select(
+      'id, slug, first_name, last_name, business_name, second_business_name, about, logo_path, avatar_path, approved_at, city, website, weekly_ask, categories(name)',
+    )
     .eq('status', 'approved')
     .eq('show_in_directory', true)
     .order('business_name');
@@ -111,7 +125,7 @@ export const getDirectory = shared('getDirectory', ['directory'], async (): Prom
 // Only the columns a public profile page shows. Visitors are granted exactly these (column grants, 2026-10-28);
 // a `select *` here would fail for them.
 export const PUBLIC_PROFILE_COLUMNS =
-  'id, slug, first_name, last_name, business_name, category_id, city, service_area, about, ideal_client, listen_for, services, website, logo_path, avatar_path, approved_at, member_since, weekly_ask, weekly_ask_updated_at, show_in_directory, show_phone_public, status, role, created_at';
+  'id, slug, first_name, last_name, business_name, second_business_name, category_id, city, service_area, about, ideal_client, listen_for, services, website, logo_path, avatar_path, approved_at, member_since, weekly_ask, weekly_ask_updated_at, show_in_directory, show_phone_public, status, role, created_at';
 
 export type PublicProfile = Pick<
   Tables<'profiles'>,
@@ -120,6 +134,7 @@ export type PublicProfile = Pick<
   | 'first_name'
   | 'last_name'
   | 'business_name'
+  | 'second_business_name'
   | 'category_id'
   | 'city'
   | 'service_area'

@@ -3,7 +3,7 @@ import { AdminNav } from '@/components/AdminNav';
 import { HowThisWorks } from '@/components/HowThisWorks';
 import { EmptyState } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
-import { CHAMPION_MIN_ATTENDANCE, CHAMPION_POINTS, monthOf, monthRange, previousMonth } from '@/lib/champion';
+import { CHAMPION_2027_POINTS, CHAMPION_MIN_ATTENDANCE, CHAMPION_POINTS, monthOf, monthRange, previousMonth } from '@/lib/champion';
 import { getChampionAwards, getChampionRanking } from '@/lib/data/champion';
 import { formatMoney } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
@@ -33,6 +33,7 @@ export default async function AdminChampionPage({ searchParams }: { searchParams
     return m;
   });
   const P = CHAMPION_POINTS;
+  const P27 = CHAMPION_2027_POINTS;
 
   return (
     <div className="bg-canvas">
@@ -41,9 +42,10 @@ export default async function AdminChampionPage({ searchParams }: { searchParams
         <AdminNav current="/admin/champion" />
         <HowThisWorks tab="/admin/champion">
           Points per month: {P.referral} point for each referral given, {P.oneOnOne} for each one-on-one done (once per pair), {P.meeting} for each meeting
-          attended and {P.visitor} for each visitor brought who attended. Nothing else earns points. To qualify, a member attends at least{' '}
-          {Math.round(CHAMPION_MIN_ATTENDANCE * 100)}% of the month’s meetings (a substitute counts for this, but earns no point). Ties go to more closed
-          business, then more referrals.
+          attended and {P.visitor} for each visitor brought who attended. From January 2027 also {P27.fiveMinute} for a 5-minute presentation, {P27.tenMinute}{' '}
+          for a 10-minute presentation and {P27.perfectAttendance} for perfect attendance in the month. Nothing else earns points. To qualify, a member attends
+          at least {Math.round(CHAMPION_MIN_ATTENDANCE * 100)}% of the month’s meetings (a substitute counts for this, but earns no point). Ties go to more
+          closed business, then more referrals.
         </HowThisWorks>
 
         <form action="/admin/champion" className="card flex flex-wrap items-end gap-3 p-5" aria-label="Choose a month">

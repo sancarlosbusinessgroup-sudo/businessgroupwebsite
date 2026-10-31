@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { PublicProfile } from '@/lib/data/public';
+import { businessLine } from '@/lib/content';
 import { mediaUrl } from '@/lib/env';
 import { isSupportStaff } from '@/lib/people';
 import { ChampionBadge, ChampionRosette } from './ChampionBadge';
@@ -44,7 +45,7 @@ export function ProfileView({ profile: p, contact, champion }: Props) {
           </span>
           <div className="min-w-0 flex-[1_1_300px] pb-1.5 [text-shadow:0_1px_10px_rgb(0_0_0/0.55)]">
             <h1 className="font-display m-0 text-[32px] font-extrabold text-white">{name}</h1>
-            <p className="m-0 text-lg font-semibold text-white">{p.business_name}</p>
+            <p className="m-0 text-lg font-semibold text-white">{businessLine(p)}</p>
             <p className="m-0 text-[15px] text-white/90">{[p.categories?.name, p.city].filter(Boolean).join(' · ')}</p>
             {champion?.current ? <ChampionBadge month={champion.current} className="mt-2" /> : null}
             {champion && champion.past.filter((m) => m !== champion.current).length ? (

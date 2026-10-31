@@ -34,18 +34,29 @@ test('the private note on a one-on-one report is shown only to the member who wr
 test('BARP Champion: ranking, override needs a reason, badge on profile and directory, slide with fireworks', async ({ page }) => {
   const me = await idOf(users.member);
   const other = await idOf(users.member2);
+  const month = new Date().toLocaleString('en-CA', { year: 'numeric', month: '2-digit', timeZone: 'America/Los_Angeles' }).slice(0, 7);
+  // Other tests in a full run may already have given the member points this month (referrals, one-on-ones, visitors
+  // brought since 2026-10-30), so measure the score first and check the two new referrals add exactly 2.
+  await login(page, users.admin, undefined, `/admin/champion?m=${month}`);
+  const pointsCell = () =>
+    page
+      .getByRole('table', { name: /Points per member/ })
+      .getByRole('row')
+      .filter({ hasText: 'Morgan Member' })
+      .getByRole('cell')
+      .nth(1);
+  const before = (await pointsCell().count()) ? Number(await pointsCell().textContent()) : 0;
   // Give the test member points this month: two referral slips (2 points: 1 per referral since 2026-10-30; was 10).
   const made = [
     ...(await rest('referrals', 'POST', { from_id: me, to_id: other, contact_name: 'Champion Prospect A' })),
     ...(await rest('referrals', 'POST', { from_id: me, to_id: other, contact_name: 'Champion Prospect B' })),
   ];
-  const month = new Date().toLocaleString('en-CA', { year: 'numeric', month: '2-digit', timeZone: 'America/Los_Angeles' }).slice(0, 7);
   try {
-    await login(page, users.admin, undefined, `/admin/champion?m=${month}`);
+    await page.goto(`/admin/champion?m=${month}`);
     await expect(page.getByRole('heading', { level: 1, name: 'BARP Champion' })).toBeVisible();
     const ranking = page.getByRole('table', { name: /Points per member/ });
     // Cells: rank, Points, Referrals… (the member's name is the row header).
-    await expect(ranking.getByRole('row').filter({ hasText: 'Morgan Member' }).getByRole('cell').nth(1)).toHaveText('2');
+    await expect(ranking.getByRole('row').filter({ hasText: 'Morgan Member' }).getByRole('cell').nth(1)).toHaveText(String(before + 2));
     await expectAccessible(page);
 
     // Choosing someone other than the automatic pick needs a reason.

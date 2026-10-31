@@ -65,6 +65,9 @@ export default async function OnboardingPage() {
               services: p.services.join(', '),
               showInDirectory: p.show_in_directory,
               showPhonePublic: p.show_phone_public,
+              secondBusinessName: p.second_business_name ?? '',
+              birthdayMonth: p.birthday_month ? String(p.birthday_month) : '',
+              birthdayDay: p.birthday_day ? String(p.birthday_day) : '',
             }}
           />
         </section>

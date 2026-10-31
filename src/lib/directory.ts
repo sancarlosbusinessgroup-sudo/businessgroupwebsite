@@ -1,5 +1,6 @@
 type Listable = {
   business_name: string;
+  second_business_name?: string | null;
   first_name: string;
   last_name: string;
   about: string | null;
@@ -22,7 +23,10 @@ export function filterDirectory<T extends Listable & { id?: string }>(
   let out = items.filter((p) => {
     if (category && p.categories?.name !== category) return false;
     if (!needle) return true;
-    return [p.business_name, `${p.first_name} ${p.last_name}`, p.categories?.name ?? '', p.about ?? ''].join(' ').toLowerCase().includes(needle);
+    return [p.business_name, p.second_business_name ?? '', `${p.first_name} ${p.last_name}`, p.categories?.name ?? '', p.about ?? '']
+      .join(' ')
+      .toLowerCase()
+      .includes(needle);
   });
   if ((sort === undefined || sort === '' || sort === 'active') && scores) {
     const rank = (p: T) => (p.id && p.id === scores.championId ? Number.MAX_SAFE_INTEGER : p.id ? (scores.points.get(p.id) ?? 0) : 0);

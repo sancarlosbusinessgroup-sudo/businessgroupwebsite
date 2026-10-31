@@ -1,5 +1,6 @@
 'use client';
 
+import { ProfileExtraFields } from '@/components/ProfileExtraFields';
 import { useActionState } from 'react';
 import { Checkbox, SelectField, SubmitButton, TextArea, TextField } from '@/components/forms';
 import { useClientValidation } from '@/components/useClientValidation';
@@ -47,6 +48,7 @@ export function AdminProfileForm({
         <TextField name="firstName" label="First name" required defaultValue={val('firstName')} error={errors.firstName} />
         <TextField name="lastName" label="Last name" required defaultValue={val('lastName')} error={errors.lastName} />
         <TextField name="businessName" label="Business name" required defaultValue={val('businessName')} error={errors.businessName} />
+        <ProfileExtraFields val={val} errors={errors} />
         <SelectField name="categoryId" label="Category" defaultValue={val('categoryId')} error={errors.categoryId}>
           <option value="">No category</option>
           {categories.map((c) => (

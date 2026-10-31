@@ -148,6 +148,17 @@ export const visitorBroughtSchema = z.object({
   meetingId: z.string({ error: 'Choose the meeting they attended' }).trim().pipe(z.uuid('Choose the meeting they attended')),
 });
 
+/** Guest follow-up survey answers (owner meeting 2026-10-30). */
+const yesMaybeNo = (label: string) => z.enum(['yes', 'maybe', 'no'], { error: `Please answer: ${label}` });
+export const guestSurveySchema = z.object({
+  token: z.string().trim().min(32).max(100),
+  comingBack: yesMaybeNo('Are you coming back?'),
+  interestedInJoining: yesMaybeNo('Are you interested in joining?'),
+  mostInteresting: optionalText(1000, 'Most interesting part'),
+  oneOnOneWith: optionalText(300, 'One-on-one with'),
+  comments: optionalText(1000, 'Anything else'),
+});
+
 const refEmail = z
   .string()
   .trim()
@@ -342,7 +353,35 @@ export const profileSchema = z.object({
     .refine((a) => a.every((s) => s.length <= 40), 'Keep each service under 40 characters'),
   showInDirectory: checkbox,
   showPhonePublic: checkbox,
+  // Owner meeting 2026-10-30: a second business (e.g. "Fedora Fiduciary") and a birthday (month and day, no year).
+  secondBusinessName: optionalText(120, 'Second business name'),
+  birthdayMonth: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Number(v) : null))
+    .refine((v) => v === null || (Number.isInteger(v) && v >= 1 && v <= 12), 'Choose a month'),
+  birthdayDay: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v ? Number(v) : null))
+    .refine((v) => v === null || (Number.isInteger(v) && v >= 1 && v <= 31), 'Enter a day from 1 to 31'),
 });
+
+/** Days in each month for birthdays (February allows the 29th). */
+const MONTH_DAYS = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+/**
+ * Birthday month and day go together and must be a real date. Returns field errors, or null when fine.
+ * (Checked in the actions, so `profileSchema` stays extendable for the admin form.)
+ */
+export function birthdayErrors(d: { birthdayMonth: number | null; birthdayDay: number | null }): Record<string, string> | null {
+  if (d.birthdayMonth === null && d.birthdayDay === null) return null;
+  if (d.birthdayMonth === null) return { birthdayMonth: 'Choose the month too' };
+  if (d.birthdayDay === null) return { birthdayDay: 'Enter the day too' };
+  if (d.birthdayDay > (MONTH_DAYS[d.birthdayMonth - 1] ?? 31)) return { birthdayDay: 'That month doesn’t have that many days' };
+  return null;
+}
 
 export const correctionSchema = z.object({
   meetingId: z

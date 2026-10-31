@@ -374,6 +374,53 @@ export type Database = {
           },
         ];
       };
+      guest_surveys: {
+        Row: {
+          answered_at: string | null;
+          comments: string | null;
+          coming_back: string | null;
+          guest_id: string;
+          id: string;
+          interested_in_joining: string | null;
+          most_interesting: string | null;
+          one_on_one_with: string | null;
+          sent_at: string;
+          token: string;
+        };
+        Insert: {
+          answered_at?: string | null;
+          comments?: string | null;
+          coming_back?: string | null;
+          guest_id: string;
+          id?: string;
+          interested_in_joining?: string | null;
+          most_interesting?: string | null;
+          one_on_one_with?: string | null;
+          sent_at?: string;
+          token: string;
+        };
+        Update: {
+          answered_at?: string | null;
+          comments?: string | null;
+          coming_back?: string | null;
+          guest_id?: string;
+          id?: string;
+          interested_in_joining?: string | null;
+          most_interesting?: string | null;
+          one_on_one_with?: string | null;
+          sent_at?: string;
+          token?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'guest_surveys_guest_id_fkey';
+            columns: ['guest_id'];
+            isOneToOne: true;
+            referencedRelation: 'guest_requests';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       guest_requests: {
         Row: {
           business_description: string | null;
@@ -951,6 +998,9 @@ export type Database = {
           referral_code: string;
           referred_by: string | null;
           role: E['member_role'];
+          second_business_name: string | null;
+          birthday_month: number | null;
+          birthday_day: number | null;
           service_area: string | null;
           services: string[];
           show_in_directory: boolean;
@@ -983,6 +1033,9 @@ export type Database = {
           referral_code: string;
           referred_by?: string | null;
           role?: E['member_role'];
+          second_business_name?: string | null;
+          birthday_month?: number | null;
+          birthday_day?: number | null;
           service_area?: string | null;
           services?: string[];
           show_in_directory?: boolean;
@@ -1015,6 +1068,9 @@ export type Database = {
           referral_code?: string;
           referred_by?: string | null;
           role?: E['member_role'];
+          second_business_name?: string | null;
+          birthday_month?: number | null;
+          birthday_day?: number | null;
           service_area?: string | null;
           services?: string[];
           show_in_directory?: boolean;

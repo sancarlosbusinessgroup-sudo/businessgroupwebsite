@@ -20,6 +20,7 @@ import {
   adminProfileSchema,
   adminReferralSchema,
   assignSlotSchema,
+  birthdayErrors,
   fieldErrors,
   formToObject,
   galleryMetaSchema,
@@ -51,6 +52,8 @@ export async function adminUpdateProfile(_prev: ActionState, formData: FormData)
   const parsed = adminProfileSchema.safeParse(values);
   if (!parsed.success) return { status: 'error', message: 'Please fix the highlighted fields.', errors: fieldErrors(parsed.error), values };
   const d = parsed.data;
+  const bErr = birthdayErrors(d);
+  if (bErr) return { status: 'error', message: 'Please fix the highlighted fields.', errors: bErr, values };
   const { supabase, isAdmin } = await admin();
   if (!isAdmin) return { status: 'error', message: 'Admins only.' };
   const { data: before } = await supabase.from('profiles').select('status').eq('id', d.id).maybeSingle();
@@ -71,6 +74,9 @@ export async function adminUpdateProfile(_prev: ActionState, formData: FormData)
       services: d.services,
       show_in_directory: d.showInDirectory,
       show_phone_public: d.showPhonePublic,
+      second_business_name: d.secondBusinessName ?? null,
+      birthday_month: d.birthdayMonth,
+      birthday_day: d.birthdayDay,
       status: d.status,
     })
     .eq('id', d.id)

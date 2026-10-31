@@ -40,11 +40,13 @@ test('home page: meeting time 8:15am–9:30am, "no membership fees", and the new
   await expect(page.getByText('Watch it grow')).toHaveCount(0);
 });
 
-test('Visit page: no "Open professions" section; "no membership fees" in the introduction', async ({ page }) => {
+test('Visit page: no "Open professions" section; steps aligned with Home (owner, 2026-11-01)', async ({ page }) => {
   await page.goto('/visit');
   await expect(page.getByRole('heading', { name: 'Open professions' })).toHaveCount(0);
   await expect(page.getByText('One member per profession', { exact: true })).toHaveCount(0);
-  await expect(page.getByText(/no membership fees/i).first()).toBeVisible();
+  // Owner 2026-11-01: "no membership fees" and "Welcome aboard" taken off the Visit page, like the Home steps.
+  await expect(page.getByRole('main').getByText(/no membership fees|welcome aboard/i)).toHaveCount(0);
+  await expect(page.getByText('Visit up to twice as a guest', { exact: true })).toBeVisible();
 });
 
 test('Visit page and About timeline give the meeting time instead of "hybrid gatherings"', async ({ page }) => {

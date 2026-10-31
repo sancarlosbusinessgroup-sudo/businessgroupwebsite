@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Checkbox, SelectField, SubmitButton, TextArea, TextField } from '@/components/forms';
 import { useClientValidation } from '@/components/useClientValidation';
+import { ProfileExtraFields } from '@/components/ProfileExtraFields';
 import { Notice } from '@/components/ui';
 import { idle, profileSchema } from '@/lib/validation';
 import { updateProfile } from '../actions/member';
@@ -22,6 +23,9 @@ export type ProfileDefaults = {
   services: string;
   showInDirectory: boolean;
   showPhonePublic: boolean;
+  secondBusinessName: string;
+  birthdayMonth: string;
+  birthdayDay: string;
 };
 
 export function ProfileForm({ defaults, categories }: { defaults: ProfileDefaults; categories: { id: number; name: string }[] }) {
@@ -40,6 +44,7 @@ export function ProfileForm({ defaults, categories }: { defaults: ProfileDefault
         <TextField name="firstName" label="First name" autoComplete="given-name" required defaultValue={val('firstName')} error={errors.firstName} />
         <TextField name="lastName" label="Last name" autoComplete="family-name" required defaultValue={val('lastName')} error={errors.lastName} />
         <TextField name="businessName" label="Business name" required defaultValue={val('businessName')} error={errors.businessName} />
+        <ProfileExtraFields val={val} errors={errors} />
         <SelectField name="categoryId" label="Category" defaultValue={val('categoryId')} error={errors.categoryId}>
           <option value="">Choose a category</option>
           {categories.map((c) => (
