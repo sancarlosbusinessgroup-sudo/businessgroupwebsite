@@ -4,10 +4,18 @@ import { useEffect, useRef, useState } from 'react';
 import { MemberGuestInviteForm, type GuestMeeting } from './MemberGuestInviteForm';
 
 /**
- * Dashboard "Invite a Guest" button (owner, 2026-10-30): opens a pop-up with the members' guest invite form instead of
+ * Dashboard "Invite A Guest" button (owner, 2026-10-30): opens a pop-up with the members' guest invite form instead of
  * going to another page. Escape, the Close button or a click on the backdrop closes it.
  */
-export function InviteGuestDialog({ meetings, memberName }: { meetings: GuestMeeting[]; memberName: string }) {
+export function InviteGuestDialog({
+  meetings,
+  memberName,
+  buttonClassName = 'btn btn-ghost-band btn-sm',
+}: {
+  meetings: GuestMeeting[];
+  memberName: string;
+  buttonClassName?: string;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
   // A fresh form each time the pop-up opens.
@@ -24,14 +32,14 @@ export function InviteGuestDialog({ meetings, memberName }: { meetings: GuestMee
     <>
       <button
         type="button"
-        className="btn btn-ghost-band btn-sm"
+        className={buttonClassName}
         aria-haspopup="dialog"
         onClick={() => {
           setRound((r) => r + 1);
           setOpen(true);
         }}
       >
-        Invite a Guest
+        Invite A Guest
       </button>
       <dialog
         ref={ref}
@@ -46,7 +54,7 @@ export function InviteGuestDialog({ meetings, memberName }: { meetings: GuestMee
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
               <h2 id="invite-guest-dialog-title" className="font-display m-0 text-[clamp(22px,3vw,28px)] font-extrabold">
-                Want to Invite a Guest?
+                Want to Invite A Guest?
               </h2>
               <p className="text-ink-soft m-0">Fill out the form for your guest.</p>
             </div>

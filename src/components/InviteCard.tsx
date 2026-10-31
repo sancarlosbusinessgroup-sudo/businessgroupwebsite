@@ -5,12 +5,14 @@ import { InviteGuestDialog } from './InviteGuestDialog';
 import type { GuestMeeting } from './MemberGuestInviteForm';
 import { Pill } from './ui';
 
+const oneLine = 'btn btn-ghost-band btn-sm w-full px-1.5 text-center text-[12px] leading-tight sm:px-2 sm:text-[13px]';
+
 const tone = { requested: 'gray', visited: 'amber', applied: 'teal', joined: 'green' } as const;
 
 type Guest = { id: string; first_name: string; last_name: string; status: keyof typeof guestStatusLabels; created_at: string };
 
 /**
- * "Invite a visitor": personal /visit?ref= link, email / text invites, the "Invite a Guest" pop-up form (owner,
+ * "Invite a visitor": personal /visit?ref= link, email / text invites, the "Invite A Guest" pop-up form (owner,
  * 2026-10-30) and the member's own recent guests.
  */
 export function InviteCard({ link, guests, meetings, memberName }: { link: string; guests: Guest[]; meetings: GuestMeeting[]; memberName: string }) {
@@ -22,14 +24,15 @@ export function InviteCard({ link, guests, meetings, memberName }: { link: strin
       </h2>
       <CopyLink url={link} />
       <p className="text-on-band-muted m-0 text-[15px]">Guests who request an invite or apply through this link are credited to you as visitors brought.</p>
-      <div className="flex flex-wrap gap-2">
-        <a className="btn btn-ghost-band btn-sm" href={`mailto:?subject=${encodeURIComponent(`Join me at ${site.name}`)}&body=${invite}`}>
-          Email an invite
+      {/* Owner 2026-10-30: the three buttons on one line (on narrow phones a label may take two lines inside its button). */}
+      <div className="grid grid-cols-3 gap-2">
+        <a className={oneLine} href={`mailto:?subject=${encodeURIComponent(`Join me at ${site.name}`)}&body=${invite}`}>
+          Email an Invite
         </a>
-        <a className="btn btn-ghost-band btn-sm" href={`sms:?&body=${invite}`}>
-          Text an invite
+        <a className={oneLine} href={`sms:?&body=${invite}`}>
+          Text an Invite
         </a>
-        <InviteGuestDialog meetings={meetings} memberName={memberName} />
+        <InviteGuestDialog meetings={meetings} memberName={memberName} buttonClassName={oneLine} />
       </div>
       {guests.length > 0 ? (
         <div className="flex flex-col gap-1.5">

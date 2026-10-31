@@ -65,7 +65,7 @@ export async function submitGuestRequest(_prev: ActionState, formData: FormData)
 }
 
 /**
- * A signed-in member invites a guest (owner, 2026-10-30): the "Invite a Guest" page, the members' version of the
+ * A signed-in member invites a guest (owner, 2026-10-30): the "Invite A Guest" page, the members' version of the
  * Visit page form and the dashboard pop-up. The member fills in the guest's details; the request is credited to the
  * signed-in member (their referral code sets referrer_id in the database trigger, and their name is the "Invited by").
  */

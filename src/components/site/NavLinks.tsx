@@ -10,6 +10,17 @@ const linkClass = (active: boolean) =>
     active ? 'bg-teal-tint text-teal-hover' : 'text-ink-soft hover:text-heading'
   }`;
 
+/** Consecutive entries with the same `keepWith` become one group that never wraps apart. */
+function groupNav(items: readonly NavItem[]): NavItem[][] {
+  const groups: NavItem[][] = [];
+  for (const item of items) {
+    const last = groups[groups.length - 1];
+    if (item.keepWith && last && last[0]!.keepWith === item.keepWith) last.push(item);
+    else groups.push([item]);
+  }
+  return groups;
+}
+
 /** A menu entry that opens a short list of links (disclosure pattern: button + list). */
 function SubMenu({ item, isActive, onNavigate }: { item: NavItem; isActive: (href: string) => boolean; onNavigate: () => void }) {
   const [open, setOpen] = useState(false);
@@ -84,6 +95,21 @@ export function NavLinks({ items, actions }: { items: readonly NavItem[]; action
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`));
 
+  const renderItem = (item: NavItem) =>
+    item.children?.length ? (
+      <SubMenu key={item.label} item={item} isActive={isActive} onNavigate={() => setOpen(false)} />
+    ) : (
+      <Link
+        key={item.href}
+        href={item.href}
+        aria-current={isActive(item.href) ? 'page' : undefined}
+        onClick={() => setOpen(false)}
+        className={linkClass(isActive(item.href))}
+      >
+        {item.label}
+      </Link>
+    );
+
   return (
     <>
       <button
@@ -100,19 +126,13 @@ export function NavLinks({ items, actions }: { items: readonly NavItem[]; action
         className={`${open ? 'flex' : 'hidden'} w-full flex-col gap-3 md:flex md:w-auto md:flex-1 md:flex-row md:flex-wrap md:items-center md:justify-between`}
       >
         <nav aria-label="Main" className="flex flex-col gap-1 md:flex-row md:flex-wrap">
-          {items.map((item) =>
-            item.children?.length ? (
-              <SubMenu key={item.label} item={item} isActive={isActive} onNavigate={() => setOpen(false)} />
+          {groupNav(items).map((group) =>
+            group.length > 1 ? (
+              <div key={group[0]!.href} className="flex flex-col gap-1 md:flex-row md:flex-nowrap">
+                {group.map(renderItem)}
+              </div>
             ) : (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={isActive(item.href) ? 'page' : undefined}
-                onClick={() => setOpen(false)}
-                className={linkClass(isActive(item.href))}
-              >
-                {item.label}
-              </Link>
+              renderItem(group[0]!)
             ),
           )}
         </nav>

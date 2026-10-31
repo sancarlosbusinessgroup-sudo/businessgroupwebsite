@@ -60,7 +60,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <div className="flex flex-wrap gap-3">
               {member ? (
                 <Link className="btn btn-light" href="/invite-guest">
-                  Invite a Guest
+                  Invite A Guest
                 </Link>
               ) : (
                 <Link className="btn btn-light" href="/visit#request">

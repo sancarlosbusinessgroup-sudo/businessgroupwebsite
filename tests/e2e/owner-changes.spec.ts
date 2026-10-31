@@ -19,21 +19,21 @@ test.describe('home and header', () => {
     await expect(page.getByRole('heading', { name: 'Request a guest invite' })).toBeVisible();
   });
 
-  test('members: the hero button is "Invite a Guest" and opens the members\' guest form; the dashboard invite card keeps email and text', async ({ page }) => {
+  test('members: the hero button is "Invite A Guest" and opens the members\' guest form; the dashboard invite card keeps email and text', async ({ page }) => {
     await login(page, users.member);
     await page.goto('/');
     const hero = page.locator('section', { has: page.getByRole('heading', { level: 1 }) });
     await expect(hero.getByRole('link', { name: 'Request for an Invite' })).toHaveCount(0);
-    // Owner 2026-10-30: "Invite a friend" renamed "Invite a Guest"; it opens the Invite a Guest page.
-    await hero.getByRole('link', { name: 'Invite a Guest' }).click();
+    // Owner 2026-10-30: "Invite a friend" renamed "Invite A Guest"; it opens the Invite A Guest page.
+    await hero.getByRole('link', { name: 'Invite A Guest' }).click();
     await expect(page).toHaveURL(/\/invite-guest$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Want to Invite a Guest?' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Want to Invite A Guest?' })).toBeVisible();
     await page.goto('/dashboard#invite');
     const invite = page.getByRole('region', { name: 'Invite a visitor' });
     await expect(invite).toBeVisible();
     // Owner 2026-10-27: email and text only, no LinkedIn share.
-    await expect(invite.getByRole('link', { name: 'Email an invite' })).toBeVisible();
-    await expect(invite.getByRole('link', { name: 'Text an invite' })).toBeVisible();
+    await expect(invite.getByRole('link', { name: 'Email an Invite' })).toBeVisible();
+    await expect(invite.getByRole('link', { name: 'Text an Invite' })).toBeVisible();
     await expect(invite.getByRole('link', { name: /LinkedIn/ })).toHaveCount(0);
   });
 

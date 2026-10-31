@@ -4,12 +4,12 @@ import { requireMember } from '@/lib/auth';
 import { guestMeetingOptions } from '@/lib/data/public';
 
 export const metadata: Metadata = {
-  title: 'Invite a Guest',
+  title: 'Invite A Guest',
   description: 'Invite a guest to a meeting: fill out the form for your guest.',
   robots: { index: false },
 };
 
-/** Members only (owner, 2026-10-30): the "Invite a Guest" tab beside Support. */
+/** Members only (owner, 2026-10-30): the "Invite A Guest" tab beside Support. */
 export default async function InviteGuestPage() {
   const viewer = await requireMember('/invite-guest');
   const meetings = await guestMeetingOptions();

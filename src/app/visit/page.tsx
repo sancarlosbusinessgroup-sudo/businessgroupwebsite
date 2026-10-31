@@ -54,7 +54,7 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
             )}
             <div className="flex flex-wrap gap-2.5">
               <a className="btn btn-primary btn-sm" href="#request">
-                {member ? 'Invite a Guest' : 'Request an invite'}
+                {member ? 'Invite A Guest' : 'Request an invite'}
               </a>
               <Link className="btn btn-outline btn-sm" href="/members">
                 View our members

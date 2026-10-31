@@ -21,7 +21,8 @@ export const publicNav = [
   { href: '/gallery', label: 'Gallery' },
 ] as const;
 
-export type NavItem = { href: string; label: string; children?: readonly { href: string; label: string }[] };
+/** `keepWith`: menu entries with the same value stay side by side when the menu wraps to a second row. */
+export type NavItem = { href: string; label: string; keepWith?: string; children?: readonly { href: string; label: string }[] };
 
 export const memberNav: readonly NavItem[] = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -38,8 +39,9 @@ export const memberNav: readonly NavItem[] = [
   { href: '/members', label: 'Directory' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/profile', label: 'My profile' },
-  { href: '/invite-guest', label: 'Invite a Guest' },
-  { href: '/support', label: 'Support' },
+  // Owner 2026-10-30: "Invite A Guest" sits right next to Support, even when the menu wraps.
+  { href: '/invite-guest', label: 'Invite A Guest', keepWith: 'help' },
+  { href: '/support', label: 'Support', keepWith: 'help' },
 ] as const;
 
 export const howItWorks = [

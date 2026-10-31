@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { db, expectAccessible, login, users } from './support';
 
-// Owner 2026-10-30: members get their own version of the guest invite form ("Want to Invite a Guest?"), on an
-// "Invite a Guest" tab beside Support, on the Visit page when signed in, and in a pop-up from the dashboard's
+// Owner 2026-10-30: members get their own version of the guest invite form ("Want to Invite A Guest?"), on an
+// "Invite A Guest" tab beside Support, on the Visit page when signed in, and in a pop-up from the dashboard's
 // "Invite a visitor" card. "Invited by" is the signed-in member, filled in automatically.
 
 const BREVO = 'http://127.0.0.1:54327';
@@ -33,7 +33,7 @@ async function fillGuest(scope: Page | ReturnType<Page['getByRole']>, g: { first
 }
 
 test.describe('members invite a guest', () => {
-  test('"Invite a Guest" tab beside Support opens the members\' form; the request is credited to the member @responsive', async ({ page }) => {
+  test('"Invite A Guest" tab beside Support opens the members\' form; the request is credited to the member @responsive', async ({ page }) => {
     await login(page, users.member);
     // On phones the menu is behind the Menu button.
     const menu = page.getByRole('button', { name: 'Menu', exact: true });
@@ -41,15 +41,25 @@ test.describe('members invite a guest', () => {
     const nav = page.getByRole('navigation', { name: 'Main' });
     await expect(nav.getByRole('link', { name: 'Support' })).toBeVisible();
     const labels = (await nav.getByRole('link').allTextContents()).map((t) => t.trim());
-    expect(labels.indexOf('Invite a Guest')).toBe(labels.indexOf('Support') - 1);
-    await nav.getByRole('link', { name: 'Invite a Guest' }).click();
+    expect(labels.indexOf('Invite A Guest')).toBe(labels.indexOf('Support') - 1);
+    await nav.getByRole('link', { name: 'Invite A Guest' }).click();
     await expect(page).toHaveURL(/\/invite-guest$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Want to Invite a Guest?' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Want to Invite A Guest?' })).toBeVisible();
     await expect(page.getByText('Fill out the form for your guest.')).toBeVisible();
     await expect(page.getByLabel('Invited by')).toHaveValue('Morgan Member');
     await expect(page.getByLabel('Invited by')).not.toBeEditable();
     await expect(page.getByLabel('Who invited you?')).toHaveCount(0);
     await expectAccessible(page);
+  });
+
+  test('"Invite A Guest" and Support stay side by side when the menu wraps (laptop width, admin)', async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 800 });
+    await login(page, users.admin);
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    const invite = (await nav.getByRole('link', { name: 'Invite A Guest' }).boundingBox())!;
+    const support = (await nav.getByRole('link', { name: 'Support' }).boundingBox())!;
+    expect(Math.round(support.y)).toBe(Math.round(invite.y));
+    expect(support.x).toBeGreaterThan(invite.x);
   });
 
   test('the form checks the guest details, saves them for the member and emails the guest and admins (not the member)', async ({ page }) => {
@@ -97,31 +107,40 @@ test.describe('members invite a guest', () => {
     await visitor.close();
 
     await login(page, users.member, undefined, '/visit');
-    await expect(page.getByRole('heading', { name: 'Want to Invite a Guest?' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Want to Invite A Guest?' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Request a guest invite' })).toHaveCount(0);
     await expect(page.getByLabel('Who invited you?')).toHaveCount(0);
     await expect(page.getByLabel('Invited by')).toHaveValue('Morgan Member');
-    await expect(page.getByRole('link', { name: 'Invite a Guest' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Invite A Guest' }).first()).toBeVisible();
   });
 
-  test('visitors who open the Invite a Guest page are asked to log in', async ({ page }) => {
+  test('visitors who open the Invite A Guest page are asked to log in', async ({ page }) => {
     await page.goto('/invite-guest');
     await expect(page).toHaveURL(/\/login\?next=%2Finvite-guest/);
   });
 
-  test('dashboard: "Invite a Guest" beside "Text an invite" opens a pop-up form; the guest shows in recent guests @responsive', async ({ page }) => {
+  test('dashboard: "Invite A Guest" beside "Text an Invite" opens a pop-up form; the guest shows in recent guests @responsive', async ({ page }) => {
     const stamp = Date.now();
     const email = `dialog.guest.${stamp}@example.org`;
     const last = `Dialog${String(stamp).slice(-6)}`;
     await login(page, users.member);
     const card = page.getByRole('region', { name: 'Invite a visitor' });
-    await expect(card.getByRole('link', { name: 'Text an invite' })).toBeVisible();
+    await expect(card.getByRole('link', { name: 'Text an Invite' })).toBeVisible();
     const buttons = card.locator('a.btn, button.btn');
     const names = (await buttons.allTextContents()).map((t) => t.trim());
-    expect(names.indexOf('Invite a Guest')).toBe(names.indexOf('Text an invite') + 1);
+    expect(names.indexOf('Invite A Guest')).toBe(names.indexOf('Text an Invite') + 1);
+    // Owner 2026-10-30: the three buttons sit on one line.
+    const tops = await Promise.all(
+      [
+        card.getByRole('link', { name: 'Email an Invite' }),
+        card.getByRole('link', { name: 'Text an Invite' }),
+        card.getByRole('button', { name: 'Invite A Guest' }),
+      ].map(async (b) => Math.round((await b.boundingBox())!.y)),
+    );
+    expect(new Set(tops).size).toBe(1);
 
-    await card.getByRole('button', { name: 'Invite a Guest' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Want to Invite a Guest?' });
+    await card.getByRole('button', { name: 'Invite A Guest' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Want to Invite A Guest?' });
     await expect(dialog).toBeVisible();
     await expect(page).toHaveURL(/\/dashboard/);
     await expect(dialog.getByText('Fill out the form for your guest.')).toBeVisible();
@@ -130,7 +149,7 @@ test.describe('members invite a guest', () => {
     // Escape closes it; it opens again empty.
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
-    await card.getByRole('button', { name: 'Invite a Guest' }).click();
+    await card.getByRole('button', { name: 'Invite A Guest' }).click();
     await expect(dialog).toBeVisible();
 
     await fillGuest(dialog, { first: 'Dora', last, email, about: 'Wedding and event photography.' });
