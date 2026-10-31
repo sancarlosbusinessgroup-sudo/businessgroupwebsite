@@ -25,6 +25,8 @@ export const publicNav = [
 export type NavItem = { href: string; label: string; keepWith?: string; children?: readonly { href: string; label: string }[] };
 
 export const memberNav: readonly NavItem[] = [
+  // Owner 2026-10-30: Home first, same page as the logo.
+  { href: '/', label: 'Home' },
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/meetings', label: 'Meetings' },
   {

@@ -62,6 +62,18 @@ test.describe('members invite a guest', () => {
     expect(support.x).toBeGreaterThan(invite.x);
   });
 
+  test('members: a Home tab comes first, before Dashboard, and goes to the same page as the logo', async ({ page }) => {
+    await login(page, users.member);
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    const labels = (await nav.getByRole('link').allTextContents()).map((t) => t.trim());
+    expect(labels.slice(0, 2)).toEqual(['Home', 'Dashboard']);
+    const logoHref = await page.getByRole('link', { name: /, home$/ }).getAttribute('href');
+    await expect(nav.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('href', logoHref!);
+    await nav.getByRole('link', { name: 'Home', exact: true }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(nav.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('aria-current', 'page');
+  });
+
   test('the form checks the guest details, saves them for the member and emails the guest and admins (not the member)', async ({ page }) => {
     const email = `member.guest.${Date.now()}@example.org`;
     const last = `Invitee${String(Date.now()).slice(-6)}`;
