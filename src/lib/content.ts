@@ -77,7 +77,7 @@ export const adminLinks = [
 export const howItWorks = [
   { title: 'Visit up to twice as a guest', text: 'Get invited by a member and attend up to two meetings, then submit your application.' },
   { title: 'Meet the Membership Committee', text: 'One-to-ones with three Membership Committee members.' },
-  { title: 'Connect with members', text: 'Continue to have one-to-ones and get to know your fellow referral partners.' },
+  { title: 'Connect with members', text: 'Keep having one-to-ones with fellow members so they get to know, like and trust you.' },
   { title: 'Grow your business', text: 'Give and receive referrals, and report your activity. The leaderboard shows the whole group’s progress.' },
 ];
 
