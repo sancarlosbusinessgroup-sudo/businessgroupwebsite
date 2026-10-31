@@ -42,7 +42,8 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   const filtered = filterDirectory(all, sp, { points: new Map(points), championId: champion?.profileId });
   // Owner meeting 2026-10-30: the current BARP Champion gets a section of their own above everyone (default view only).
   const plainView = !sp.q && !sp.category && (!sp.sort || sp.sort === 'active') && Number(sp.page ?? 1) <= 1;
-  const featured = plainView && champion ? (filtered.find((p) => p.id === champion.profileId) ?? null) : null;
+  // Logged-in members only (owner, 2026-11-01); visitors see the champion in the list like everyone else.
+  const featured = member && plainView && champion ? (filtered.find((p) => p.id === champion.profileId) ?? null) : null;
   const listed = featured ? filtered.filter((p) => p.id !== featured.id) : filtered;
   const { page, pages, items } = paginate(listed, Number(sp.page ?? 1), PAGE_SIZE);
   const usedCategories = categories.filter((c) => all.some((p) => p.categories?.name === c.name));
@@ -126,8 +127,9 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
             <h2 id="champion-h" className="font-display m-0 text-xl font-extrabold text-[#5b3a00]">
               Current BARP Champion · {champion.label}
             </h2>
-            <div className="max-w-[320px]">
-              <MemberCard p={featured} i={0} contact={contacts.get(featured.id)} champion={champion.label} />
+            {/* Photo on the left, text on the right (owner, 2026-11-01). */}
+            <div className="max-w-[760px]">
+              <MemberCard p={featured} i={0} contact={contacts.get(featured.id)} champion={champion.label} row />
             </div>
           </section>
         ) : null}
@@ -176,17 +178,22 @@ function MemberCard({
   i,
   contact,
   champion,
+  row = false,
 }: {
   p: DirectoryEntry;
   i: number;
   contact: { email: string; phone: string | null } | undefined;
   champion: string | null;
+  /** Photo on the left and text on the right (stacked on phones). */
+  row?: boolean;
 }) {
   const photo = mediaUrl('profile-media', p.avatar_path);
   const name = `${p.first_name} ${p.last_name}`;
   return (
-    <article className="card hover:border-teal relative flex h-full flex-col overflow-hidden">
-      <span className={`relative flex aspect-[4/3] items-center justify-center overflow-hidden ${bands[i % bands.length]}`}>
+    <article className={`card hover:border-teal relative flex h-full overflow-hidden ${row ? 'flex-col sm:flex-row' : 'flex-col'}`}>
+      <span
+        className={`relative flex items-center justify-center overflow-hidden ${row ? 'aspect-[4/3] sm:aspect-auto sm:min-h-[260px] sm:w-[42%] sm:flex-none' : 'aspect-[4/3]'} ${bands[i % bands.length]}`}
+      >
         {photo ? (
           <Image src={photo} alt="" fill sizes="(max-width: 640px) 100vw, 300px" className="object-cover object-top" />
         ) : (
@@ -196,7 +203,7 @@ function MemberCard({
         )}
         {champion ? <ChampionBadge month={champion} compact className="absolute top-3 left-3" /> : null}
       </span>
-      <div className="flex flex-1 flex-col gap-1.5 p-[18px]">
+      <div className={`flex min-w-0 flex-1 flex-col gap-1.5 ${row ? 'justify-center p-6' : 'p-[18px]'}`}>
         <span className="text-ink-muted text-xs font-bold tracking-[0.08em] uppercase">{p.categories?.name ?? 'Member'}</span>
         <h2 className="font-display m-0 text-[19px] leading-tight font-bold">
           <Link href={`/members/${p.slug}`} className="text-teal-text no-underline after:absolute after:inset-0 after:content-['']">

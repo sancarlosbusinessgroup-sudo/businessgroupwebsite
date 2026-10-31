@@ -132,3 +132,30 @@ test('guest survey: the emailed link opens a short form; answers reach the admin
     await rest(`guest_requests?id=eq.${g?.id}`, 'DELETE');
   }
 });
+
+test('directory: the "Current BARP Champion" section is for logged-in members only, photo on the left and text on the right (owner, 2026-11-01)', async ({
+  page,
+  browser,
+}) => {
+  const [me] = await db<{ id: string }>('profiles?select=id&first_name=eq.Morgan&last_name=eq.Member');
+  const month = '2099-01-01';
+  await rest('champion_awards', 'POST', { month, profile_id: me?.id, reason: 'E2E champion section' });
+  try {
+    const visitor = await (await browser.newContext()).newPage();
+    await visitor.goto('/members');
+    await expect(visitor.getByRole('heading', { level: 2, name: /^Current BARP Champion · / })).toHaveCount(0);
+    // Visitors still see the champion's card in the list, with the badge.
+    await expect(visitor.getByRole('article').filter({ hasText: 'Morgan Member' })).toBeVisible();
+    await visitor.close();
+
+    await login(page, users.member, undefined, '/members');
+    const section = page.getByRole('region', { name: /^Current BARP Champion · / });
+    await expect(section).toBeVisible();
+    const card = section.getByRole('article');
+    const photo = await card.locator('span').first().boundingBox();
+    const name = await card.getByRole('heading', { name: 'Morgan Member' }).boundingBox();
+    expect(photo && name && name.x > photo.x + photo.width - 1).toBe(true);
+  } finally {
+    await rest(`champion_awards?month=eq.${month}`, 'DELETE');
+  }
+});
