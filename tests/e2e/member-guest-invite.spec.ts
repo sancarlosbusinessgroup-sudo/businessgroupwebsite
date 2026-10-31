@@ -201,6 +201,36 @@ test.describe('members invite a guest', () => {
     await expect(header.getByRole('list', { name: 'Admin sections' })).toBeHidden();
   });
 
+  test('profiles hidden from the directory (support team) open for signed-in members, not for visitors (owner, 2026-10-31)', async ({ page, browser }) => {
+    const key = await serviceKey();
+    const h = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
+    const [riley] = await db<{ id: string; slug: string; business_name: string | null; show_in_directory: boolean }>(
+      `profiles?select=id,slug,business_name,show_in_directory&first_name=eq.Riley&last_name=eq.Second`,
+    );
+    await fetch(`${STACK}/rest/v1/profiles?id=eq.${riley!.id}`, {
+      method: 'PATCH',
+      headers: h,
+      body: JSON.stringify({ business_name: 'Support Team', show_in_directory: false }),
+    });
+    try {
+      const visitor = await browser.newPage();
+      await visitor.goto(`/members/${riley!.slug}`);
+      await expect(visitor.getByRole('heading', { name: 'Page not found' })).toBeVisible();
+      await expect(visitor.getByRole('heading', { name: 'Riley Second' })).toHaveCount(0);
+      await visitor.close();
+
+      await login(page, users.member, undefined, `/members/${riley!.slug}`);
+      await expect(page.getByRole('heading', { level: 1, name: 'Riley Second' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'How to refer me' })).toHaveCount(0);
+    } finally {
+      await fetch(`${STACK}/rest/v1/profiles?id=eq.${riley!.id}`, {
+        method: 'PATCH',
+        headers: h,
+        body: JSON.stringify({ business_name: riley!.business_name, show_in_directory: riley!.show_in_directory }),
+      });
+    }
+  });
+
   test('the form checks the guest details, saves them for the member and emails the guest and admins (not the member)', async ({ page }) => {
     const email = `member.guest.${Date.now()}@example.org`;
     const last = `Invitee${String(Date.now()).slice(-6)}`;

@@ -4,22 +4,39 @@ import { notFound } from 'next/navigation';
 import { ProfileView } from '@/components/ProfileView';
 import { getChampionAwards, getCurrentChampion } from '@/lib/data/champion';
 import { getViewer, isAdmin, isApproved } from '@/lib/auth';
-import { getMemberBySlug, getPublicPhone } from '@/lib/data/public';
+import { PUBLIC_PROFILE_COLUMNS, getMemberBySlug, getPublicPhone, type PublicProfile } from '@/lib/data/public';
 import { createClient } from '@/lib/supabase/server';
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const p = await getMemberBySlug(slug);
+  const p = (await getMemberBySlug(slug)) ?? (isApproved(await getViewer()) ? await hiddenProfileForMember(slug) : null);
   return { title: p ? `${p.business_name} · ${p.first_name} ${p.last_name}` : 'Member' };
+}
+
+/**
+ * Accounts hidden from the public directory (the support team: Cedrick, Shermaine, Rachanee) are still visible to
+ * signed-in members, so their profile opens from the Support page (owner, 2026-10-31). Visitors still get "not found".
+ * The member's own session is used, so the database's member read rule decides what they may see.
+ */
+async function hiddenProfileForMember(slug: string): Promise<PublicProfile | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('profiles')
+    .select(`${PUBLIC_PROFILE_COLUMNS}, categories(name)`)
+    .eq('slug', slug)
+    .eq('status', 'approved')
+    .maybeSingle();
+  return (data as PublicProfile | null) ?? null;
 }
 
 export default async function MemberProfilePage({ params }: Props) {
   const { slug } = await params;
-  const [profile, viewer] = await Promise.all([getMemberBySlug(slug), getViewer()]);
-  if (!profile) notFound();
+  const [publicProfile, viewer] = await Promise.all([getMemberBySlug(slug), getViewer()]);
   const member = isApproved(viewer);
+  const profile = publicProfile ?? (member ? await hiddenProfileForMember(slug) : null);
+  if (!profile) notFound();
 
   let email: string | null = null;
   let phone: string | null = null;
