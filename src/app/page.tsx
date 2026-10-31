@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { InviteGuestDialog } from '@/components/InviteGuestDialog';
 import { EventCard, NextMeetingCard } from '@/components/meetings';
 import { JsonLd, organizationJsonLd } from '@/components/site/JsonLd';
 import { EmptyState, Notice, SectionHead } from '@/components/ui';
 import { getViewer, isApproved } from '@/lib/auth';
 import { howItWorks, site } from '@/lib/content';
 import { getUpcomingCalendar } from '@/lib/data/events';
-import { getGallery, getMemberCount, getNextMeeting } from '@/lib/data/public';
+import { getGallery, getMemberCount, getNextMeeting, guestMeetingOptions } from '@/lib/data/public';
 import { formatShortDate } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
 
@@ -27,6 +28,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     getMemberCount(),
   ]);
   const member = isApproved(viewer);
+  // Members' "Invite A Guest" opens the guest form in a pop-up (owner, 2026-10-30).
+  const guestMeetings = member ? await guestMeetingOptions() : [];
+  const memberName = member && viewer?.profile ? `${viewer.profile.first_name} ${viewer.profile.last_name}`.trim() : '';
 
   return (
     <>
@@ -59,9 +63,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             </p>
             <div className="flex flex-wrap gap-3">
               {member ? (
-                <Link className="btn btn-light" href="/invite-guest">
-                  Invite A Guest
-                </Link>
+                <InviteGuestDialog meetings={guestMeetings} memberName={memberName} buttonClassName="btn btn-light" />
               ) : (
                 <Link className="btn btn-light" href="/visit#request">
                   Request for an Invite

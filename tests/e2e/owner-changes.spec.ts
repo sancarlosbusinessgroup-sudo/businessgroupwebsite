@@ -19,15 +19,28 @@ test.describe('home and header', () => {
     await expect(page.getByRole('heading', { name: 'Request a guest invite' })).toBeVisible();
   });
 
-  test('members: the hero button is "Invite A Guest" and opens the members\' guest form; the dashboard invite card keeps email and text', async ({ page }) => {
+  test('members: the hero button is "Invite A Guest" and opens the members\' guest form in a pop-up; the dashboard invite card keeps email and text', async ({
+    page,
+  }) => {
     await login(page, users.member);
     await page.goto('/');
     const hero = page.locator('section', { has: page.getByRole('heading', { level: 1 }) });
     await expect(hero.getByRole('link', { name: 'Request for an Invite' })).toHaveCount(0);
-    // Owner 2026-10-30: "Invite a friend" renamed "Invite A Guest"; it opens the Invite A Guest page.
-    await hero.getByRole('link', { name: 'Invite A Guest' }).click();
-    await expect(page).toHaveURL(/\/invite-guest$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Want to Invite A Guest?' })).toBeVisible();
+    // Owner 2026-10-30: "Invite a friend" renamed "Invite A Guest"; it opens the guest form in a pop-up on the home page.
+    await hero.getByRole('button', { name: 'Invite A Guest' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Want to Invite A Guest?' });
+    await expect(dialog).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    const email = `home.guest.${Date.now()}@example.org`;
+    await dialog.getByLabel('Guest first name').fill('Hana');
+    await dialog.getByLabel('Guest last name').fill('Home');
+    await dialog.getByLabel('Guest email').fill(email);
+    await dialog.getByLabel('Guest phone').fill('650-555-0188');
+    await dialog.getByLabel("Tell us about your guest's business").fill('Interior design for small offices.');
+    await dialog.getByRole('button', { name: 'Send the invitation request' }).click();
+    await expect(dialog.getByText('Invitation request sent for Hana!')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await expect(dialog).toBeHidden();
     await page.goto('/dashboard#invite');
     const invite = page.getByRole('region', { name: 'Invite a visitor' });
     await expect(invite).toBeVisible();
