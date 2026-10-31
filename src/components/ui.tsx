@@ -61,7 +61,18 @@ export function initials(name: string): string {
     .join('');
 }
 
-export function Avatar({ name, size = 40, index = 0 }: { name: string; size?: number; index?: number }) {
+/**
+ * Round person icon: their profile photo when there is one (owner, 2026-10-30), otherwise their initials.
+ * `photo` is a full image URL (see `mediaUrl('profile-media', …)`).
+ */
+export function Avatar({ name, size = 40, index = 0, photo }: { name: string; size?: number; index?: number; photo?: string | null }) {
+  if (photo) {
+    return (
+      <span aria-hidden="true" className="bg-line-soft relative inline-block flex-none overflow-hidden rounded-full" style={{ width: size, height: size }}>
+        <Image src={photo} alt="" fill sizes={`${size * 2}px`} className="object-cover object-top" />
+      </span>
+    );
+  }
   return (
     <span
       aria-hidden="true"

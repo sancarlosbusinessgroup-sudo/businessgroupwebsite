@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getViewer } from '@/lib/auth';
 import { memberNav, publicNav, site } from '@/lib/content';
 import { signOut } from '@/app/actions/auth';
+import { mediaUrl } from '@/lib/env';
 import { Avatar } from '../ui';
 import { AdminMenu } from './AdminMenu';
 import { NavLinks } from './NavLinks';
@@ -32,7 +33,7 @@ export async function Header() {
     actions = (
       <>
         <Link href="/dashboard" className="font-display text-heading flex min-h-11 w-full items-center gap-2.5 text-[15px] font-bold no-underline md:w-auto">
-          <Avatar name={name} size={38} />
+          <Avatar name={name} size={38} photo={mediaUrl('profile-media', profile?.avatar_path)} />
           {name}
         </Link>
         {profile?.role === 'admin' ? <AdminMenu /> : null}

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Countdown } from '@/components/Countdown';
 import { EventCard } from '@/components/meetings';
 import { Avatar, EmptyState, PageHero } from '@/components/ui';
+import { mediaUrl } from '@/lib/env';
 import { getViewer, isApproved } from '@/lib/auth';
 import { site, slotDescriptions, slotTitles } from '@/lib/content';
 import { getCalendarBetween, getUpcomingCalendar, type CalendarKind } from '@/lib/data/events';
@@ -74,10 +75,11 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
   const personIds = [...new Set(upcomingAll.map((e) => e.organizerId ?? e.hostId).filter((x): x is string => !!x))];
   const supabase = await createClient();
   const { data: people } = personIds.length
-    ? await supabase.from('profiles').select('id, first_name, last_name').in('id', personIds)
-    : { data: [] as { id: string; first_name: string; last_name: string }[] };
+    ? await supabase.from('profiles').select('id, first_name, last_name, avatar_path').in('id', personIds)
+    : { data: [] as { id: string; first_name: string; last_name: string; avatar_path: string | null }[] };
   const organizers = (people ?? []).map((o) => ({
     name: `${o.first_name} ${o.last_name}`,
+    photo: mediaUrl('profile-media', o.avatar_path),
     count: upcomingAll.filter((e) => (e.organizerId ?? e.hostId) === o.id).length,
   }));
 
@@ -272,7 +274,7 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
               <ul className="m-0 flex list-none flex-col gap-3 p-0">
                 {organizers.map((o, i) => (
                   <li key={o.name} className="flex items-center gap-3">
-                    <Avatar name={o.name} index={i} />
+                    <Avatar name={o.name} index={i} photo={o.photo} />
                     <div>
                       <div className="font-semibold">{o.name}</div>
                       <div className="text-ink-muted text-sm">

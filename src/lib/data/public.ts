@@ -15,10 +15,13 @@ const MINUTE = 60;
 const shared = <F extends (...args: any[]) => Promise<unknown>>(name: string, tags: string[], fn: F): F =>
   cache(unstable_cache(fn, ['public', name], { revalidate: MINUTE, tags })) as unknown as F;
 
-export type Speaker = Pick<Tables<'meeting_speakers'>, 'slot' | 'display_name' | 'business' | 'profile_id' | 'topic' | 'topic_description'>;
+/** `profile.avatar_path`: the presenter's profile photo, for the round icons on meeting cards (owner, 2026-10-30). */
+export type Speaker = Pick<Tables<'meeting_speakers'>, 'slot' | 'display_name' | 'business' | 'profile_id' | 'topic' | 'topic_description'> & {
+  profile?: { avatar_path: string | null } | null;
+};
 export type MeetingWithSpeakers = Tables<'meetings'> & { meeting_speakers: Speaker[] };
 
-const MEETING_FIELDS = '*, meeting_speakers(slot, display_name, business, profile_id, topic, topic_description)';
+const MEETING_FIELDS = '*, meeting_speakers(slot, display_name, business, profile_id, topic, topic_description, profile:profiles(avatar_path))';
 
 function fail(what: string, error: { message: string } | null): never {
   throw new Error(`Could not load ${what}${error ? `: ${error.message}` : ''}`);

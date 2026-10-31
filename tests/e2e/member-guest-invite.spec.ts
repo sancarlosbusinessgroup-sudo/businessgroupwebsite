@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { db, expectAccessible, login, users } from './support';
+import { STACK, db, expectAccessible, login, serviceKey, users } from './support';
 
 // Owner 2026-10-30: members get their own version of the guest invite form ("Want to Invite A Guest?"), on an
 // "Invite A Guest" tab beside Support, on the Visit page when signed in, and in a pop-up from the dashboard's
@@ -138,6 +138,23 @@ test.describe('members invite a guest', () => {
   test('members who are not admins have no Admin menu', async ({ page }) => {
     await login(page, users.member);
     await expect(page.locator('header').getByRole('button', { name: 'Admin', exact: true })).toHaveCount(0);
+  });
+
+  test("the header shows the member's profile photo in the round icon, initials when there is none (owner, 2026-10-30)", async ({ page }) => {
+    const key = await serviceKey();
+    const h = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
+    const [me] = await db<{ id: string; avatar_path: string | null }>(`profiles?select=id,avatar_path&first_name=eq.Morgan&last_name=eq.Member`);
+    await login(page, users.member);
+    const header = page.locator('header');
+    await expect(header.getByText('MM', { exact: true })).toBeVisible();
+    await fetch(`${STACK}/rest/v1/profiles?id=eq.${me!.id}`, { method: 'PATCH', headers: h, body: JSON.stringify({ avatar_path: '/members/barastone.webp' }) });
+    try {
+      await page.reload();
+      await expect(header.locator('img[src*="barastone"]')).toHaveCount(1);
+      await expect(header.getByText('MM', { exact: true })).toHaveCount(0);
+    } finally {
+      await fetch(`${STACK}/rest/v1/profiles?id=eq.${me!.id}`, { method: 'PATCH', headers: h, body: JSON.stringify({ avatar_path: me!.avatar_path }) });
+    }
   });
 
   test('the form checks the guest details, saves them for the member and emails the guest and admins (not the member)', async ({ page }) => {

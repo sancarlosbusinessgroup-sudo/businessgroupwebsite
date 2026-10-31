@@ -108,7 +108,7 @@ export default async function EventDetail({ params }: Props) {
                       <p className="text-ink-soft m-0 text-[15px]">{slotDescriptions[slot]}</p>
                       {s ? (
                         <div className="flex items-center gap-3">
-                          <Avatar name={s.display_name} size={44} index={i} />
+                          <Avatar name={s.display_name} size={44} index={i} photo={mediaUrl('profile-media', s.profile?.avatar_path)} />
                           <div>
                             <div className="font-semibold">{s.display_name}</div>
                             {s.business ? <div className="text-ink-muted text-[15px]">{s.business}</div> : null}

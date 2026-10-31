@@ -4,7 +4,7 @@ import type { CalendarItem } from '@/lib/data/events';
 import type { MeetingWithSpeakers, Speaker } from '@/lib/data/public';
 import { calendarEventFor } from '@/lib/calendar-links';
 import { formatDayMonth, formatMeetingDate, formatMeetingTime } from '@/lib/dates';
-import { env } from '@/lib/env';
+import { env, mediaUrl } from '@/lib/env';
 import { AddToCalendar } from './AddToCalendar';
 import { Avatar, DateBadge } from './ui';
 import { Countdown } from './Countdown';
@@ -82,7 +82,7 @@ export function NextMeetingCard({ meeting, member, variant = 'dark' }: { meeting
           ].map(({ s, label }, i) =>
             s ? (
               <li key={label} className={`flex items-center gap-3 rounded-xl p-3.5 ${t.item}`}>
-                <Avatar name={s.display_name} size={44} index={i} />
+                <Avatar name={s.display_name} size={44} index={i} photo={mediaUrl('profile-media', s.profile?.avatar_path)} />
                 <div className="min-w-0">
                   <div className={`text-xs font-bold tracking-[0.08em] uppercase ${t.label}`}>{label}</div>
                   <div className={`text-base font-semibold ${t.name}`}>{s.display_name}</div>
