@@ -120,7 +120,7 @@ export function EventCard({ item, member }: { item: CalendarItem; member: boolea
       </div>
       <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-2 px-[22px] py-5">
         <div className="text-ink-muted flex flex-wrap items-center gap-2 text-sm">
-          <span className="pill bg-green-tint text-green-ink">{item.category}</span>
+          <span className="pill bg-green-tint text-green-ink">{item.categoryLabel}</span>
           {item.cancelledReason ? <span className="pill bg-red-tint text-red">Cancelled</span> : null}
           {item.visibility === 'members' ? <span className="pill bg-amber-tint text-amber">Members only</span> : null}
           <span>

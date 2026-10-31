@@ -67,4 +67,17 @@ describe('member event visibility and dates', () => {
       expect(rows[0]?.n).toBe(2);
     });
   });
+
+  it('"Other" events carry the host\'s own description of the event type (migration 20261031000002)', async () => {
+    await tx(async (c) => {
+      await actAs(c, ids.member);
+      const base = `insert into member_events (host_id, title, starts_at, ends_at, is_online, location, category, category_other)
+        values ('${ids.member}', 'Reading circle', now() + interval '3 days', now() + interval '3 days 1 hour', false, 'Laurel St', $1, $2) returning category, category_other`;
+      expect((await c.query(base, ['Other', 'Book club'])).rows[0]).toEqual({ category: 'Other', category_other: 'Book club' });
+      await c.query('savepoint s');
+      await expect(c.query(base, ['Other', null])).rejects.toThrow(/check constraint/);
+      await c.query('rollback to savepoint s');
+      await expect(c.query(base, ['Party', null])).rejects.toThrow(/check constraint/);
+    });
+  });
 });

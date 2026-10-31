@@ -85,7 +85,7 @@ export default async function EventDetail({ params }: Props) {
             <p className="text-berry m-0 text-base font-semibold">
               Member event · hosted by{' '}
               {m.hostName && m.hostSlug ? <Link href={`/members/${m.hostSlug}`}>{m.hostName}</Link> : (m.hostName ?? `a ${site.shortName} member`)}
-              <span className="text-ink-muted font-normal"> · {m.category}</span>
+              <span className="text-ink-muted font-normal"> · {m.categoryLabel}</span>
               {m.visibility === 'members' ? <span className="pill bg-amber-tint text-amber ml-2 align-middle text-sm">Members only</span> : null}
             </p>
           ) : null}

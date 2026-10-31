@@ -41,6 +41,7 @@ export async function saveMemberEvent(input: Record<string, string>): Promise<Ev
     title: d.title,
     description: d.description,
     category: d.category,
+    category_other: d.categoryOther,
     visibility: d.visibility,
     is_online: d.isOnline,
     online_url: d.onlineUrl,

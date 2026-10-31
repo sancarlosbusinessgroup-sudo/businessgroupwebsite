@@ -6,7 +6,7 @@ import { SelectField, TextArea, TextField } from '@/components/forms';
 import { Notice } from '@/components/ui';
 import { checkImageFile, prepareImage } from '@/lib/images';
 import { createClient } from '@/lib/supabase/browser';
-import { MAX_EVENT_DATES, eventCategories, eventDateField, fieldErrors, formToObject, memberEventSchema } from '@/lib/validation';
+import { MAX_EVENT_DATES, eventDateField, fieldErrors, formToObject, memberEventCategories, memberEventSchema } from '@/lib/validation';
 import { saveMemberEvent } from '../actions/events';
 
 /** "YYYY-MM-DDTHH:mm" plus whole days / one hour, as typed in a datetime-local field (no time zone maths needed). */
@@ -25,6 +25,8 @@ export type EventDefaults = {
   id?: string;
   title: string;
   category: string;
+  /** The host's own description when the category is "Other". */
+  categoryOther: string;
   /** Every date of the event (one when it was posted with a single date). */
   dates: EventDateDefaults[];
   visibility: 'public' | 'members';
@@ -51,6 +53,7 @@ export function EventForm({ userId, defaults, minStart, onSaved }: Props) {
   const router = useRouter();
   const editing = !!defaults?.id;
   const [format, setFormat] = useState<'online' | 'in_person'>(defaults?.format ?? 'in_person');
+  const [category, setCategory] = useState(defaults?.category ?? 'Networking');
   const [visibility, setVisibility] = useState<'public' | 'members'>(defaults?.visibility ?? 'public');
   const [dates, setDates] = useState<DateRow[]>(() => toRows(defaults?.dates));
   const setDate = (key: number, patch: Partial<DateRow>) => setDates((rows) => rows.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -114,14 +117,28 @@ export function EventForm({ userId, defaults, minStart, onSaved }: Props) {
         <div className="md:col-span-2">
           <TextField name="title" label="Event title" required maxLength={160} defaultValue={defaults?.title} error={errors.title} />
         </div>
-        <SelectField name="category" label="Category" required defaultValue={defaults?.category ?? 'Networking'} error={errors.category}>
-          {eventCategories.map((c) => (
+        <SelectField name="category" label="Category" required value={category} onChange={(e) => setCategory(e.currentTarget.value)} error={errors.category}>
+          {memberEventCategories.map((c) => (
             <option key={c} value={c}>
-              {c}
+              {c === 'Other' ? 'Other (tell us what kind)' : c}
             </option>
           ))}
         </SelectField>
-        <div className="hidden md:block" />
+        {/* Owner, 2026-10-31: "Other" asks what kind of event it is; shown in place of the category. */}
+        {category === 'Other' ? (
+          <TextField
+            name="categoryOther"
+            label="What kind of event is it?"
+            required
+            maxLength={60}
+            placeholder="e.g. Book club, Charity run, Wine tasting"
+            defaultValue={defaults?.categoryOther}
+            error={errors.categoryOther}
+            help="Shown on the event in place of the category."
+          />
+        ) : (
+          <div className="hidden md:block" />
+        )}
       </div>
 
       {/* Several dates (owner, 2026-10-31): each date becomes its own event, linked together. */}

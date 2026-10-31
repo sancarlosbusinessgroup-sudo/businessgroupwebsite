@@ -129,4 +129,35 @@ test.describe('member events (2026-10-31)', () => {
     await page.getByRole('button', { name: 'Yes, delete' }).click();
     await expect(page).toHaveURL(/\/events\?deleted=1/);
   });
+
+  test('category "Other" asks what kind of event it is and shows that on the event (owner, 2026-10-31)', async ({ page }) => {
+    const title = `Reading circle ${Date.now().toString().slice(-6)}`;
+    await login(page, users.member, undefined, '/events/new');
+    await expect(page.getByLabel('What kind of event is it?')).toHaveCount(0);
+    await page.getByLabel('Category').selectOption('Other');
+    await page.getByLabel('Event title').fill(title);
+    await page.getByLabel(/^Starts/).fill(pacificDay(6, 18));
+    await page.getByLabel(/^Ends/).fill(pacificDay(6, 19));
+    await page.getByLabel('Address').fill('1 Laurel St');
+    await page.getByRole('button', { name: 'Publish event' }).click();
+    await expect(page.getByText('Tell us what kind of event it is')).toBeVisible();
+    await page.getByLabel('What kind of event is it?').fill('Book club');
+    await page.getByRole('button', { name: 'Publish event' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
+    await expect(page.getByText(/· Book club/)).toBeVisible();
+    await page.getByRole('link', { name: 'Edit event' }).click();
+    await expect(page.getByLabel('What kind of event is it?')).toHaveValue('Book club');
+    await page.goBack();
+    await page
+      .getByRole('button', { name: /^Delete/ })
+      .first()
+      .click();
+    await page.getByRole('button', { name: 'Yes, delete' }).click();
+    await expect(page).toHaveURL(/\/events\?deleted=1/);
+  });
+
+  test('the footer reads "© <year> Bay Area Referral Partners Provided By Vabrato Inc" (owner, 2026-10-31)', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('footer')).toContainText(`© ${new Date().getFullYear()} Bay Area Referral Partners Provided By Vabrato Inc`);
+  });
 });

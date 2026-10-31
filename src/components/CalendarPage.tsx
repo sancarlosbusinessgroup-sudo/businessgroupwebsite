@@ -9,7 +9,7 @@ import { getCalendarBetween, getUpcomingCalendar, type CalendarKind } from '@/li
 import { getNextMeeting } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime, localDateKey, monthGrid } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
-import { eventCategories } from '@/lib/validation';
+import { eventCategories, memberEventCategories } from '@/lib/validation';
 
 // One calendar page per kind: group meetings (/group-meetings) and member events (/events).
 
@@ -55,7 +55,9 @@ const monthKey = (y: number, m: number) => `${y}-${String(m + 1).padStart(2, '0'
 export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: CalendarSearch }) {
   const c = copy[kind];
   const view = sp.view === 'month' ? 'month' : 'list';
-  const category = (eventCategories as readonly string[]).includes(sp.category ?? '') ? sp.category : undefined;
+  // Member events also have "Other" (owner, 2026-10-31).
+  const categories: readonly string[] = kind === 'member' ? memberEventCategories : eventCategories;
+  const category = categories.includes(sp.category ?? '') ? sp.category : undefined;
   const { y, m } = parseMonth(sp.month);
 
   const [viewer, next, upcomingAll] = await Promise.all([
@@ -239,7 +241,7 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
           <div className="card flex flex-col gap-3 p-5">
             <h2 className="font-display m-0 text-sm tracking-[0.1em] uppercase">Browse by category</h2>
             <div className="flex flex-wrap gap-2">
-              {[{ label: 'All', value: undefined as string | undefined }, ...eventCategories.map((x) => ({ label: x, value: x as string | undefined }))]
+              {[{ label: 'All', value: undefined as string | undefined }, ...categories.map((x) => ({ label: x, value: x as string | undefined }))]
                 .filter((x) => x.value === undefined || (counts[x.value] ?? 0) > 0 || x.value === category)
                 .map((x) => {
                   const active = category === x.value;

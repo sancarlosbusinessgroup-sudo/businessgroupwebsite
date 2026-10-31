@@ -510,6 +510,7 @@ export type Database = {
       member_events: {
         Row: {
           category: string;
+          category_other: string | null;
           created_at: string;
           description: string | null;
           ends_at: string;
@@ -528,6 +529,7 @@ export type Database = {
         };
         Insert: {
           category?: string;
+          category_other?: string | null;
           created_at?: string;
           description?: string | null;
           ends_at: string;
@@ -546,6 +548,7 @@ export type Database = {
         };
         Update: {
           category?: string;
+          category_other?: string | null;
           created_at?: string;
           description?: string | null;
           ends_at?: string;

@@ -370,6 +370,8 @@ export const seatLimitSchema = z.object({
 });
 
 export const eventCategories = ['Networking', 'Social', 'Workshop', 'Community'] as const;
+/** Member events can also be "Other", with the host's own description (owner, 2026-10-31). */
+export const memberEventCategories = [...eventCategories, 'Other'] as const;
 
 /** Member event form. Times are typed as Pacific wall-clock and converted to UTC here. */
 /** Most dates one post can hold (each date is its own event row, linked by a series id; owner, 2026-10-31). */
@@ -411,7 +413,13 @@ export const memberEventSchema = (now: Date = new Date()) =>
           .min(3, 'Use at least 3 characters')
           .max(160, 'Keep the title under 160 characters'),
         description: optionalText(4000, 'Description'),
-        category: z.enum(eventCategories, { error: 'Choose a category' }),
+        category: z.enum(memberEventCategories, { error: 'Choose a category' }),
+        categoryOther: z
+          .string()
+          .trim()
+          .max(60, 'Keep it under 60 characters')
+          .optional()
+          .transform((v) => (v ? v : null)),
         visibility: z
           .enum(eventVisibilities, { error: 'Choose who can see the event' })
           .optional()
@@ -452,11 +460,14 @@ export const memberEventSchema = (now: Date = new Date()) =>
       if (v.format === 'online' && !(v.onlineUrl && /^https:\/\/[^\s]+\.[^\s]+$/i.test(v.onlineUrl) && v.onlineUrl.length <= 500))
         ctx.addIssue({ code: 'custom', path: ['onlineUrl'], message: 'Use a secure link that starts with https://' });
       if (v.format === 'in_person' && !v.location) ctx.addIssue({ code: 'custom', path: ['location'], message: 'Add the address' });
+      if (v.category === 'Other' && (v.categoryOther?.length ?? 0) < 2)
+        ctx.addIssue({ code: 'custom', path: ['categoryOther'], message: 'Tell us what kind of event it is' });
       const first = dates[0];
       return {
         title: v.title,
         description: v.description ?? null,
         category: v.category,
+        categoryOther: v.category === 'Other' ? v.categoryOther : null,
         visibility: v.visibility,
         dates,
         startsAt: first?.startsAt ?? '',

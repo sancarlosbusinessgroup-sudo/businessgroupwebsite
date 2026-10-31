@@ -316,6 +316,15 @@ describe('phase B forms', () => {
     expect(memberEventSchema(now).safeParse({ ...ok, visibility: 'members' }).data?.visibility).toBe('members');
     expect(memberEventSchema(now).safeParse({ ...ok, visibility: 'friends' }).success).toBe(false);
   });
+  it('member event: "Other" needs a short description of the event type; other categories ignore it (owner, 2026-10-31)', () => {
+    expect(fieldErrors(memberEventSchema(now).safeParse({ ...ok, category: 'Other' }).error!).categoryOther).toBe('Tell us what kind of event it is');
+    expect(memberEventSchema(now).safeParse({ ...ok, category: 'Other', categoryOther: ' Book club ' }).data).toMatchObject({
+      category: 'Other',
+      categoryOther: 'Book club',
+    });
+    expect(memberEventSchema(now).safeParse({ ...ok, category: 'Other', categoryOther: 'x'.repeat(61) }).success).toBe(false);
+    expect(memberEventSchema(now).safeParse({ ...ok, categoryOther: 'Book club' }).data?.categoryOther).toBeNull();
+  });
   it('speaker topic is required (3–120 chars); description optional', () => {
     expect(speakerTopicSchema.safeParse({ topic: '' }).success).toBe(false);
     expect(speakerTopicSchema.safeParse({ topic: 'x'.repeat(121) }).success).toBe(false);

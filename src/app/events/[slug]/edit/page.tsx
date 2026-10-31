@@ -38,6 +38,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
             id: e.id,
             title: e.title,
             category: e.category,
+            categoryOther: e.categoryOther ?? '',
             dates,
             visibility: e.visibility,
             format: e.is_online ? 'online' : 'in_person',

@@ -35,6 +35,10 @@ export type CalendarItem = {
   visibility: 'public' | 'members';
   /** Member events posted with several dates share this id. */
   seriesId: string | null;
+  /** Member events with category "Other": the host's own description (owner, 2026-10-31). */
+  categoryOther: string | null;
+  /** What to show as the category: the host's description for "Other", else the category. */
+  categoryLabel: string;
 };
 
 type HostedEvent = Tables<'member_events'> & { host: { first_name: string; last_name: string; slug: string } | null };
@@ -69,6 +73,8 @@ export function fromMeeting(m: MeetingWithSpeakers): CalendarItem {
     organizerId: m.organizer_id,
     visibility: 'public',
     seriesId: null,
+    categoryOther: null,
+    categoryLabel: m.category,
   };
 }
 
@@ -97,6 +103,8 @@ export function fromMemberEvent(e: HostedEvent): CalendarItem {
     organizerId: null,
     visibility: e.visibility === 'members' ? 'members' : 'public',
     seriesId: e.series_id,
+    categoryOther: e.category_other,
+    categoryLabel: e.category === 'Other' && e.category_other ? e.category_other : e.category,
   };
 }
 
