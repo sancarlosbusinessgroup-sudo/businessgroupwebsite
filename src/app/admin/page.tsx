@@ -43,7 +43,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       .order('created_at'),
     supabase
       .from('guest_requests')
-      .select('id, first_name, last_name, email, business_name, phone, website, invited_by_text, status, created_at, one_on_ones_done_at, source')
+      .select(
+        'id, first_name, last_name, email, business_name, business_description, phone, website, invited_by_text, status, created_at, one_on_ones_done_at, source',
+      )
       .order('created_at', { ascending: false })
       .limit(50),
     supabase
@@ -299,6 +301,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                           {g.first_name} {g.last_name}
                         </strong>
                         <div className="text-ink-muted text-sm">{g.business_name}</div>
+                        {g.business_description ? (
+                          <details className="text-sm">
+                            <summary className="cursor-pointer">About their business</summary>
+                            <p className="m-0 mt-1 max-w-[36ch] whitespace-pre-line">{g.business_description}</p>
+                          </details>
+                        ) : null}
                         {g.website ? (
                           <div className="text-sm">
                             <a href={g.website} target="_blank" rel="noopener noreferrer">

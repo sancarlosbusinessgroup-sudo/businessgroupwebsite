@@ -199,7 +199,7 @@ export async function onGuestRequest(guestId: string): Promise<void> {
   if (!db) return;
   const { data: g } = await db
     .from('guest_requests')
-    .select('id, first_name, last_name, email, business_name, invited_by_text, referrer_id, meeting_id')
+    .select('id, first_name, last_name, email, business_name, business_description, invited_by_text, referrer_id, meeting_id')
     .eq('id', guestId)
     .single();
   if (!g) return;
@@ -253,6 +253,7 @@ export async function onGuestRequest(guestId: string): Promise<void> {
         guestName,
         guestEmail: g.email,
         business: g.business_name,
+        businessDescription: g.business_description,
         invitedBy,
         meeting,
       }),

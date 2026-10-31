@@ -387,6 +387,7 @@ test.describe('membership application', () => {
     await page.getByLabel('Email').fill(email);
     await page.getByLabel('Phone').fill('650-555-0124');
     await page.getByLabel('Business name').fill('Ivy Bookkeeping');
+    await page.getByLabel('Tell us about your business').fill('Bookkeeping and payroll for small businesses.');
     await page.getByRole('button', { name: 'Send my invite request' }).click();
     await expect(page.getByText("You're on the list, Ivy!")).toBeVisible();
 

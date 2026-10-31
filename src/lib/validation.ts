@@ -68,6 +68,8 @@ export const guestRequestSchema = z.object({
   lastName: text(60, 'Last name'),
   email,
   businessName: optionalText(120, 'Business name'),
+  // Owner, 2026-10-30: what the guest does, so management can check for a category overlap with a member.
+  businessDescription: text(1000, 'Tell us about your business'),
   phone: z
     .string({ error: 'Phone is required' })
     .trim()
@@ -90,6 +92,8 @@ export const guestRequestSchema = z.object({
  * the invite request, but the meeting is today's, and "Who invited you?" can be a member picked from a list.
  */
 export const visitorSignInSchema = guestRequestSchema.omit({ meetingId: true, referralCode: true }).extend({
+  // Optional here: visitors fill this in from the Zoom chat during the meeting, so keep it quick.
+  businessDescription: optionalText(1000, 'Tell us about your business'),
   invitedById: z
     .string()
     .optional()

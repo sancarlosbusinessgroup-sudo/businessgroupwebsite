@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import { SelectField, SubmitButton, TextField } from '@/components/forms';
+import { SelectField, SubmitButton, TextArea, TextField } from '@/components/forms';
 import { useClientValidation } from '@/components/useClientValidation';
 import { Notice } from '@/components/ui';
 import { guestRequestSchema, idle } from '@/lib/validation';
@@ -43,6 +43,18 @@ export function GuestRequestForm({ meetings, referralCode, referrerName }: { mee
       <TextField name="businessName" label="Business name" autoComplete="organization" defaultValue={v.businessName} error={errors.businessName} />
       <TextField name="phone" type="tel" label="Phone" autoComplete="tel" required defaultValue={v.phone} error={errors.phone} />
       <TextField name="website" type="url" label="Website" autoComplete="url" placeholder="https://" defaultValue={v.website} error={errors.website} />
+      <div className="sm:col-span-2">
+        <TextArea
+          name="businessDescription"
+          label="Tell us about your business"
+          help="Briefly describe your business, industry and the services you offer. We check that each visitor's business doesn't overlap with an existing member's category."
+          required
+          rows={3}
+          maxLength={1000}
+          defaultValue={v.businessDescription}
+          error={errors.businessDescription}
+        />
+      </div>
       <TextField
         name="invitedBy"
         label="Who invited you?"

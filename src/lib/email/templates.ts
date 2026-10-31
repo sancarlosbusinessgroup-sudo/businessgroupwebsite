@@ -315,6 +315,8 @@ export function guestNoticeEmail(o: {
   guestName: string;
   guestEmail: string;
   business?: string | null;
+  /** Admins only: what the guest does, to check for a category overlap with a member. */
+  businessDescription?: string | null;
   invitedBy?: string | null;
   meeting?: string | null;
 }): Email {
@@ -323,6 +325,7 @@ export function guestNoticeEmail(o: {
     ['Email', o.guestEmail],
   ];
   if (o.business) list.push(['Business', o.business]);
+  if (o.forAdmins && o.businessDescription) list.push(['About their business', o.businessDescription]);
   if (o.invitedBy) list.push(['Invited by', o.invitedBy]);
   if (o.meeting) list.push(['Meeting', o.meeting]);
   return {
@@ -334,7 +337,7 @@ export function guestNoticeEmail(o: {
       blocks: [
         {
           p: o.forAdmins
-            ? 'Someone asked to visit a meeting. Please send them the Zoom link and mark them “Visited” on the Admin page after the meeting.'
+            ? 'Someone asked to visit a meeting. Check that their business doesn’t overlap with a member’s category, then send them the Zoom link and mark them “Visited” on the Admin page after the meeting.'
             : `${o.guestName} used your invite to request a visit. A quick hello before the meeting goes a long way.`,
         },
         { list },

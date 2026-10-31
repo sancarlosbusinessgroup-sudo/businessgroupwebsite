@@ -15,6 +15,7 @@ import {
   referralSchema,
   referralUpdateSchema,
   seatLimitSchema,
+  visitorSignInSchema,
   weeklyAskSchema,
 } from './validation';
 
@@ -50,9 +51,25 @@ const okJoin = {
 
 describe('guestRequestSchema', () => {
   it('accepts a valid request and normalises the email', () => {
-    const r = guestRequestSchema.safeParse({ firstName: 'A', lastName: 'B', email: ' A@Example.org ', phone: '650-555-0100', company: '' });
+    const r = guestRequestSchema.safeParse({
+      firstName: 'A',
+      lastName: 'B',
+      email: ' A@Example.org ',
+      phone: '650-555-0100',
+      businessDescription: ' Residential plumbing and water-heater repair on the Peninsula. ',
+      company: '',
+    });
     expect(r.success).toBe(true);
     expect(r.success && r.data.email).toBe('a@example.org');
+    expect(r.success && r.data.businessDescription).toBe('Residential plumbing and water-heater repair on the Peninsula.');
+  });
+  it('asks the guest to describe their business, up to 1000 characters (owner, 2026-10-30)', () => {
+    const base = { firstName: 'A', lastName: 'B', email: 'a@example.org', phone: '650-555-0100' };
+    expect(fieldErrors(guestRequestSchema.safeParse(base).error!).businessDescription).toBe('Tell us about your business is required');
+    expect(fieldErrors(guestRequestSchema.safeParse({ ...base, businessDescription: '   ' }).error!).businessDescription).toBeDefined();
+    expect(guestRequestSchema.safeParse({ ...base, businessDescription: 'x'.repeat(1001) }).success).toBe(false);
+    // The meeting sign-in form keeps it optional.
+    expect(visitorSignInSchema.safeParse(base).success).toBe(true);
   });
   it('rejects a bad email and filled honeypot', () => {
     const r = guestRequestSchema.safeParse({ firstName: 'A', lastName: 'B', email: 'nope', company: 'bot' });

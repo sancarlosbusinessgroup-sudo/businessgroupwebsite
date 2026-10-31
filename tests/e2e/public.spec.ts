@@ -200,6 +200,7 @@ test.describe('guest invite form', () => {
     await expect(page.getByText('First name is required')).toBeVisible();
     await expect(page.getByText('Last name is required')).toBeVisible();
     await expect(page.getByText('Phone is required')).toBeVisible();
+    await expect(page.getByText('Tell us about your business is required')).toBeVisible();
     await page.getByLabel('Email').fill('not-an-email');
     await page.getByRole('button', { name: 'Send my invite request' }).click();
     await expect(page.getByText('Enter a valid email address')).toBeVisible();
@@ -215,10 +216,19 @@ test.describe('guest invite form', () => {
     await page.getByLabel('Email').fill(email);
     await page.getByLabel('Phone').fill('650-555-0123');
     await page.getByLabel('Business name').fill('Guest Co');
+    await page.getByLabel('Tell us about your business').fill('Custom cabinetry and kitchen remodels in San Mateo County.');
     await page.getByRole('button', { name: 'Send my invite request' }).click();
     await expect(page.getByText("You're on the list, Gina!")).toBeVisible();
-    const rows = await db<{ referrer_id: string; status: string }>(`guest_requests?email=eq.${encodeURIComponent(email)}&select=referrer_id,status`);
-    expect(rows).toEqual([{ referrer_id: '00000000-0000-4000-8000-000000000001', status: 'requested' }]);
+    const rows = await db<{ referrer_id: string; status: string; business_description: string }>(
+      `guest_requests?email=eq.${encodeURIComponent(email)}&select=referrer_id,status,business_description`,
+    );
+    expect(rows).toEqual([
+      {
+        referrer_id: '00000000-0000-4000-8000-000000000001',
+        status: 'requested',
+        business_description: 'Custom cabinetry and kitchen remodels in San Mateo County.',
+      },
+    ]);
   });
 
   test('saves the phone and optional website, checks the website, and says members will see the details', async ({ page }) => {
@@ -229,6 +239,7 @@ test.describe('guest invite form', () => {
     await page.getByLabel('Last name').fill('Ibarra');
     await page.getByLabel('Email').fill(email);
     await page.getByLabel('Phone').fill('650-347-6972');
+    await page.getByLabel('Tell us about your business').fill('Carpet and upholstery cleaning.');
     await page.getByLabel('Website').fill('peninsulachemdry.example');
     await page.getByRole('button', { name: 'Send my invite request' }).click();
     await expect(page.getByText('Website must start with http:// or https://')).toBeVisible();

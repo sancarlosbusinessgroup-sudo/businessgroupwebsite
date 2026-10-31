@@ -40,6 +40,7 @@ export async function submitGuestRequest(_prev: ActionState, formData: FormData)
     last_name: d.lastName,
     email: d.email,
     business_name: d.businessName ?? null,
+    business_description: d.businessDescription,
     phone: d.phone ?? null,
     website: d.website ?? null,
     invited_by_text: d.invitedBy ?? null,
@@ -90,7 +91,7 @@ export async function submitVisitorSignIn(_prev: ActionState, formData: FormData
   if (admin && meeting) {
     const { data: existing } = await admin
       .from('guest_requests')
-      .select('id, status, referrer_id, phone, business_name, website, invited_by_text')
+      .select('id, status, referrer_id, phone, business_name, business_description, website, invited_by_text')
       .ilike('email', d.email.replace(/[\\%_]/g, '\\$&'))
       .in('status', ['requested', 'visited'])
       .order('created_at', { ascending: false })
@@ -104,6 +105,7 @@ export async function submitVisitorSignIn(_prev: ActionState, formData: FormData
           meeting_id: meeting.id,
           phone: existing.phone ?? d.phone ?? null,
           business_name: existing.business_name ?? d.businessName ?? null,
+          business_description: existing.business_description ?? d.businessDescription ?? null,
           website: existing.website ?? d.website ?? null,
           invited_by_text: existing.invited_by_text ?? inviterName ?? d.invitedBy ?? null,
           ...(!existing.referrer_id && inviter.data ? { referrer_id: inviter.data.id } : {}),
@@ -123,6 +125,7 @@ export async function submitVisitorSignIn(_prev: ActionState, formData: FormData
     last_name: d.lastName,
     email: d.email,
     business_name: d.businessName ?? null,
+    business_description: d.businessDescription ?? null,
     phone: d.phone ?? null,
     website: d.website ?? null,
     invited_by_text: inviterName ?? d.invitedBy ?? null,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import { SelectField, SubmitButton, TextField } from '@/components/forms';
+import { SelectField, SubmitButton, TextArea, TextField } from '@/components/forms';
 import { useClientValidation } from '@/components/useClientValidation';
 import { Notice } from '@/components/ui';
 import { idle, visitorSignInSchema } from '@/lib/validation';
@@ -42,6 +42,17 @@ export function VisitorSignInForm({ members, meetingToday }: { members: Member[]
       <TextField name="phone" type="tel" label="Phone" autoComplete="tel" required defaultValue={v.phone} error={errors.phone} />
       <TextField name="businessName" label="Business name" autoComplete="organization" defaultValue={v.businessName} error={errors.businessName} />
       <TextField name="website" type="url" label="Website" autoComplete="url" placeholder="https://" defaultValue={v.website} error={errors.website} />
+      <div className="sm:col-span-2">
+        <TextArea
+          name="businessDescription"
+          label="Tell us about your business"
+          help="Optional: your industry and the services you offer."
+          rows={2}
+          maxLength={1000}
+          defaultValue={v.businessDescription}
+          error={errors.businessDescription}
+        />
+      </div>
       <SelectField name="invitedById" label="Which member invited you?" defaultValue={v.invitedById ?? ''} error={errors.invitedById}>
         <option value="">Not in the list / not sure</option>
         {members.map((m) => (

@@ -376,6 +376,7 @@ export type Database = {
       };
       guest_requests: {
         Row: {
+          business_description: string | null;
           business_name: string | null;
           created_at: string;
           email: string;
@@ -394,6 +395,7 @@ export type Database = {
           status: E['guest_status'];
         };
         Insert: {
+          business_description?: string | null;
           business_name?: string | null;
           created_at?: string;
           email: string;
@@ -412,6 +414,7 @@ export type Database = {
           status?: E['guest_status'];
         };
         Update: {
+          business_description?: string | null;
           business_name?: string | null;
           created_at?: string;
           email?: string;

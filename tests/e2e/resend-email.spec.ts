@@ -72,6 +72,7 @@ test('resending one email of a guest request reaches only that person, not the a
   await page.getByLabel('Last name').fill('Resend');
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Phone').fill('650-555-0124');
+  await page.getByLabel('Tell us about your business').fill('Residential mortgage lending.');
   await page.getByRole('button', { name: 'Send my invite request' }).click();
   await expect(page.getByText("You're on the list, Rhea!")).toBeVisible();
 
