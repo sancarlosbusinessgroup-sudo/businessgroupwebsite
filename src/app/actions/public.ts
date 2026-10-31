@@ -10,7 +10,7 @@ import { getUpcomingMeetings } from '@/lib/data/public';
 import { todaysMeeting } from '@/lib/data/visitor-sign-in';
 import { onGuestRequest } from '@/lib/email/events';
 import { safely } from '@/lib/email/notify';
-import { type ActionState, fieldErrors, formToObject, guestRequestSchema, visitorSignInSchema } from '@/lib/validation';
+import { type ActionState, fieldErrors, formToObject, guestRequestSchema, memberGuestInviteSchema, visitorSignInSchema } from '@/lib/validation';
 
 /**
  * A salted hash of the visitor's network address, so the database can limit how many guest requests one
@@ -61,6 +61,56 @@ export async function submitGuestRequest(_prev: ActionState, formData: FormData)
     };
   }
   after(() => safely('guest request', () => onGuestRequest(guestId)));
+  return { status: 'success', message: d.firstName };
+}
+
+/**
+ * A signed-in member invites a guest (owner, 2026-10-30): the "Invite a Guest" page, the members' version of the
+ * Visit page form and the dashboard pop-up. The member fills in the guest's details; the request is credited to the
+ * signed-in member (their referral code sets referrer_id in the database trigger, and their name is the "Invited by").
+ */
+export async function submitMemberGuestInvite(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const values = formToObject(formData);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: 'error', message: 'Please log in again to invite a guest.', values };
+  const { data: me } = await supabase.from('profiles').select('first_name, last_name, referral_code, status').eq('id', user.id).maybeSingle();
+  if (!me || me.status !== 'approved') return { status: 'error', message: 'Only approved members can invite guests here.', values };
+
+  const parsed = memberGuestInviteSchema.safeParse(values);
+  if (!parsed.success) {
+    return { status: 'error', message: 'Please fix the highlighted fields.', errors: fieldErrors(parsed.error), values };
+  }
+  const d = parsed.data;
+  const guestId = crypto.randomUUID();
+  // No network limit here: the member is signed in, and several members often share one office network.
+  const { error } = await supabase.from('guest_requests').insert({
+    id: guestId,
+    first_name: d.firstName,
+    last_name: d.lastName,
+    email: d.email,
+    business_name: d.businessName ?? null,
+    business_description: d.businessDescription,
+    phone: d.phone,
+    website: d.website ?? null,
+    invited_by_text: `${me.first_name} ${me.last_name}`.trim(),
+    referral_code: me.referral_code,
+    meeting_id: d.meetingId ?? null,
+  });
+  if (error) {
+    const limited = /too many requests/i.test(error.message);
+    return {
+      status: 'error',
+      message: limited
+        ? 'This guest already has an invitation request from today. Please try again tomorrow.'
+        : 'Something went wrong sending the invitation request. Please try again.',
+      values,
+    };
+  }
+  after(() => safely('member guest invite', () => onGuestRequest(guestId, { byMember: true })));
+  revalidatePath('/dashboard');
   return { status: 'success', message: d.firstName };
 }
 

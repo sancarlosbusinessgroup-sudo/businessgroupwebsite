@@ -193,8 +193,12 @@ export async function onOneOnOneMessage(id: string, repliedAt: string): Promise<
   });
 }
 
-/** A visitor asked to come: thank the visitor, tell the inviting member (if any) and the admins. */
-export async function onGuestRequest(guestId: string): Promise<void> {
+/**
+ * A visitor asked to come: thank the visitor, tell the inviting member (if any) and the admins. `byMember`: the
+ * inviting member filled in the request for their guest (owner, 2026-10-30), so they get no notice about it and the
+ * guest's thank-you says who invited them.
+ */
+export async function onGuestRequest(guestId: string, opts: { byMember?: boolean } = {}): Promise<void> {
   const db = createAdminClient();
   if (!db) return;
   const { data: g } = await db
@@ -213,12 +217,14 @@ export async function onGuestRequest(guestId: string): Promise<void> {
     kind: 'guest_thanks',
     dedupeKey: g.id,
     to: { email: g.email, name: guestName },
-    email: T.guestThanksEmail({ siteUrl: siteUrl(), firstName: g.first_name, meeting }),
+    email: T.guestThanksEmail({ siteUrl: siteUrl(), firstName: g.first_name, meeting, invitedBy: opts.byMember ? g.invited_by_text : null }),
   });
   let invitedBy = g.invited_by_text;
   if (g.referrer_id) {
     const { data: ref } = await db.from('profiles').select('first_name, last_name').eq('id', g.referrer_id).single();
     if (ref) invitedBy = fullName(ref);
+  }
+  if (g.referrer_id && !opts.byMember) {
     await notifyMembers([g.referrer_id], {
       kind: 'guest_notice_member',
       dedupeKey: g.id,

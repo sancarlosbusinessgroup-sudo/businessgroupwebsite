@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { Countdown } from '@/components/Countdown';
 import { CheckIcon, PageHero, SectionHead } from '@/components/ui';
 import { joinSteps, meetingAgenda, visitTips, site } from '@/lib/content';
-import { getNextMeeting, getUpcomingMeetings, referrerByCode } from '@/lib/data/public';
+import { MemberGuestInviteSection } from '@/components/MemberGuestInviteSection';
+import { getViewer } from '@/lib/auth';
+import { getNextMeeting, guestMeetingOptions, referrerByCode } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
 import { referralCode as referralCodeSchema } from '@/lib/validation';
 import { GuestRequestForm } from './GuestRequestForm';
@@ -18,12 +20,10 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
   const code = referralCodeSchema.safeParse(ref);
   const referralCode = code.success ? code.data : undefined;
 
-  const [next, upcoming, referrer] = await Promise.all([getNextMeeting(), getUpcomingMeetings(6), referrerByCode(referralCode)]);
+  const [next, meetingOptions, referrer, viewer] = await Promise.all([getNextMeeting(), guestMeetingOptions(), referrerByCode(referralCode), getViewer()]);
   const referrerName = referrer?.name;
-  const meetingOptions = upcoming
-    .filter((m) => m.category === 'Networking')
-    .slice(0, 3)
-    .map((m) => ({ id: m.id, label: `${formatMeetingDate(new Date(m.starts_at))} · Zoom` }));
+  // Signed-in members see the members' version of the form (owner, 2026-10-30): they fill it in for their guest.
+  const member = viewer?.profile?.status === 'approved' ? viewer.profile : null;
 
   return (
     <>
@@ -54,7 +54,7 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
             )}
             <div className="flex flex-wrap gap-2.5">
               <a className="btn btn-primary btn-sm" href="#request">
-                Request an invite
+                {member ? 'Invite a Guest' : 'Request an invite'}
               </a>
               <Link className="btn btn-outline btn-sm" href="/members">
                 View our members
@@ -129,21 +129,25 @@ export default async function VisitPage({ searchParams }: { searchParams: Promis
         </ol>
       </section>
 
-      <section id="request" className="bg-band" aria-labelledby="request-title">
-        <div className="container-site flex flex-wrap gap-10 py-16">
-          <div className="text-on-band-muted flex min-w-0 flex-[1_1_360px] flex-col gap-3.5">
-            <p className="font-display text-sky m-0 text-[13px] font-bold tracking-[0.12em] uppercase">Want to visit?</p>
-            <h2 id="request-title" className="font-display text-on-band m-0 text-[clamp(28px,3.2vw,40px)] leading-tight font-extrabold">
-              Request a guest invite
-            </h2>
-            <p className="m-0">
-              {site.name} is a group of local business owners from across the Peninsula who meet every other Monday to build trusted relationships and pass each
-              other real referrals. It&apos;s one business profession per person. Come see how it works.
-            </p>
+      {member ? (
+        <MemberGuestInviteSection meetings={meetingOptions} memberName={`${member.first_name} ${member.last_name}`.trim()} />
+      ) : (
+        <section id="request" className="bg-band" aria-labelledby="request-title">
+          <div className="container-site flex flex-wrap gap-10 py-16">
+            <div className="text-on-band-muted flex min-w-0 flex-[1_1_360px] flex-col gap-3.5">
+              <p className="font-display text-sky m-0 text-[13px] font-bold tracking-[0.12em] uppercase">Want to visit?</p>
+              <h2 id="request-title" className="font-display text-on-band m-0 text-[clamp(28px,3.2vw,40px)] leading-tight font-extrabold">
+                Request a guest invite
+              </h2>
+              <p className="m-0">
+                {site.name} is a group of local business owners from across the Peninsula who meet every other Monday to build trusted relationships and pass
+                each other real referrals. It&apos;s one business profession per person. Come see how it works.
+              </p>
+            </div>
+            <GuestRequestForm meetings={meetingOptions} referralCode={referralCode} referrerName={referrerName} />
           </div>
-          <GuestRequestForm meetings={meetingOptions} referralCode={referralCode} referrerName={referrerName} />
-        </div>
-      </section>
+        </section>
+      )}
     </>
   );
 }

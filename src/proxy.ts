@@ -8,6 +8,7 @@ const CHOOSE_OK = ['/choose-password', '/auth', '/login', '/forgot-password', '/
 
 const MEMBER_PATHS = [
   '/dashboard',
+  '/invite-guest',
   '/meetings',
   '/referrals',
   '/closed-business',

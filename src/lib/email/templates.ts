@@ -287,23 +287,29 @@ export function oneOnOneMessageEmail(o: { siteUrl: string; toFirstName: string; 
   };
 }
 
-export function guestThanksEmail(o: { siteUrl: string; firstName: string; meeting?: string | null }): Email {
+/** `invitedBy`: a member filled in the request for this guest (owner, 2026-10-30). */
+export function guestThanksEmail(o: { siteUrl: string; firstName: string; meeting?: string | null; invitedBy?: string | null }): Email {
+  const when = o.meeting ? ` on ${o.meeting}` : '';
   return {
-    subject: `Thanks for your interest in ${site.name}`,
+    subject: o.invitedBy ? `${o.invitedBy} invited you to visit ${site.name}` : `Thanks for your interest in ${site.name}`,
     ...layout({
       siteUrl: o.siteUrl,
-      preheader: 'We’ve got your request.',
-      heading: `Thanks, ${o.firstName}!`,
+      preheader: o.invitedBy ? 'You’re invited as a guest.' : 'We’ve got your request.',
+      heading: o.invitedBy ? `You’re invited, ${o.firstName}!` : `Thanks, ${o.firstName}!`,
       blocks: [
         {
-          p: `We’ve received your request to visit ${site.name}${o.meeting ? ` on ${o.meeting}` : ''}. A member of our team will send you the Zoom link before the meeting.`,
+          p: o.invitedBy
+            ? `${o.invitedBy} invited you to visit ${site.name} as their guest${when}. A member of our team will send you the Zoom link before the meeting.`
+            : `We’ve received your request to visit ${site.name}${when}. A member of our team will send you the Zoom link before the meeting.`,
         },
         {
           p: `We meet ${site.meetingCadence.toLowerCase()} at ${site.meetingTime} PT. Come ready with a 60-second introduction: your name, your business and who you help.`,
         },
       ],
       cta: { label: 'What to expect', href: `${o.siteUrl}/visit` },
-      footer: `You get this email because you asked to visit ${site.name}.`,
+      footer: o.invitedBy
+        ? `You get this email because ${o.invitedBy}, a ${site.name} member, invited you.`
+        : `You get this email because you asked to visit ${site.name}.`,
     }),
   };
 }

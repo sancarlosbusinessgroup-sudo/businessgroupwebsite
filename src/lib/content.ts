@@ -38,6 +38,7 @@ export const memberNav: readonly NavItem[] = [
   { href: '/members', label: 'Directory' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/profile', label: 'My profile' },
+  { href: '/invite-guest', label: 'Invite a Guest' },
   { href: '/support', label: 'Support' },
 ] as const;
 

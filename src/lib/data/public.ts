@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { createAdminClient } from '../supabase/admin';
 import { publicClient } from '../supabase/public';
 import type { Tables } from '../database.types';
+import { formatMeetingDate } from '../dates';
 
 // Public data is the same for everyone, so each loader runs as an anonymous visitor and its result is shared across
 // requests for up to a minute (audit, 2026-10-27). Admin and member actions that change this data revalidate the pages
@@ -212,4 +213,13 @@ export async function referrerByCode(code: string | undefined): Promise<{ name: 
   if (!db) return null;
   const { data } = await db.from('profiles').select('first_name, last_name').eq('referral_code', code).eq('status', 'approved').maybeSingle();
   return data ? { name: `${data.first_name} ${data.last_name}` } : null;
+}
+
+/** The next three regular Monday meetings, as choices for the guest invite forms (public and member versions). */
+export async function guestMeetingOptions(): Promise<{ id: string; label: string }[]> {
+  const upcoming = await getUpcomingMeetings(6);
+  return upcoming
+    .filter((m) => m.category === 'Networking')
+    .slice(0, 3)
+    .map((m) => ({ id: m.id, label: `${formatMeetingDate(new Date(m.starts_at))} · Zoom` }));
 }

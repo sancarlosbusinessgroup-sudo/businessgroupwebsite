@@ -25,6 +25,7 @@ test('no page is wider than a phone screen (members and admins)', async ({ page 
     '/visit',
     '/bylaws',
     '/support',
+    '/invite-guest',
     '/gallery',
     '/admin',
     '/admin/stats',

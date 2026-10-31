@@ -1,14 +1,19 @@
 import { guestStatusLabels, site } from '@/lib/content';
 import { formatShortDate } from '@/lib/dates';
 import { CopyLink } from './CopyLink';
+import { InviteGuestDialog } from './InviteGuestDialog';
+import type { GuestMeeting } from './MemberGuestInviteForm';
 import { Pill } from './ui';
 
 const tone = { requested: 'gray', visited: 'amber', applied: 'teal', joined: 'green' } as const;
 
 type Guest = { id: string; first_name: string; last_name: string; status: keyof typeof guestStatusLabels; created_at: string };
 
-/** "Invite a visitor": personal /visit?ref= link plus the member's own recent guests. */
-export function InviteCard({ link, guests }: { link: string; guests: Guest[] }) {
+/**
+ * "Invite a visitor": personal /visit?ref= link, email / text invites, the "Invite a Guest" pop-up form (owner,
+ * 2026-10-30) and the member's own recent guests.
+ */
+export function InviteCard({ link, guests, meetings, memberName }: { link: string; guests: Guest[]; meetings: GuestMeeting[]; memberName: string }) {
   const invite = encodeURIComponent(`I'd love for you to visit ${site.name} as my guest: ${link}`);
   return (
     <section id="invite" className="bg-band text-on-band flex scroll-mt-6 flex-col gap-3.5 rounded-[20px] p-6" aria-labelledby="invite-h">
@@ -24,6 +29,7 @@ export function InviteCard({ link, guests }: { link: string; guests: Guest[] }) 
         <a className="btn btn-ghost-band btn-sm" href={`sms:?&body=${invite}`}>
           Text an invite
         </a>
+        <InviteGuestDialog meetings={meetings} memberName={memberName} />
       </div>
       {guests.length > 0 ? (
         <div className="flex flex-col gap-1.5">

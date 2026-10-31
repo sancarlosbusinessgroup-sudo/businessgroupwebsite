@@ -3,6 +3,7 @@ import {
   fieldErrors,
   guestRequestSchema,
   joinSchema,
+  memberGuestInviteSchema,
   newPasswordSchema,
   oneOnOneRequestSchema,
   oneOnOneSchema,
@@ -84,6 +85,35 @@ describe('guestRequestSchema', () => {
     expect(errs.phone).toBe('Phone is required');
     expect(errs.website).toBeDefined();
     expect(guestRequestSchema.safeParse({ firstName: 'A', lastName: 'B', email: 'a@example.org', phone: 'call me' }).success).toBe(false);
+  });
+});
+
+describe('memberGuestInviteSchema (owner, 2026-10-30)', () => {
+  const ok = {
+    firstName: 'Gina',
+    lastName: 'Guest',
+    email: 'Gina@Example.org',
+    phone: '650-555-0123',
+    businessDescription: 'Kitchen remodels and custom cabinetry.',
+  };
+  it('accepts the guest details a member fills in', () => {
+    const r = memberGuestInviteSchema.safeParse(ok);
+    expect(r.success).toBe(true);
+    expect(r.success && r.data.email).toBe('gina@example.org');
+  });
+  it("says which guest detail is missing and asks about the guest's business", () => {
+    const errs = fieldErrors(memberGuestInviteSchema.safeParse({}).error!);
+    expect(errs.firstName).toBe('Guest first name is required');
+    expect(errs.lastName).toBe('Guest last name is required');
+    expect(errs.email).toBe('Guest email is required');
+    expect(errs.phone).toBe('Guest phone is required');
+    expect(errs.businessDescription).toBe("Tell us about your guest's business is required");
+  });
+  it('has no "Who invited you?" or referral code: the server credits the signed-in member', () => {
+    const r = memberGuestInviteSchema.safeParse({ ...ok, invitedBy: 'Someone else', referralCode: 'OTHER-01' });
+    expect(r.success).toBe(true);
+    expect(r.success && 'invitedBy' in r.data).toBe(false);
+    expect(r.success && 'referralCode' in r.data).toBe(false);
   });
 });
 

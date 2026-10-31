@@ -8,7 +8,7 @@ import { NextMeetingCard } from '@/components/meetings';
 import { EmptyState, Notice } from '@/components/ui';
 import { WeeklyAskForm } from '@/components/WeeklyAskForm';
 import { requireMember } from '@/lib/auth';
-import { getNextMeeting } from '@/lib/data/public';
+import { getNextMeeting, guestMeetingOptions } from '@/lib/data/public';
 import { getGroupTotals, getLeaderboard, getMyGuests, getOneOnOnes, getPendingConfirmations } from '@/lib/data/member';
 import { formatLongToday, formatMoney, formatShortDate } from '@/lib/dates';
 import { env } from '@/lib/env';
@@ -26,7 +26,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const me = viewer.profile;
   const lbPeriod: Period = isPeriod(lb) && LB_PERIODS.includes(lb) ? lb : 'month';
   const supabase = await createClient();
-  const [next, totals, leaders, pending, recent, guests, onboarding] = await Promise.all([
+  const [next, totals, leaders, pending, recent, guests, onboarding, guestMeetings] = await Promise.all([
     getNextMeeting(),
     getGroupTotals(periodRange({ period: 'month' })),
     getLeaderboard(periodRange({ period: lbPeriod })),
@@ -34,6 +34,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     getOneOnOnes({ days: 30, limit: 3 }),
     getMyGuests(me.id, 4),
     supabase.from('member_onboarding').select('completed_at').eq('profile_id', me.id).maybeSingle(),
+    guestMeetingOptions(),
   ]);
   const needsOnboarding = !!onboarding.data && !onboarding.data.completed_at;
   const hour = Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Los_Angeles' }).format(new Date()));
@@ -165,7 +166,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 </ul>
               )}
             </section>
-            <InviteCard link={`${env.siteUrl}/visit?ref=${me.referral_code}`} guests={guests} />
+            <InviteCard
+              link={`${env.siteUrl}/visit?ref=${me.referral_code}`}
+              guests={guests}
+              meetings={guestMeetings}
+              memberName={`${me.first_name} ${me.last_name}`.trim()}
+            />
             <InstallAppCard />
           </div>
         </div>

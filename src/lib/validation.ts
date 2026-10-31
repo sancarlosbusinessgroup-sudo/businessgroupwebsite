@@ -101,6 +101,29 @@ export const visitorSignInSchema = guestRequestSchema.omit({ meetingId: true, re
     .refine((v) => v === undefined || z.uuid().safeParse(v).success, 'Choose a member from the list'),
 });
 
+/**
+ * A signed-in member invites a guest (owner, 2026-10-30): the member fills in the guest's details. "Who invited you?"
+ * is not asked: the server credits the signed-in member.
+ */
+export const memberGuestInviteSchema = guestRequestSchema.omit({ invitedBy: true, referralCode: true }).extend({
+  firstName: text(60, 'Guest first name'),
+  lastName: text(60, 'Guest last name'),
+  email: z
+    .string({ error: 'Guest email is required' })
+    .trim()
+    .toLowerCase()
+    .min(1, 'Guest email is required')
+    .max(254, 'Email is too long')
+    .pipe(z.email('Enter a valid email address')),
+  businessName: optionalText(120, 'Guest business name'),
+  businessDescription: text(1000, "Tell us about your guest's business"),
+  phone: z
+    .string({ error: 'Guest phone is required' })
+    .trim()
+    .min(1, 'Guest phone is required')
+    .refine((v) => /^[0-9()+\-.\s]{7,25}$/.test(v), 'Enter a valid phone number'),
+});
+
 const refEmail = z
   .string()
   .trim()

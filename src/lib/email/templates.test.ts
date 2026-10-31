@@ -133,6 +133,16 @@ describe('email templates', () => {
     expect(t.guestThanksEmail({ siteUrl, firstName: 'G' }).text).not.toContain('/profile?tab=edit#email');
   });
 
+  it('guest thank-you: says which member invited them when a member filled in the request (owner, 2026-10-30)', () => {
+    const byMember = t.guestThanksEmail({ siteUrl, firstName: 'Gina', meeting: 'Monday, November 9 at 8:15 AM', invitedBy: 'Morgan Member' });
+    expect(byMember.subject).toContain('Morgan Member invited you to visit');
+    expect(byMember.text).toContain('Morgan Member invited you to visit');
+    expect(byMember.text).toContain('on Monday, November 9');
+    const own = t.guestThanksEmail({ siteUrl, firstName: 'Gina' });
+    expect(own.subject).toContain('Thanks for your interest');
+    expect(own.text).toContain('received your request');
+  });
+
   it('meeting recap: visitors with contacts and who invited them, slides, presenters with their materials, member events, next meeting', () => {
     const e = t.meetingRecapEmail({
       siteUrl,
