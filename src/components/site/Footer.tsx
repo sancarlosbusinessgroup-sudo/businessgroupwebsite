@@ -26,7 +26,7 @@ export function Footer() {
         <div className="flex flex-wrap gap-10">
           <div className="flex min-w-0 flex-[2_1_320px] flex-col gap-3.5">
             <p className="font-display text-on-band m-0 flex items-center gap-3 text-[22px] font-extrabold">
-              <Image src="/images/logo-mark.png" alt="" width={44} height={44} className="h-11 w-11" />
+              <Image src="/images/barp-logo-mark.png" alt="" width={44} height={44} className="h-11 w-11" />
               {site.name}
             </p>
             <p className="m-0 max-w-[460px]">

@@ -55,7 +55,7 @@ export function layout(o: { siteUrl: string; preheader: string; heading: string;
 <span style="display:none;max-height:0;overflow:hidden">${esc(o.preheader)}</span>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1fbfb"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
-<tr><td style="padding:0 0 16px"><a href="${esc(o.siteUrl)}" style="text-decoration:none;color:#0b3b3b;font-weight:700;font-size:18px"><img src="${esc(o.siteUrl)}/images/logo-mark.png" width="40" height="40" alt="" style="vertical-align:middle;border:0;margin-right:8px">${esc(site.name)}</a></td></tr>
+<tr><td style="padding:0 0 16px"><a href="${esc(o.siteUrl)}" style="text-decoration:none;color:#0b3b3b;font-weight:700;font-size:18px"><img src="${esc(o.siteUrl)}/images/barp-logo-mark.png" width="40" height="40" alt="" style="vertical-align:middle;border:0;margin-right:8px">${esc(site.name)}</a></td></tr>
 <tr><td style="background:#ffffff;border-top:4px solid #00c2cb;border-radius:12px;padding:26px 24px">
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.25;color:#0b3b3b">${esc(o.heading)}</h1>${body}${button}
 </td></tr>

@@ -37,7 +37,7 @@ const Band = ({ className = '', style }: { className?: string; style?: CSSProper
 function Lockup({ size = 1 }: { size?: number }) {
   return (
     <span className="flex items-center" style={{ gap: `${0.9 * size}cqw` }}>
-      <Image src="/images/logo-mark.png" alt="" width={256} height={256} style={{ width: `${5.2 * size}cqw`, height: `${5.2 * size}cqw` }} />
+      <Image src="/images/barp-logo-mark.png" alt="" width={256} height={256} style={{ width: `${5.2 * size}cqw`, height: `${5.2 * size}cqw` }} />
       <span className="flex flex-col leading-none">
         <span className="font-display font-extrabold tracking-[-0.03em]" style={{ fontSize: `${3.1 * size}cqw` }}>
           <span className="text-[#12346e]">Bay</span>

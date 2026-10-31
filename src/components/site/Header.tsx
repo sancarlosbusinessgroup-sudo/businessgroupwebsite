@@ -56,7 +56,7 @@ export async function Header() {
       </a>
       <div className="container-site flex flex-wrap items-center gap-x-7 gap-y-3 py-3.5">
         <Link href="/" className="flex min-h-14 flex-none items-center gap-3 leading-none no-underline" aria-label={`${site.name}, home`}>
-          <Image src="/images/logo-mark.png" alt="" width={52} height={52} priority className="h-[52px] w-[52px]" />
+          <Image src="/images/barp-logo-mark.png" alt="" width={52} height={52} priority className="h-[52px] w-[52px]" />
           <span className="flex flex-col gap-1" aria-hidden="true">
             <span className="text-heading text-[24px] font-extrabold tracking-tight">Bay Area</span>
             <span className="text-teal-text text-[15px] font-semibold tracking-[0.04em]">Referral Partners</span>
