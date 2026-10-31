@@ -1,21 +1,6 @@
 import Link from 'next/link';
 
-const links = [
-  { href: '/admin', label: 'Overview' },
-  { href: '/admin/members', label: 'Members' },
-  { href: '/admin/meetings', label: 'Meetings' },
-  { href: '/admin/attendance', label: 'Attendance' },
-  { href: '/admin/activity', label: 'Member activity' },
-  { href: '/admin/champion', label: 'BARP Champion' },
-  { href: '/admin/stats', label: 'Member stats' },
-  { href: '/admin/leadership', label: 'Management' },
-  { href: '/admin/recap', label: 'Member recap' },
-  { href: '/admin/management-recap', label: 'Management recap' },
-  { href: '/admin/materials', label: 'Presentation materials' },
-  { href: '/admin/gallery', label: 'Gallery' },
-  { href: '/admin/history', label: 'Change history' },
-  { href: '/present/next', label: 'Meeting slides' },
-] as const;
+import { adminLinks as links } from '@/lib/content';
 
 export function AdminNav({ current }: { current: (typeof links)[number]['href'] }) {
   return (

@@ -82,7 +82,7 @@ test.describe('members invite a guest', () => {
     expect((await nav.getByRole('link').allTextContents()).map((t) => t.trim())).not.toContain('My profile');
     const top = (await header.getByRole('link', { name: 'My profile' }).boundingBox())!;
     const logout = (await header.getByRole('button', { name: 'Log out' }).boundingBox())!;
-    const admin = (await header.getByRole('link', { name: 'Admin', exact: true }).boundingBox())!;
+    const admin = (await header.getByRole('button', { name: 'Admin', exact: true }).boundingBox())!;
     expect(Math.round(top.y)).toBe(Math.round(logout.y));
     expect(Math.round(admin.y)).toBe(Math.round(top.y));
     expect(admin.x).toBeLessThan(top.x);
@@ -95,6 +95,49 @@ test.describe('members invite a guest', () => {
     expect([...ys][0]!).toBeGreaterThan(top.y + top.height);
     await header.getByRole('link', { name: 'My profile' }).click();
     await expect(page).toHaveURL(/\/profile$/);
+  });
+
+  test('admins: the header Admin dropdown lists every admin section, Meeting slides right after Overview (owner, 2026-10-30)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await login(page, users.admin);
+    const header = page.locator('header');
+    const toggle = header.getByRole('button', { name: 'Admin', exact: true });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const menu = header.getByRole('list', { name: 'Admin sections' });
+    await expect(menu.getByRole('link')).toHaveText([
+      'Overview',
+      'Meeting slides',
+      'Members',
+      'Meetings',
+      'Attendance',
+      'Member activity',
+      'BARP Champion',
+      'Member stats',
+      'Management',
+      'Member recap',
+      'Management recap',
+      'Presentation materials',
+      'Gallery',
+      'Change history',
+    ]);
+    await expectAccessible(page);
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(toggle).toBeFocused();
+    await toggle.click();
+    await menu.getByRole('link', { name: 'Members' }).click();
+    await expect(page).toHaveURL(/\/admin\/members$/);
+    // The admin tabs on the page use the same order.
+    const tabs = page.getByRole('navigation', { name: 'Admin sections' }).getByRole('link');
+    await expect(tabs.nth(0)).toHaveText('Overview');
+    await expect(tabs.nth(1)).toHaveText('Meeting slides');
+  });
+
+  test('members who are not admins have no Admin menu', async ({ page }) => {
+    await login(page, users.member);
+    await expect(page.locator('header').getByRole('button', { name: 'Admin', exact: true })).toHaveCount(0);
   });
 
   test('the form checks the guest details, saves them for the member and emails the guest and admins (not the member)', async ({ page }) => {

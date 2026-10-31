@@ -46,6 +46,27 @@ export const memberNav: readonly NavItem[] = [
   { href: '/support', label: 'Support', keepWith: 'help' },
 ] as const;
 
+/**
+ * Admin sections: the tabs on every admin page and the header's Admin dropdown (owner, 2026-10-30: Meeting slides
+ * right after Overview).
+ */
+export const adminLinks = [
+  { href: '/admin', label: 'Overview' },
+  { href: '/present/next', label: 'Meeting slides' },
+  { href: '/admin/members', label: 'Members' },
+  { href: '/admin/meetings', label: 'Meetings' },
+  { href: '/admin/attendance', label: 'Attendance' },
+  { href: '/admin/activity', label: 'Member activity' },
+  { href: '/admin/champion', label: 'BARP Champion' },
+  { href: '/admin/stats', label: 'Member stats' },
+  { href: '/admin/leadership', label: 'Management' },
+  { href: '/admin/recap', label: 'Member recap' },
+  { href: '/admin/management-recap', label: 'Management recap' },
+  { href: '/admin/materials', label: 'Presentation materials' },
+  { href: '/admin/gallery', label: 'Gallery' },
+  { href: '/admin/history', label: 'Change history' },
+] as const;
+
 export const howItWorks = [
   { title: 'Visit twice, no membership fees', text: 'Get invited by a member and attend up to two meetings as a guest.' },
   { title: 'Meet the Membership Committee', text: "One-to-ones with three Membership Committee members. If it's a fit, welcome aboard." },

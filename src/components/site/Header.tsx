@@ -4,6 +4,7 @@ import { getViewer } from '@/lib/auth';
 import { memberNav, publicNav, site } from '@/lib/content';
 import { signOut } from '@/app/actions/auth';
 import { Avatar } from '../ui';
+import { AdminMenu } from './AdminMenu';
 import { NavLinks } from './NavLinks';
 
 export async function Header() {
@@ -34,11 +35,7 @@ export async function Header() {
           <Avatar name={name} size={38} />
           {name}
         </Link>
-        {profile?.role === 'admin' ? (
-          <Link href="/admin" className="font-display flex min-h-11 items-center px-1.5 text-[15px] font-bold no-underline">
-            Admin
-          </Link>
-        ) : null}
+        {profile?.role === 'admin' ? <AdminMenu /> : null}
         {divider}
         <Link
           href="/profile"
