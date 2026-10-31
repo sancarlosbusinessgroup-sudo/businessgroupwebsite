@@ -12,6 +12,7 @@ const MEMBER_PATHS = [
   '/meetings',
   '/referrals',
   '/closed-business',
+  '/visitors-brought',
   '/one-on-ones',
   '/profile',
   '/admin',

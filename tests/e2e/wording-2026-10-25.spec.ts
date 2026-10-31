@@ -32,10 +32,11 @@ test('home page: meeting time 8:15am–9:30am, "no membership fees", and the new
   await expect(glance.getByText('Every other Monday', { exact: true })).toBeVisible();
   await expect(glance.getByText('8:15am–9:30am', { exact: true })).toBeVisible();
   await expect(glance.getByText(/hybrid gatherings/)).toHaveCount(0);
-  await expect(page.getByText('Visit twice, no membership fees', { exact: true })).toBeVisible();
+  // Step titles reworded at the owner meeting 2026-10-30 (see meeting-2026-10-30.spec.ts).
+  await expect(page.getByText('Visit up to twice as a guest', { exact: true })).toBeVisible();
   await expect(page.getByText('Meet the Membership Committee', { exact: true })).toBeVisible();
   await expect(page.getByText(/One-to-ones with three Membership Committee members/)).toBeVisible();
-  await expect(page.getByText('We help you grow your business by referral', { exact: true })).toBeVisible();
+  await expect(page.getByText('Grow your business', { exact: true })).toBeVisible();
   await expect(page.getByText('Watch it grow')).toHaveCount(0);
 });
 
@@ -49,6 +50,7 @@ test('Visit page: no "Open professions" section; "no membership fees" in the int
 test('Visit page and About timeline give the meeting time instead of "hybrid gatherings"', async ({ page }) => {
   await page.goto('/visit');
   await expect(page.getByText('We meet every other Monday, 8:15am–9:30am.', { exact: true })).toBeVisible();
+  // Owner meeting 2026-10-30: the About side timeline was removed (it repeated the text).
   await page.goto('/about');
-  await expect(page.getByText('Meeting every other Monday, 8:15am–9:30am', { exact: true })).toBeVisible();
+  await expect(page.getByText('Meeting every other Monday, 8:15am–9:30am', { exact: true })).toHaveCount(0);
 });

@@ -79,7 +79,7 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
   '/admin/champion': {
     summary: "The month's ranking by points, the automatic pick, and where you confirm the champion or choose someone else with a reason.",
     steps: [
-      'Points per month: 1 for each referral given, 1 for each one-on-one done (once per pair of members) and 1 for each meeting attended.',
+      'Points per month: 1 for each referral given, 1 for each one-on-one done (once per pair of members), 1 for each meeting attended and 1 for each visitor brought who attended.',
       'To qualify, a member must attend at least 75% of the month’s meetings that had attendance taken.',
       'The top qualifying member is the automatic pick. Ties go to more closed business, then more referrals.',
       'You can confirm the automatic pick or choose someone else with a reason. The champion gets a badge on their profile and directory card, and appears on the BARP Champion slide.',

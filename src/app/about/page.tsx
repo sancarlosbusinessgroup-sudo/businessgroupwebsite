@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Avatar, PageHero, SectionHead } from '@/components/ui';
-import { leadership, metrics, timeline, values, site } from '@/lib/content';
+import { leadership, metrics, values, site } from '@/lib/content';
 import { getLeadership } from '@/lib/data/public';
 import { mediaUrl } from '@/lib/env';
 
@@ -27,27 +27,16 @@ export default async function AboutPage() {
         lead="Since 2016, we've helped small businesses and entrepreneurs connect, grow and thrive, together."
       />
 
-      <section className="container-site flex flex-wrap items-center gap-12 py-16">
-        <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-4 text-lg">
+      {/* Owner meeting 2026-10-30: "founded", no COVID paragraph, no side timeline (it repeated the text). */}
+      <section className="container-site py-16">
+        <div className="flex max-w-[760px] flex-col gap-4 text-lg">
           <p className="eyebrow m-0">Our history</p>
           <h2 className="h2">Where it all began</h2>
           <p className="m-0">
-            {site.name} started in 2016 as part of the San Carlos Chamber of Commerce. It was created for local professionals who believe in the power of
-            connection and community-driven referrals.
-          </p>
-          <p className="m-0">
-            When the Chamber closed during the COVID-19 pandemic, our group made a choice: dissolve or keep going. We chose growth, and we&apos;ve been thriving
-            ever since.
+            {site.name} was founded in {site.founded} as part of the San Carlos Chamber of Commerce. It was created for local professionals who believe in the
+            power of connection and community-driven referrals.
           </p>
         </div>
-        <ol className="border-teal-tint m-0 flex min-w-0 flex-[1_1_360px] list-none flex-col border-l-[3px] p-0">
-          {timeline.map((t, i) => (
-            <li key={t.year} className={`pl-6 ${i < timeline.length - 1 ? 'pb-[22px]' : ''}`}>
-              <div className="font-display text-teal-text font-extrabold">{t.year}</div>
-              <div>{t.text}</div>
-            </li>
-          ))}
-        </ol>
       </section>
 
       {team.length > 0 ? (
@@ -136,7 +125,7 @@ export default async function AboutPage() {
       <section className="bg-band text-on-band">
         <div className="container-site flex flex-col gap-7 py-16">
           <div className="flex max-w-[760px] flex-col gap-3">
-            <p className="font-display text-sky m-0 text-[13px] font-bold tracking-[0.12em] uppercase">How we track our success together</p>
+            <p className="font-display text-sky m-0 text-[17px] font-bold tracking-[0.1em] uppercase">How we track our success together</p>
             <h2 className="font-display text-on-band m-0 text-[clamp(28px,3.2vw,40px)] leading-tight font-extrabold">Our three key participation metrics</h2>
             <p className="text-on-band-muted m-0">
               We measure how often our members connect, support each other, and win new business through real relationships.
@@ -151,8 +140,8 @@ export default async function AboutPage() {
             ))}
           </ul>
           <p className="text-on-band-muted m-0">
-            <strong className="text-on-band">Why it matters:</strong> when people take time to connect, learn and share, amazing things happen. People who work
-            together grow together.
+            <strong className="text-on-band">Why it matters:</strong> consistent one-on-ones, referrals and follow-through build the trust that turns
+            introductions into business for every member.
           </p>
         </div>
       </section>
@@ -163,10 +152,8 @@ export default async function AboutPage() {
           We&apos;re always growing, and always looking for new members who value connection, contribution and community.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
-          <Link className="btn btn-primary" href="/visit">
-            Visit a meeting
-          </Link>
-          <Link className="btn btn-outline" href="/visit#request">
+          {/* Owner meeting 2026-10-30: one button, "Request an invite" (no "Visit a meeting"). */}
+          <Link className="btn btn-primary" href="/visit#request">
             Request an invite
           </Link>
         </div>

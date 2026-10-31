@@ -112,9 +112,10 @@ test.describe('members invite a guest', () => {
       'Members',
       'Meetings',
       'Attendance',
+      // Owner meeting 2026-10-30: Member activity and Member stats side by side.
       'Member activity',
-      'BARP Champion',
       'Member stats',
+      'BARP Champion',
       'Management',
       'Member recap',
       'Management recap',

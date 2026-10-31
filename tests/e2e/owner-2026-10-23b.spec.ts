@@ -62,7 +62,7 @@ test('BARP Champion: ranking, override needs a reason, badge on profile and dire
     // Badge on the profile and the directory card.
     const riley = await rest(`profiles?id=eq.${other}&select=slug`);
     await page.goto(`/members/${riley[0]?.slug}`);
-    await expect(page.getByText(/^BARP Champion · /)).toBeVisible();
+    await expect(page.getByText(/^Current BARP Champion · /)).toBeVisible();
     await page.goto(`/members?q=Second+Test+Bakery`);
     await expect(page.getByRole('article').filter({ hasText: 'Riley Second' }).getByText('BARP Champion')).toBeVisible();
   } finally {

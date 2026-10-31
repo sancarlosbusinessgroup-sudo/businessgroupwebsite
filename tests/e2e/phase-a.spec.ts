@@ -68,9 +68,11 @@ test.describe('members', () => {
     await page.goto('/dashboard');
     await expect(page.getByRole('heading', { name: 'Leaderboard' })).toBeVisible();
     const board = page.getByRole('region', { name: 'Leaderboard' });
-    for (const m of ['One-on-ones', 'Referrals', 'Closed business', 'Visitors brought']) {
+    // Owner meeting 2026-10-30: closed business is a group total only, never next to names.
+    for (const m of ['One-on-ones', 'Referrals', 'Visitors brought']) {
       await expect(board.getByRole('heading', { name: m })).toBeVisible();
     }
+    await expect(board.getByRole('heading', { name: 'Closed business' })).toHaveCount(0);
     await board.getByRole('link', { name: 'All time' }).click();
     await expect(page).toHaveURL(/lb=all/);
     await expect(board.getByRole('listitem').first()).toBeVisible();

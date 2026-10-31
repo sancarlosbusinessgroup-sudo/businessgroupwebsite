@@ -9,7 +9,7 @@ import { filterDirectory, paginate } from '@/lib/directory';
 import { mediaUrl } from '@/lib/env';
 import { barpSheetUrl, site } from '@/lib/content';
 import { ChampionBadge } from '@/components/ChampionBadge';
-import { getCurrentChampion } from '@/lib/data/champion';
+import { getActivityPoints, getCurrentChampion } from '@/lib/data/champion';
 
 export const metadata: Metadata = {
   title: 'Members',
@@ -23,7 +23,14 @@ type Search = { q?: string; category?: string; sort?: string; page?: string };
 
 export default async function MembersPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
-  const [all, categories, total, viewer, champion] = await Promise.all([getDirectory(), getCategories(), getMemberCount(), getViewer(), getCurrentChampion()]);
+  const [all, categories, total, viewer, champion, points] = await Promise.all([
+    getDirectory(),
+    getCategories(),
+    getMemberCount(),
+    getViewer(),
+    getCurrentChampion(),
+    getActivityPoints().catch(() => [] as [string, number][]),
+  ]);
   const member = isApproved(viewer);
   // Contact details: members only (RLS returns nothing to anyone else anyway).
   const contacts = new Map<string, { email: string; phone: string | null }>();
@@ -32,8 +39,12 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
     const { data } = await supabase.from('member_contacts').select('profile_id, email, phone');
     for (const c of data ?? []) contacts.set(c.profile_id, { email: c.email, phone: c.phone });
   }
-  const filtered = filterDirectory(all, sp);
-  const { page, pages, items } = paginate(filtered, Number(sp.page ?? 1), PAGE_SIZE);
+  const filtered = filterDirectory(all, sp, { points: new Map(points), championId: champion?.profileId });
+  // Owner meeting 2026-10-30: the current BARP Champion gets a section of their own above everyone (default view only).
+  const plainView = !sp.q && !sp.category && (!sp.sort || sp.sort === 'active') && Number(sp.page ?? 1) <= 1;
+  const featured = plainView && champion ? (filtered.find((p) => p.id === champion.profileId) ?? null) : null;
+  const listed = featured ? filtered.filter((p) => p.id !== featured.id) : filtered;
+  const { page, pages, items } = paginate(listed, Number(sp.page ?? 1), PAGE_SIZE);
   const usedCategories = categories.filter((c) => all.some((p) => p.categories?.name === c.name));
   const pageHref = (n: number) => {
     const s = new URLSearchParams();
@@ -76,7 +87,8 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
             <label className="label" htmlFor="sort">
               Sort
             </label>
-            <select id="sort" name="sort" className="field" defaultValue={sp.sort ?? 'name'}>
+            <select id="sort" name="sort" className="field" defaultValue={sp.sort ?? 'active'}>
+              <option value="active">Most active first</option>
               <option value="name">Business name A–Z</option>
               <option value="newest">Newest members</option>
             </select>
@@ -109,71 +121,28 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
           )}
         </div>
 
-        {items.length === 0 ? (
+        {featured && champion ? (
+          <section className="flex flex-col gap-3 rounded-[20px] bg-[#fef3c7] p-5 ring-2 ring-[#f59e0b]" aria-labelledby="champion-h">
+            <h2 id="champion-h" className="font-display m-0 text-xl font-extrabold text-[#5b3a00]">
+              Current BARP Champion · {champion.label}
+            </h2>
+            <div className="max-w-[320px]">
+              <MemberCard p={featured} i={0} contact={contacts.get(featured.id)} champion={champion.label} />
+            </div>
+          </section>
+        ) : null}
+
+        {items.length === 0 && !featured ? (
           <EmptyState title="No members match your search">
             <Link href="/members">Clear the filters</Link>
           </EmptyState>
         ) : (
           <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-5 p-0">
-            {items.map((p, i) => {
-              const photo = mediaUrl('profile-media', p.avatar_path);
-              const name = `${p.first_name} ${p.last_name}`;
-              const contact = contacts.get(p.id);
-              return (
-                <li key={p.id}>
-                  <article className="card hover:border-teal relative flex h-full flex-col overflow-hidden">
-                    <span className={`relative flex aspect-[4/3] items-center justify-center overflow-hidden ${bands[i % bands.length]}`}>
-                      {photo ? (
-                        <Image src={photo} alt="" fill sizes="(max-width: 640px) 100vw, 300px" className="object-cover object-top" />
-                      ) : (
-                        <span className="bg-surface flex h-[150px] w-[150px] items-center justify-center rounded-full">
-                          <Avatar name={name} size={132} index={i} />
-                        </span>
-                      )}
-                      {champion?.profileId === p.id ? <ChampionBadge month={champion.label} compact className="absolute top-3 left-3" /> : null}
-                    </span>
-                    <div className="flex flex-1 flex-col gap-1.5 p-[18px]">
-                      <span className="text-ink-muted text-xs font-bold tracking-[0.08em] uppercase">{p.categories?.name ?? 'Member'}</span>
-                      <h2 className="font-display m-0 text-[19px] leading-tight font-bold">
-                        <Link href={`/members/${p.slug}`} className="text-teal-text no-underline after:absolute after:inset-0 after:content-['']">
-                          {name}
-                        </Link>
-                      </h2>
-                      <span className="text-heading text-[15px] font-semibold">{p.business_name}</span>
-                      {p.weekly_ask ? (
-                        <p className="bg-teal-tint text-heading m-0 rounded-lg px-2.5 py-1.5 text-[14px]">
-                          <span className="text-teal-hover font-bold">Looking for: </span>
-                          {p.weekly_ask}
-                        </p>
-                      ) : null}
-                      {p.about ? <span className="text-ink-soft line-clamp-4 text-[15px]">{p.about}</span> : null}
-                      {contact ? (
-                        <ul
-                          className="border-line-soft relative z-10 m-0 mt-auto flex list-none flex-col gap-0.5 border-t p-0 pt-2.5 text-[14px]"
-                          aria-label={`Contact ${name}`}
-                        >
-                          <li className="truncate">
-                            <a href={`mailto:${contact.email}`}>{contact.email}</a>
-                          </li>
-                          {contact.phone ? (
-                            <li>
-                              <a href={`tel:${contact.phone.replace(/[^0-9+]/g, '')}`}>{contact.phone}</a>
-                            </li>
-                          ) : null}
-                          {p.website ? (
-                            <li className="truncate">
-                              <a href={p.website} target="_blank" rel="noopener noreferrer nofollow">
-                                {p.website.replace(/^https?:\/\//, '')}
-                              </a>
-                            </li>
-                          ) : null}
-                        </ul>
-                      ) : null}
-                    </div>
-                  </article>
-                </li>
-              );
-            })}
+            {items.map((p, i) => (
+              <li key={p.id}>
+                <MemberCard p={p} i={i} contact={contacts.get(p.id)} champion={champion?.profileId === p.id ? champion.label : null} />
+              </li>
+            ))}
           </ul>
         )}
 
@@ -197,5 +166,74 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         </p>
       </section>
     </>
+  );
+}
+
+type DirectoryEntry = Awaited<ReturnType<typeof getDirectory>>[number];
+
+function MemberCard({
+  p,
+  i,
+  contact,
+  champion,
+}: {
+  p: DirectoryEntry;
+  i: number;
+  contact: { email: string; phone: string | null } | undefined;
+  champion: string | null;
+}) {
+  const photo = mediaUrl('profile-media', p.avatar_path);
+  const name = `${p.first_name} ${p.last_name}`;
+  return (
+    <article className="card hover:border-teal relative flex h-full flex-col overflow-hidden">
+      <span className={`relative flex aspect-[4/3] items-center justify-center overflow-hidden ${bands[i % bands.length]}`}>
+        {photo ? (
+          <Image src={photo} alt="" fill sizes="(max-width: 640px) 100vw, 300px" className="object-cover object-top" />
+        ) : (
+          <span className="bg-surface flex h-[150px] w-[150px] items-center justify-center rounded-full">
+            <Avatar name={name} size={132} index={i} />
+          </span>
+        )}
+        {champion ? <ChampionBadge month={champion} compact className="absolute top-3 left-3" /> : null}
+      </span>
+      <div className="flex flex-1 flex-col gap-1.5 p-[18px]">
+        <span className="text-ink-muted text-xs font-bold tracking-[0.08em] uppercase">{p.categories?.name ?? 'Member'}</span>
+        <h2 className="font-display m-0 text-[19px] leading-tight font-bold">
+          <Link href={`/members/${p.slug}`} className="text-teal-text no-underline after:absolute after:inset-0 after:content-['']">
+            {name}
+          </Link>
+        </h2>
+        <span className="text-heading text-[15px] font-semibold">{p.business_name}</span>
+        {p.weekly_ask ? (
+          <p className="bg-teal-tint text-heading m-0 rounded-lg px-2.5 py-1.5 text-[14px]">
+            <span className="text-teal-hover font-bold">Looking for: </span>
+            {p.weekly_ask}
+          </p>
+        ) : null}
+        {p.about ? <span className="text-ink-soft line-clamp-4 text-[15px]">{p.about}</span> : null}
+        {contact ? (
+          <ul
+            className="border-line-soft relative z-10 m-0 mt-auto flex list-none flex-col gap-0.5 border-t p-0 pt-2.5 text-[14px]"
+            aria-label={`Contact ${name}`}
+          >
+            <li className="truncate">
+              <a href={`mailto:${contact.email}`}>{contact.email}</a>
+            </li>
+            {contact.phone ? (
+              <li>
+                <a href={`tel:${contact.phone.replace(/[^0-9+]/g, '')}`}>{contact.phone}</a>
+              </li>
+            ) : null}
+            {p.website ? (
+              <li className="truncate">
+                <a href={p.website} target="_blank" rel="noopener noreferrer nofollow">
+                  {p.website.replace(/^https?:\/\//, '')}
+                </a>
+              </li>
+            ) : null}
+          </ul>
+        ) : null}
+      </div>
+    </article>
   );
 }

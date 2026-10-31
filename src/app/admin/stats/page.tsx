@@ -7,7 +7,7 @@ import { requireAdmin } from '@/lib/auth';
 import { getAdminStats, getLastMeetingDate } from '@/lib/data/member';
 import { PERIODS, describeRange, periodLabel } from '@/lib/periods';
 import { sortStatRows } from '@/lib/stats';
-import { parseStatsSearch, statColumns, statsQuery, statValue, type StatKey, type StatsSearch } from './params';
+import { matchesMember, parseStatsSearch, statsQuery, statValue, visibleStatColumns, type StatKey, type StatsSearch } from './params';
 
 export const metadata: Metadata = { title: 'Member stats' };
 
@@ -15,7 +15,9 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
   await requireAdmin();
   const sp = await searchParams;
   const { period, range, sort, dir } = parseStatsSearch(sp, await getLastMeetingDate());
-  const rows = sortStatRows(await getAdminStats(range), sort, dir);
+  const showClosed = sp.closed === '1';
+  const statColumns = visibleStatColumns(showClosed);
+  const rows = sortStatRows(await getAdminStats(range), sort, dir).filter((r) => matchesMember(r, sp.q));
   const totals = Object.fromEntries(statColumns.map((c) => [c.key, rows.reduce((n, r) => n + Number(r[c.key]), 0)]));
 
   const sortHref = (key: StatKey) => {
@@ -60,6 +62,16 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
             </label>
             <input id="to" name="to" type="date" className="field" defaultValue={sp.to ?? ''} aria-describedby="range-help" />
           </div>
+          <div className="min-w-0 flex-[2_1_240px]">
+            <label className="label" htmlFor="q">
+              Find a member
+            </label>
+            <input id="q" name="q" type="search" className="field" placeholder="Name or business" defaultValue={sp.q ?? ''} maxLength={100} />
+          </div>
+          <label className="flex min-h-11 items-center gap-2 text-base">
+            <input type="checkbox" name="closed" value="1" defaultChecked={showClosed} className="h-5 w-5" />
+            Show closed business (confidential)
+          </label>
           {sp.sort ? <input type="hidden" name="sort" value={sp.sort} /> : null}
           {sp.dir ? <input type="hidden" name="dir" value={sp.dir} /> : null}
           <button type="submit" className="btn btn-primary btn-sm">
@@ -80,7 +92,7 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
             </a>
           </div>
           {rows.length === 0 ? (
-            <EmptyState title="No approved members yet" />
+            <EmptyState title={sp.q ? 'No member matches that search' : 'No approved members yet'} />
           ) : (
             <div className="overflow-x-auto">
               <table className="data-table">

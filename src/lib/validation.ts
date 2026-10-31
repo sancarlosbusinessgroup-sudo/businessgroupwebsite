@@ -124,6 +124,30 @@ export const memberGuestInviteSchema = guestRequestSchema.omit({ invitedBy: true
     .refine((v) => /^[0-9()+\-.\s]{7,25}$/.test(v), 'Enter a valid phone number'),
 });
 
+/**
+ * "Visitors brought" (owner meeting 2026-10-30): a member logs a guest they brought who attended a past meeting.
+ * Counts on the leaderboard and earns a BARP Champion point.
+ */
+export const visitorBroughtSchema = z.object({
+  firstName: text(60, 'Visitor first name'),
+  lastName: text(60, 'Visitor last name'),
+  email: z
+    .string({ error: 'Visitor email is required' })
+    .trim()
+    .toLowerCase()
+    .min(1, 'Visitor email is required')
+    .max(254, 'Email is too long')
+    .pipe(z.email('Enter a valid email address')),
+  businessName: optionalText(120, 'Visitor business name'),
+  phone: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v ? v : undefined))
+    .refine((v) => v === undefined || /^[0-9()+\-.\s]{7,25}$/.test(v), 'Enter a valid phone number'),
+  meetingId: z.string({ error: 'Choose the meeting they attended' }).trim().pipe(z.uuid('Choose the meeting they attended')),
+});
+
 const refEmail = z
   .string()
   .trim()

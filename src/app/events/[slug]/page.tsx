@@ -147,8 +147,8 @@ export default async function EventDetail({ params }: Props) {
         </div>
         <aside className="flex min-w-0 flex-[1_1_280px] flex-col gap-3">
           {m.kind === 'group' && m.is_online && upcoming ? (
-            <Link className="btn btn-primary" href={member ? '/meetings' : '/login?next=/meetings'}>
-              {member ? 'Join on Zoom' : 'Members: log in to join'}
+            <Link className="btn btn-primary" href={member ? '/meetings' : '/visit#request'}>
+              {member ? 'Join on Zoom' : 'Request an invite'}
             </Link>
           ) : null}
           {m.kind === 'member' && m.is_online && m.onlineUrl && upcoming ? (

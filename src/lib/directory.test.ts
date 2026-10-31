@@ -25,6 +25,21 @@ describe('filterDirectory', () => {
     expect(filterDirectory(people, { sort: 'name' }).map((p) => p.business_name)[0]).toBe('Atelier Interiors');
     expect(filterDirectory(people, { sort: 'newest' }).map((p) => p.business_name)[0]).toBe('ClearTone Hearing');
   });
+  it('by default lists the current champion first, then the most active, then A–Z (owner meeting 2026-10-30)', () => {
+    const withIds = people.map((p, i) => ({ ...p, id: `p${i}` })); // p0 Harbor, p1 ClearTone, p2 Atelier
+    const scores = {
+      points: new Map([
+        ['p0', 2],
+        ['p1', 5],
+      ]),
+      championId: 'p2',
+    };
+    expect(filterDirectory(withIds, {}, scores).map((p) => p.business_name)).toEqual(['Atelier Interiors', 'ClearTone Hearing', 'Harbor Lane Realty']);
+    // Nobody active and no champion: plain A–Z.
+    expect(filterDirectory(withIds, { sort: 'active' }, { points: new Map() }).map((p) => p.business_name)[0]).toBe('Atelier Interiors');
+    // Choosing another sort ignores the scores.
+    expect(filterDirectory(withIds, { sort: 'name' }, scores).map((p) => p.business_name)[0]).toBe('Atelier Interiors');
+  });
 });
 
 describe('paginate', () => {

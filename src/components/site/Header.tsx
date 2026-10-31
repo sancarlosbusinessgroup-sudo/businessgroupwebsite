@@ -55,7 +55,7 @@ export async function Header() {
           Log in
         </Link>
         <Link href="/visit#request" className="btn btn-primary btn-sm">
-          Request for an Invite
+          Request an invite
         </Link>
       </>
     );

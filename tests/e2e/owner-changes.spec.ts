@@ -4,17 +4,18 @@ import { db, expectAccessible, login, trackConsole, users } from './support';
 // Owner change requests of 2026-10-17.
 
 test.describe('home and header', () => {
-  test('visitors: hero has one "Request for an Invite" button and no eyebrow or dues line; header asks for an invite', async ({ page }) => {
+  test('visitors: hero has one "Request an invite" button and no eyebrow or dues line; header asks for an invite', async ({ page }) => {
     await page.goto('/');
     const hero = page.locator('section', { has: page.getByRole('heading', { level: 1 }) });
     await expect(hero.getByText(/Since 2016/)).toHaveCount(0);
     await expect(hero.getByText('Zero membership dues. Participation is what we ask.')).toHaveCount(0);
     await expect(hero.getByRole('link', { name: 'Become a member' })).toHaveCount(0);
     await expect(hero.getByRole('link', { name: 'Visit a meeting free' })).toHaveCount(0);
-    await expect(hero.getByRole('link', { name: 'Request for an Invite' })).toHaveAttribute('href', '/visit#request');
+    // The hero button; the countdown card in the hero also offers "Request an invite" (owner meeting 2026-10-30).
+    await expect(hero.getByRole('link', { name: 'Request an invite' }).first()).toHaveAttribute('href', '/visit#request');
     const header = page.getByRole('banner');
     await expect(header.getByRole('link', { name: 'Join us' })).toHaveCount(0);
-    await header.getByRole('link', { name: 'Request for an Invite' }).click();
+    await header.getByRole('link', { name: 'Request an invite' }).click();
     await expect(page).toHaveURL(/\/visit#request$/);
     await expect(page.getByRole('heading', { name: 'Request a guest invite' })).toBeVisible();
   });
@@ -25,7 +26,7 @@ test.describe('home and header', () => {
     await login(page, users.member);
     await page.goto('/');
     const hero = page.locator('section', { has: page.getByRole('heading', { level: 1 }) });
-    await expect(hero.getByRole('link', { name: 'Request for an Invite' })).toHaveCount(0);
+    await expect(hero.getByRole('link', { name: 'Request an invite' })).toHaveCount(0);
     // Owner 2026-10-30: "Invite a friend" renamed "Invite A Guest"; it opens the guest form in a pop-up on the home page.
     await hero.getByRole('button', { name: 'Invite A Guest' }).click();
     const dialog = page.getByRole('dialog', { name: 'Want to Invite A Guest?' });

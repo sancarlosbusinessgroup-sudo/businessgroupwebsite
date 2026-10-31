@@ -8,7 +8,7 @@ import { EmptyState, Notice, SectionHead } from '@/components/ui';
 import { getViewer, isApproved } from '@/lib/auth';
 import { howItWorks, site } from '@/lib/content';
 import { getUpcomingCalendar } from '@/lib/data/events';
-import { getGallery, getMemberCount, getNextMeeting, guestMeetingOptions } from '@/lib/data/public';
+import { getGallery, getMemberCount, getNextMeeting, getYearActivity, guestMeetingOptions } from '@/lib/data/public';
 import { formatShortDate } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
 
@@ -19,13 +19,14 @@ export const metadata: Metadata = {
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ account?: string }> }) {
   const { account } = await searchParams;
-  const [viewer, next, meetings, events, photos, count] = await Promise.all([
+  const [viewer, next, meetings, events, photos, count, year] = await Promise.all([
     getViewer(),
     getNextMeeting(),
     getUpcomingCalendar(3, 'group'),
     getUpcomingCalendar(3, 'member'),
     getGallery(undefined, 3),
     getMemberCount(),
+    getYearActivity(),
   ]);
   const member = isApproved(viewer);
   // Members' "Invite A Guest" opens the guest form in a pop-up (owner, 2026-10-30).
@@ -66,7 +67,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 <InviteGuestDialog meetings={guestMeetings} memberName={memberName} buttonClassName="btn btn-light" />
               ) : (
                 <Link className="btn btn-light" href="/visit#request">
-                  Request for an Invite
+                  Request an invite
                 </Link>
               )}
             </div>
@@ -78,12 +79,20 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       </section>
 
       <section className="container-site py-10" aria-label="At a glance">
-        <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
+        {/* Six boxes: two rows of three on wide screens (owner meeting 2026-10-30 added two). */}
+        <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
             { v: String(site.founded), l: 'Originally founded with the San Carlos Chamber of Commerce.' },
             { v: String(count), l: 'Member businesses in the directory' },
             { v: site.meetingCadence, l: '8:15am–9:30am' },
             { v: '$0', l: 'No membership fees. We just ask for full participation.' },
+            // Owner meeting 2026-10-30: rolling 12 months (never "since January"), counts only; dollar amounts stay members-only.
+            ...(year
+              ? [
+                  { v: String(year.referrals), l: 'Referrals passed in the past 12 months' },
+                  { v: String(year.oneOnOnes), l: 'One-to-ones in the past 12 months' },
+                ]
+              : []),
           ].map((s) => (
             // Label after the value visually (column-reverse keeps dt before dd for screen readers); justify-end = top in reverse
             <div key={s.l} className="card flex flex-col-reverse justify-end gap-1.5 p-6">

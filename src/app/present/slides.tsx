@@ -189,7 +189,7 @@ function ChampionPage({ ctx, soon, children }: { ctx: Ctx; soon?: boolean; child
   return (
     <div className="relative h-full overflow-hidden bg-white">
       <Image src={soon ? CHAMPION_SOON : CHAMPION_BG} alt="" fill sizes="100vw" className="object-cover" data-testid="champion-background" aria-hidden="true" />
-      <h2 className="sr-only">BARP Champion</h2>
+      <h2 className="sr-only">Current BARP Champion</h2>
       {soon ? <p className="sr-only">Coming soon</p> : null}
       <div className="absolute inset-x-[8cqw] top-[16.5cqw] bottom-[9cqw] flex flex-col items-center justify-center text-center">{children}</div>
       <p className="absolute right-[3cqw] bottom-[1.8cqw] m-0 text-[1.25cqw] font-semibold tabular-nums" style={{ color: NAVY }}>
@@ -759,7 +759,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         page(key, {
           title: 'Leaderboards',
           body: (
-            <div className="grid grid-cols-4 gap-[1.6cqw]">
+            <div className="grid gap-[1.6cqw]" style={{ gridTemplateColumns: `repeat(${leaderboardMetrics.length}, minmax(0, 1fr))` }}>
               {leaderboardMetrics.map((m, i) => {
                 const rows = d.leaders.filter((r) => r.metric === m.key);
                 const color = STEP_COLORS[i + 1] ?? BLUE;
@@ -816,7 +816,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
           const facts = (
             [
               ['share', pts.referrals, 'referrals'],
-              ['badgeCheck', pts.closed, 'closed business'],
+              // No closed business here: it is reported as a group total only (owner meeting 2026-10-30).
               ['chat', pts.oneOnOnes, 'one-on-ones'],
               ['userPlus', pts.visitors, 'visitors'],
               ['calendar', pts.meetings, 'meetings'],
@@ -826,8 +826,9 @@ export function buildSlides(d: DeckData): DeckSlide[] {
             <ChampionPage ctx={ctx}>
               <Fireworks />
               <div className="flex flex-col items-center gap-[1.1cqw]">
+                {/* Owner meeting 2026-10-30: "Current", because the title moves live as members report. */}
                 <p className="font-display m-0 text-[1.8cqw] font-bold tracking-[0.18em] uppercase" style={{ color: BLUE }}>
-                  {award.label}
+                  Current BARP Champion · {award.label}
                 </p>
                 <div className="flex items-center gap-[2.4cqw]">
                   <span className="rounded-[1.6cqw] shadow-[0_0.6cqw_2cqw_rgba(245,158,11,0.45)] ring-[0.4cqw] ring-[#fbbf24]">

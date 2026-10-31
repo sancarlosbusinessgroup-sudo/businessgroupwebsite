@@ -95,8 +95,9 @@ export function NextMeetingCard({ meeting, member, variant = 'dark' }: { meeting
         </ul>
       ) : null}
       <div className="flex flex-wrap gap-2.5">
-        <Link className={t.primary} href={member ? '/meetings' : '/login?next=/meetings'}>
-          {member ? 'Join on Zoom' : 'Members: log in to join'}
+        {/* Owner meeting 2026-10-30: visitors never land on the login page; they request an invite. */}
+        <Link className={t.primary} href={member ? '/meetings' : '/visit#request'}>
+          {member ? 'Join on Zoom' : 'Request an invite'}
         </Link>
         <AddToCalendar
           event={calendarEventFor({ ...meeting, kind: 'group', cancelledReason: meeting.cancelled_reason }, env.siteUrl)}
@@ -147,8 +148,8 @@ export function EventCard({ item, member }: { item: CalendarItem; member: boolea
         ) : null}
         <div className="mt-1.5 flex flex-wrap gap-2.5">
           {item.kind === 'group' && item.is_online && !item.cancelledReason ? (
-            <Link className="btn btn-primary btn-sm" href={member ? '/meetings' : '/login?next=/meetings'}>
-              {member ? 'Join on Zoom' : 'Join · members'}
+            <Link className="btn btn-primary btn-sm" href={member ? '/meetings' : '/visit#request'}>
+              {member ? 'Join on Zoom' : 'Request an invite'}
             </Link>
           ) : null}
           <AddToCalendar

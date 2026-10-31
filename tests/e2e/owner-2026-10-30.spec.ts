@@ -38,7 +38,8 @@ test('home: new meeting line, stats in rounded cards aligned to the top, new fou
   await expect(stats.getByText('Originally founded with the San Carlos Chamber of Commerce.')).toBeVisible();
   await expect(stats.getByText('No membership fees. We just ask for full participation.')).toBeVisible();
   const cards = stats.locator('dl > div');
-  await expect(cards).toHaveCount(4);
+  // Owner meeting 2026-10-30: + referrals passed and one-to-ones in the past 12 months.
+  await expect(cards).toHaveCount(6);
   const tops = await cards.evaluateAll((els) =>
     els.map((el) => {
       const dd = el.querySelector('dd')!.getBoundingClientRect().top - el.getBoundingClientRect().top;
@@ -56,8 +57,9 @@ test('home: new meeting line, stats in rounded cards aligned to the top, new fou
 });
 
 test('about and visit wording', async ({ page }) => {
+  // Owner meeting 2026-10-30: About's side timeline removed; the history text says "was founded".
   await page.goto('/about');
-  await expect(page.getByText('Originally founded with the San Carlos Chamber of Commerce.')).toBeVisible();
+  await expect(page.getByText(/was founded in 2016 as part of the San Carlos Chamber of Commerce/)).toBeVisible();
   await page.goto('/visit');
   await expect(page.getByText(/It's one business profession per person\./)).toBeVisible();
   await page.goto('/group-meetings');

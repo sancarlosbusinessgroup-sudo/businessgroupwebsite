@@ -71,7 +71,6 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
 
   const counts: Record<string, number> = { all: upcomingAll.length };
   for (const e of upcomingAll) counts[e.category] = (counts[e.category] ?? 0) + 1;
-  const tags = [...new Set(upcomingAll.flatMap((e) => e.tags))].slice(0, 8);
 
   // Organizers (group) or hosts (member events): public names of approved members
   const personIds = [...new Set(upcomingAll.map((e) => e.organizerId ?? e.hostId).filter((x): x is string => !!x))];
@@ -258,18 +257,7 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
                 })}
             </div>
           </div>
-          {tags.length ? (
-            <div className="card flex flex-col gap-3 p-5">
-              <h2 className="font-display m-0 text-sm tracking-[0.1em] uppercase">Popular topics</h2>
-              <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-                {tags.map((t) => (
-                  <li key={t} className="chip">
-                    #{t}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          {/* Owner meeting 2026-10-30: hashtag "Popular topics" removed (nobody knew what they were). */}
           {organizers.length ? (
             <div className="card flex flex-col gap-3 p-5">
               <h2 className="font-display m-0 text-sm tracking-[0.1em] uppercase">{c.people}</h2>
@@ -318,15 +306,18 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
                   ))}
                 </dl>
               </div>
-              <div className="bg-band text-on-band flex flex-col gap-2.5 rounded-2xl p-5">
-                <h2 className="font-display text-on-band m-0 text-lg">Want to speak at a meeting?</h2>
-                <p className="text-on-band-muted m-0 text-[15px]">
-                  Members claim 5-minute and 10-minute presentation slots on the members&apos; Meetings page.
-                </p>
-                <Link className="btn btn-light btn-sm self-start" href={member ? '/meetings' : '/login?next=/meetings'}>
-                  {member ? 'Claim a slot' : 'Log in to sign up'}
-                </Link>
-              </div>
+              {/* Owner meeting 2026-10-30: only members can speak, so the public view doesn't offer it. */}
+              {member ? (
+                <div className="bg-band text-on-band flex flex-col gap-2.5 rounded-2xl p-5">
+                  <h2 className="font-display text-on-band m-0 text-lg">Want to speak at a meeting?</h2>
+                  <p className="text-on-band-muted m-0 text-[15px]">
+                    Members claim 5-minute and 10-minute presentation slots on the members&apos; Meetings page.
+                  </p>
+                  <Link className="btn btn-light btn-sm self-start" href="/meetings">
+                    Claim a slot
+                  </Link>
+                </div>
+              ) : null}
               <div className="card flex flex-col gap-2.5 p-5">
                 <h2 className="font-display m-0 text-lg">Member events</h2>
                 <p className="text-ink-muted m-0 text-[15px]">Workshops, socials and open houses hosted by our members.</p>
@@ -336,9 +327,12 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
               </div>
             </>
           )}
-          <a className="btn btn-outline btn-sm" href="/calendar.ics">
-            Subscribe to the calendar
-          </a>
+          {/* Owner meeting 2026-10-30: calendar subscription is for logged-in members only. */}
+          {member ? (
+            <a className="btn btn-outline btn-sm" href="/calendar.ics">
+              Subscribe to the calendar
+            </a>
+          ) : null}
         </aside>
       </section>
     </>

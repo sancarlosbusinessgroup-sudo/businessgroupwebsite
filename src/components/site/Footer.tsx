@@ -29,9 +29,7 @@ export function Footer() {
               <Image src="/images/barp-logo-mark.png" alt="" width={44} height={44} className="h-11 w-11" />
               {site.name}
             </p>
-            <p className="m-0 max-w-[460px]">
-              Proudly supporting business connections across the San Francisco Bay Area Peninsula, including {site.serviceArea}.
-            </p>
+            <p className="m-0 max-w-[460px]">Supporting businesses across {site.serviceArea}.</p>
           </div>
           <nav aria-label="Quick links" className="flex flex-[1_1_160px] flex-col gap-1.5">
             <h2 className="font-display text-sky m-0 mb-1 text-[13px] font-bold tracking-[0.12em] uppercase">Quick links</h2>

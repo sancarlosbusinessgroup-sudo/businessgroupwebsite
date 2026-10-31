@@ -8,7 +8,8 @@ export const site = {
   meetingCadence: 'Every other Monday',
   meetingTime: '8:15 AM',
   serviceArea:
-    'San Carlos, Redwood City, Belmont, San Mateo, Foster City, Burlingame, Millbrae, Hillsborough, Menlo Park, Atherton, Palo Alto and surrounding communities',
+    // Owner meeting 2026-10-30: no city list (it always missed towns); the wider area instead.
+    'the San Francisco Bay Area and Northern California',
 };
 
 export const publicNav = [
@@ -36,6 +37,8 @@ export const memberNav: readonly NavItem[] = [
       { href: '/referrals', label: 'Referrals' },
       { href: '/one-on-ones', label: 'One-on-ones' },
       { href: '/closed-business', label: 'Closed Businesses' },
+      // Owner meeting 2026-10-30: members log the visitors they brought.
+      { href: '/visitors-brought', label: 'Visitors brought' },
     ],
   },
   { href: '/members', label: 'Directory' },
@@ -58,9 +61,10 @@ export const adminLinks = [
   { href: '/admin/members', label: 'Members' },
   { href: '/admin/meetings', label: 'Meetings' },
   { href: '/admin/attendance', label: 'Attendance' },
+  // Owner meeting 2026-10-30: Member activity and Member stats side by side.
   { href: '/admin/activity', label: 'Member activity' },
-  { href: '/admin/champion', label: 'BARP Champion' },
   { href: '/admin/stats', label: 'Member stats' },
+  { href: '/admin/champion', label: 'BARP Champion' },
   { href: '/admin/leadership', label: 'Management' },
   { href: '/admin/recap', label: 'Member recap' },
   { href: '/admin/management-recap', label: 'Management recap' },
@@ -69,32 +73,27 @@ export const adminLinks = [
   { href: '/admin/history', label: 'Change history' },
 ] as const;
 
+/** Owner meeting 2026-10-30: the four membership steps, reworded by the group. */
 export const howItWorks = [
-  { title: 'Visit twice, no membership fees', text: 'Get invited by a member and attend up to two meetings as a guest.' },
-  { title: 'Meet the Membership Committee', text: "One-to-ones with three Membership Committee members. If it's a fit, welcome aboard." },
-  { title: 'Refer and connect', text: 'Share warm introductions and invite guests. Your referral link tracks every one.' },
-  {
-    title: 'We help you grow your business by referral',
-    text: 'Report referrals, one-on-ones and closed business. The leaderboard shows the whole group’s progress.',
-  },
+  { title: 'Visit up to twice as a guest', text: 'Get invited by a member and attend up to two meetings, then submit your application.' },
+  { title: 'Meet the Membership Committee', text: 'One-to-ones with three Membership Committee members.' },
+  { title: 'Connect with members', text: 'Continue to have one-to-ones and get to know your fellow referral partners.' },
+  { title: 'Grow your business', text: 'Give and receive referrals, and report your activity. The leaderboard shows the whole group’s progress.' },
 ];
 
 export const values = [
-  { title: 'Real relationships', text: 'We go beyond the pitch to build trust and friendships that lead to long-term partnerships.' },
-  { title: 'Shared growth', text: 'Members refer each other and collaborate intentionally to create measurable business growth.' },
+  { title: 'Real relationships', text: 'People do business with others they know, like and trust.' },
+  { title: 'Shared growth', text: 'Members help each other grow their business by referral.' },
   { title: 'Accountability', text: 'We show up, follow through, and report activity to maintain momentum and visibility.' },
 ];
 
 export const metrics = [
   { title: 'Referrals', text: 'Members share leads, introductions and opportunities. A referral is any warm connection that may help another business grow.' },
-  { title: 'One-on-ones', text: "Friendly, focused meetings between two members to learn each other's services, goals and ideal customers." },
-  { title: 'Closed business', text: "When a referral turns into paid work, it's counted. It shows how conversations become real results." },
-];
-
-export const timeline = [
-  { year: '2016', text: 'Originally founded with the San Carlos Chamber of Commerce.' },
-  { year: '2020', text: 'Chamber closes. Members choose to keep going and move to Zoom' },
-  { year: 'Today', text: 'Meeting every other Monday, 8:15am–9:30am' },
+  {
+    title: 'One-on-ones',
+    text: "Friendly, focused meetings between members to learn how to refer each other's business, services, goals and ideal prospects, and to deepen relationships.",
+  },
+  { title: 'Closed business', text: "When a referral turns into closed business, it's counted. It shows how conversations have become real results." },
 ];
 
 /** Shown on About only until admins add people to the Management list (Admin → Management). */
@@ -164,10 +163,13 @@ export const referralStatusLabels = {
   not_a_fit: 'Not a fit',
 } as const;
 
+/**
+ * Member leaderboard columns (dashboard and slides). Owner meeting 2026-10-30: closed business is confidential, so it is
+ * shown only as a group total, never next to names (admins still see who on Member stats).
+ */
 export const leaderboardMetrics = [
   { key: 'one_on_ones', label: 'One-on-ones' },
   { key: 'referrals', label: 'Referrals' },
-  { key: 'closed_deals', label: 'Closed business' },
   { key: 'visitors', label: 'Visitors brought' },
 ] as const;
 
@@ -234,6 +236,6 @@ export const supportFaq = [
   { q: 'Where is the Zoom link?', a: 'Members find it on the Meetings page (“Open Zoom link”). It is shared with logged-in members only.' },
   {
     q: 'I’m not a member yet. How do I visit?',
-    a: 'Use “Request for an Invite” at the top of any page. The Membership Committee will be in touch about the next meeting.',
+    a: 'Use “Request an invite” at the top of any page. The Membership Committee will be in touch about the next meeting.',
   },
 ] as const;

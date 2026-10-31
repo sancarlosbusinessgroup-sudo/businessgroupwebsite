@@ -1,7 +1,8 @@
 import 'server-only';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { autoChampion, monthRange, scoreChampion, type ChampionRow } from '../champion';
+import { unstable_cache } from 'next/cache';
+import { autoChampion, monthOf, monthRange, scoreChampion, type ChampionRow } from '../champion';
 import type { Database } from '../database.types';
 import { createAdminClient } from '../supabase/admin';
 import { createClient } from '../supabase/server';
@@ -123,3 +124,19 @@ export async function getChampionAwards(limit = 24, profileId?: string): Promise
 export async function getCurrentChampion(): Promise<ChampionAward | null> {
   return (await getChampionAwards(1))[0] ?? null;
 }
+
+/**
+ * This month's BARP Champion points per member, for ordering the directory (owner meeting 2026-10-30: "anyone who's not
+ * doing anything is down the bottom"). Only the order leaves this function's callers, never the numbers. Cached 5 minutes;
+ * empty when the service-role key is missing.
+ */
+export const getActivityPoints = unstable_cache(
+  async (): Promise<[string, number][]> => {
+    const db = createAdminClient();
+    if (!db) return [];
+    const { rows } = await getChampionRanking(monthOf(new Date()), db);
+    return rows.map((r) => [r.id, r.points]);
+  },
+  ['directory-activity-points'],
+  { revalidate: 300, tags: ['directory'] },
+);

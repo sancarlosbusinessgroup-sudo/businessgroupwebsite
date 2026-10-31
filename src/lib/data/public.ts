@@ -180,6 +180,22 @@ export const getMemberCount = shared('getMemberCount', ['directory'], async (): 
   return data;
 });
 
+/**
+ * Rolling 12-month activity for the public stats banner (owner meeting 2026-10-30): referrals passed and confirmed
+ * one-on-ones. Counts only, read with the service role (visitors can't read these tables); null if that key is missing.
+ */
+export const getYearActivity = shared('getYearActivity', ['directory'], async (): Promise<{ referrals: number; oneOnOnes: number } | null> => {
+  const db = createAdminClient();
+  if (!db) return null;
+  const since = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+  const [ref, ooo] = await Promise.all([
+    db.from('referrals').select('id', { count: 'exact', head: true }).gte('created_at', since.toISOString()),
+    db.from('one_on_ones').select('id', { count: 'exact', head: true }).not('confirmed_at', 'is', null).gte('met_on', since.toISOString().slice(0, 10)),
+  ]);
+  if (ref.error || ooo.error) return null;
+  return { referrals: ref.count ?? 0, oneOnOnes: ooo.count ?? 0 };
+});
+
 export type LeadershipEntry = Tables<'leadership'> & { profile: { slug: string; avatar_path: string | null; business_name: string } | null };
 
 /** Management list for the About page (admin-editable). */
