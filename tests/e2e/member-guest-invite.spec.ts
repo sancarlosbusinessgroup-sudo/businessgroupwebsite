@@ -157,6 +157,24 @@ test.describe('members invite a guest', () => {
     }
   });
 
+  test('support staff ("Support Team") have no "How to refer me" on their profile; members do (owner, 2026-10-30)', async ({ page }) => {
+    const key = await serviceKey();
+    const h = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' };
+    const [me] = await db<{ id: string; business_name: string | null }>(`profiles?select=id,business_name&first_name=eq.Riley&last_name=eq.Second`);
+    await login(page, users.member2, undefined, '/profile');
+    await expect(page.getByRole('heading', { name: 'How to refer me' })).toBeVisible();
+    await fetch(`${STACK}/rest/v1/profiles?id=eq.${me!.id}`, { method: 'PATCH', headers: h, body: JSON.stringify({ business_name: 'Support Team' }) });
+    try {
+      await page.reload();
+      await expect(page.getByRole('heading', { level: 1, name: 'Riley Second' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'How to refer me' })).toHaveCount(0);
+      await expect(page.getByRole('heading', { name: 'About' })).toBeVisible();
+      await page.screenshot({ path: test.info().outputPath('support-profile.png'), fullPage: true });
+    } finally {
+      await fetch(`${STACK}/rest/v1/profiles?id=eq.${me!.id}`, { method: 'PATCH', headers: h, body: JSON.stringify({ business_name: me!.business_name }) });
+    }
+  });
+
   test('the form checks the guest details, saves them for the member and emails the guest and admins (not the member)', async ({ page }) => {
     const email = `member.guest.${Date.now()}@example.org`;
     const last = `Invitee${String(Date.now()).slice(-6)}`;

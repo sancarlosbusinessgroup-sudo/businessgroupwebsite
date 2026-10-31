@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { PublicProfile } from '@/lib/data/public';
 import { mediaUrl } from '@/lib/env';
+import { isSupportStaff } from '@/lib/people';
 import { ChampionBadge } from './ChampionBadge';
 import { Avatar } from './ui';
 
@@ -63,30 +64,33 @@ export function ProfileView({ profile: p, contact, champion }: Props) {
             <h2 className="h3">About</h2>
             <p className="text-ink-soft m-0">{p.about ?? 'This member hasn’t added an introduction yet.'}</p>
           </section>
-          <section className="card flex flex-col gap-3 p-6">
-            <h2 className="h3">How to refer me</h2>
-            <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3.5">
-              {[
-                { k: 'Ideal client', v: p.ideal_client },
-                { k: 'Listen for', v: p.listen_for },
-                { k: 'Service area', v: p.service_area },
-              ].map((r) => (
-                <div key={r.k} className="bg-canvas rounded-xl p-3.5">
-                  <dt className="text-ink-muted text-[13px] font-bold tracking-[0.06em] uppercase">{r.k}</dt>
-                  <dd className="m-0">{r.v ?? '—'}</dd>
-                </div>
-              ))}
-            </dl>
-            {p.services.length ? (
-              <ul className="m-0 flex list-none flex-wrap gap-2 p-0" aria-label="Services">
-                {p.services.map((s) => (
-                  <li key={s} className="pill bg-teal-tint text-teal-hover">
-                    {s}
-                  </li>
+          {/* Not on the support staff's profiles: they support the members rather than take referrals (owner, 2026-10-30). */}
+          {isSupportStaff(p) ? null : (
+            <section className="card flex flex-col gap-3 p-6">
+              <h2 className="h3">How to refer me</h2>
+              <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3.5">
+                {[
+                  { k: 'Ideal client', v: p.ideal_client },
+                  { k: 'Listen for', v: p.listen_for },
+                  { k: 'Service area', v: p.service_area },
+                ].map((r) => (
+                  <div key={r.k} className="bg-canvas rounded-xl p-3.5">
+                    <dt className="text-ink-muted text-[13px] font-bold tracking-[0.06em] uppercase">{r.k}</dt>
+                    <dd className="m-0">{r.v ?? '—'}</dd>
+                  </div>
                 ))}
-              </ul>
-            ) : null}
-          </section>
+              </dl>
+              {p.services.length ? (
+                <ul className="m-0 flex list-none flex-wrap gap-2 p-0" aria-label="Services">
+                  {p.services.map((s) => (
+                    <li key={s} className="pill bg-teal-tint text-teal-hover">
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          )}
           {logo ? (
             <section className="card flex flex-col gap-3 p-6">
               <h2 className="h3">Logo</h2>
