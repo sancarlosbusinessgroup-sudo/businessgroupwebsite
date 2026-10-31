@@ -90,10 +90,11 @@ describe('member events', () => {
     });
   });
 
-  it('a member can post at most 10 events in 30 days', async () => {
+  // Requirement change 2026-10-31: one post can hold up to 10 dates (one row each), so the limit is 30 rows.
+  it('a member can post at most 30 event dates in 30 days', async () => {
     await tx(async (c) => {
       await actAs(c, ids.member3);
-      for (let i = 0; i < 10; i++) await c.query(event(ids.member3));
+      for (let i = 0; i < 30; i++) await c.query(event(ids.member3));
       await expect(c.query(event(ids.member3))).rejects.toThrow(/event limit/);
     });
   });

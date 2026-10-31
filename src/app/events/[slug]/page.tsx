@@ -12,7 +12,7 @@ import { getViewer, isAdmin, isApproved } from '@/lib/auth';
 import { JsonLd, eventJsonLd } from '@/components/site/JsonLd';
 import { env } from '@/lib/env';
 import { site, slotDescriptions, slotTitles } from '@/lib/content';
-import { getCalendarItemBySlug, listPathFor } from '@/lib/data/events';
+import { getCalendarItemBySlug, getSeriesDates, listPathFor } from '@/lib/data/events';
 import { formatMeetingDate, formatMeetingTime, nowMs } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
 import { deleteMemberEvent } from '../../actions/events';
@@ -46,6 +46,9 @@ export default async function EventDetail({ params }: Props) {
   const upcoming = end.getTime() > nowMs() && !cancelled;
   const image = mediaUrl('gallery', m.imagePath);
   const where = m.is_online ? (m.kind === 'group' ? (m.location ?? 'Online · Zoom') : 'Online') : (m.location ?? '');
+  // Other dates of an event posted with several dates (owner, 2026-10-31).
+  const series = m.kind === 'member' ? await getSeriesDates(m.seriesId) : [];
+  const otherDates = series.filter((d) => d.id !== m.id && Date.parse(d.ends_at) > nowMs());
 
   return (
     <>
@@ -83,7 +86,24 @@ export default async function EventDetail({ params }: Props) {
               Member event · hosted by{' '}
               {m.hostName && m.hostSlug ? <Link href={`/members/${m.hostSlug}`}>{m.hostName}</Link> : (m.hostName ?? `a ${site.shortName} member`)}
               <span className="text-ink-muted font-normal"> · {m.category}</span>
+              {m.visibility === 'members' ? <span className="pill bg-amber-tint text-amber ml-2 align-middle text-sm">Members only</span> : null}
             </p>
+          ) : null}
+          {otherDates.length ? (
+            <section aria-labelledby="dates-h" className="bg-teal-tint flex flex-col gap-2 rounded-2xl p-4 text-base">
+              <h2 id="dates-h" className="text-teal-hover m-0 text-[13px] font-bold tracking-[0.08em] uppercase">
+                Also on
+              </h2>
+              <ul className="m-0 flex list-none flex-col gap-1 p-0">
+                {otherDates.map((d) => (
+                  <li key={d.id}>
+                    <Link href={`/events/${d.slug}`}>
+                      {formatMeetingDate(new Date(d.starts_at))} · {formatMeetingTime(new Date(d.starts_at))}–{formatMeetingTime(new Date(d.ends_at))} PT
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ) : null}
           {image ? (
             <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl">
@@ -149,7 +169,20 @@ export default async function EventDetail({ params }: Props) {
               <Link className="btn btn-outline" href={`/events/${m.slug}/edit`}>
                 Edit event
               </Link>
-              <ConfirmDelete action={deleteMemberEvent} id={m.id} what="event" />
+              {series.length > 1 ? (
+                <>
+                  <ConfirmDelete action={deleteMemberEvent} id={m.id} what="this date of the event" label="Delete this date" />
+                  <ConfirmDelete
+                    action={deleteMemberEvent}
+                    id={m.id}
+                    what={`all ${series.length} dates of the event`}
+                    label={`Delete all ${series.length} dates`}
+                    extra={{ all: '1' }}
+                  />
+                </>
+              ) : (
+                <ConfirmDelete action={deleteMemberEvent} id={m.id} what="event" />
+              )}
             </div>
           ) : null}
           <Link href={listPathFor(m.kind)} className="mt-2 text-[15px] font-bold">

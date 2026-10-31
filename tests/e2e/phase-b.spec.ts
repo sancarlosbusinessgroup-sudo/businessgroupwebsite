@@ -49,7 +49,7 @@ test.describe('member events', () => {
 
     // Public list and feeds
     await page.getByRole('button', { name: 'Log out' }).click();
-    await expect(page.getByRole('link', { name: 'Log in', exact: true })).toBeVisible();
+    await expect(page.locator('header').getByRole('link', { name: 'Log in', exact: true })).toBeVisible();
     await page.goto('/events');
     await expect(page.getByRole('link', { name: 'Morgan’s brand clinic (moved)', exact: true })).toBeVisible();
     const feed = await page.request.get('/calendar.ics');

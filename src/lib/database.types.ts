@@ -521,6 +521,8 @@ export type Database = {
           online_url: string | null;
           slug: string;
           starts_at: string;
+          series_id: string | null;
+          visibility: string;
           title: string;
           updated_at: string;
         };
@@ -537,6 +539,8 @@ export type Database = {
           online_url?: string | null;
           slug?: string;
           starts_at: string;
+          series_id?: string | null;
+          visibility?: string;
           title: string;
           updated_at?: string;
         };
@@ -553,6 +557,8 @@ export type Database = {
           online_url?: string | null;
           slug?: string;
           starts_at?: string;
+          series_id?: string | null;
+          visibility?: string;
           title?: string;
           updated_at?: string;
         };

@@ -7,10 +7,12 @@ import { Leaderboard } from '@/components/Leaderboard';
 import { NextMeetingCard } from '@/components/meetings';
 import { EmptyState, Notice } from '@/components/ui';
 import { WeeklyAskForm } from '@/components/WeeklyAskForm';
+import { MyEventsCard } from '@/components/MyEventsCard';
+import { getMyUpcomingEvents } from '@/lib/data/events';
 import { requireMember } from '@/lib/auth';
 import { getNextMeeting, guestMeetingOptions } from '@/lib/data/public';
 import { getGroupTotals, getLeaderboard, getMyGuests, getOneOnOnes, getPendingConfirmations } from '@/lib/data/member';
-import { formatLongToday, formatMoney, formatShortDate } from '@/lib/dates';
+import { formatLongToday, formatMoney, formatShortDate, isoToPacificLocal, nowMs } from '@/lib/dates';
 import { env } from '@/lib/env';
 import { isPeriod, periodRange, type Period } from '@/lib/periods';
 import { createClient } from '@/lib/supabase/server';
@@ -26,7 +28,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const me = viewer.profile;
   const lbPeriod: Period = isPeriod(lb) && LB_PERIODS.includes(lb) ? lb : 'month';
   const supabase = await createClient();
-  const [next, totals, leaders, pending, recent, guests, onboarding, guestMeetings] = await Promise.all([
+  const [next, totals, leaders, pending, recent, guests, onboarding, guestMeetings, myEvents] = await Promise.all([
     getNextMeeting(),
     getGroupTotals(periodRange({ period: 'month' })),
     getLeaderboard(periodRange({ period: lbPeriod })),
@@ -35,6 +37,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     getMyGuests(me.id, 4),
     supabase.from('member_onboarding').select('completed_at').eq('profile_id', me.id).maybeSingle(),
     guestMeetingOptions(),
+    getMyUpcomingEvents(me.id, 20),
   ]);
   const needsOnboarding = !!onboarding.data && !onboarding.data.completed_at;
   const hour = Number(new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/Los_Angeles' }).format(new Date()));
@@ -127,6 +130,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </section>
 
             <WeeklyAskForm current={me.weekly_ask} updated={me.weekly_ask_updated_at ? formatShortDate(new Date(me.weekly_ask_updated_at)) : null} />
+            {/* Owner, 2026-10-31: the member's own events, right under My ask this week. */}
+            <MyEventsCard events={myEvents} userId={me.id} minStart={isoToPacificLocal(new Date(nowMs()).toISOString())} />
           </div>
 
           <div className="flex min-w-0 flex-[2_1_320px] flex-col gap-5">

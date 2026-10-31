@@ -290,6 +290,32 @@ describe('phase B forms', () => {
     expect(errs({ category: 'Party' }).category).toBeDefined();
     expect(errs({ title: '' }).title).toBeDefined();
   });
+  it('member event: several dates, each checked on its own; errors point at the right row (owner, 2026-10-31)', () => {
+    const r = memberEventSchema(now).safeParse({ ...ok, 'startsAt.1': '2026-10-27T18:00', 'endsAt.1': '2026-10-27T19:30' });
+    expect(r.success && r.data.dates).toEqual([
+      { id: null, startsAt: '2026-10-21T01:00:00.000Z', endsAt: '2026-10-21T02:30:00.000Z' },
+      { id: null, startsAt: '2026-10-28T01:00:00.000Z', endsAt: '2026-10-28T02:30:00.000Z' },
+    ]);
+    const bad = fieldErrors(memberEventSchema(now).safeParse({ ...ok, 'startsAt.1': '2026-10-27T18:00', 'endsAt.1': '2026-10-27T17:00' }).error!);
+    expect(bad['endsAt.1']).toBe('The end must be after the start');
+    expect(bad.endsAt).toBeUndefined();
+    const missing = fieldErrors(memberEventSchema(now).safeParse({ ...ok, 'startsAt.2': '2026-10-27T18:00' }).error!);
+    expect(missing['endsAt.2']).toBe('Choose when it ends');
+    const many: Record<string, string> = { ...ok };
+    for (let i = 1; i <= 10; i++) Object.assign(many, { [`startsAt.${i}`]: '2026-10-27T18:00', [`endsAt.${i}`]: '2026-10-27T19:00' });
+    expect(fieldErrors(memberEventSchema(now).safeParse(many).error!).dates).toBe('Add up to 10 dates');
+  });
+  it('member event: an existing date being edited may stay in the past; new dates may not', () => {
+    const id = '11111111-2222-4333-8444-555555555555';
+    const past = { startsAt: '2026-10-01T18:00', endsAt: '2026-10-01T19:00' };
+    expect(memberEventSchema(now).safeParse({ ...ok, ...past, dateId: id }).success).toBe(true);
+    expect(memberEventSchema(now).safeParse({ ...ok, ...past }).success).toBe(false);
+  });
+  it('member event: public by default; members only when chosen; nothing else', () => {
+    expect(memberEventSchema(now).safeParse(ok).data?.visibility).toBe('public');
+    expect(memberEventSchema(now).safeParse({ ...ok, visibility: 'members' }).data?.visibility).toBe('members');
+    expect(memberEventSchema(now).safeParse({ ...ok, visibility: 'friends' }).success).toBe(false);
+  });
   it('speaker topic is required (3–120 chars); description optional', () => {
     expect(speakerTopicSchema.safeParse({ topic: '' }).success).toBe(false);
     expect(speakerTopicSchema.safeParse({ topic: 'x'.repeat(121) }).success).toBe(false);

@@ -31,6 +31,10 @@ export type CalendarItem = {
   speakers: Speaker[];
   tags: string[];
   organizerId: string | null;
+  /** Member events: who can see it (owner, 2026-10-31). Group meetings are always public. */
+  visibility: 'public' | 'members';
+  /** Member events posted with several dates share this id. */
+  seriesId: string | null;
 };
 
 type HostedEvent = Tables<'member_events'> & { host: { first_name: string; last_name: string; slug: string } | null };
@@ -63,6 +67,8 @@ export function fromMeeting(m: MeetingWithSpeakers): CalendarItem {
     speakers: m.meeting_speakers,
     tags: m.tags,
     organizerId: m.organizer_id,
+    visibility: 'public',
+    seriesId: null,
   };
 }
 
@@ -89,6 +95,8 @@ export function fromMemberEvent(e: HostedEvent): CalendarItem {
     speakers: [],
     tags: [],
     organizerId: null,
+    visibility: e.visibility === 'members' ? 'members' : 'public',
+    seriesId: e.series_id,
   };
 }
 
@@ -136,4 +144,29 @@ export async function getMemberEventBySlug(slug: string): Promise<CalendarItem |
 export async function getCalendarItemBySlug(slug: string): Promise<CalendarItem | null> {
   const m = await getMeetingBySlug(slug);
   return m ? fromMeeting(m) : getMemberEventBySlug(slug);
+}
+
+export type EventDate = { id: string; slug: string; starts_at: string; ends_at: string };
+
+/** Every date of a member event posted with several dates, soonest first (the viewer's own read rules apply). */
+export async function getSeriesDates(seriesId: string | null): Promise<EventDate[]> {
+  if (!seriesId) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('member_events').select('id, slug, starts_at, ends_at').eq('series_id', seriesId).order('starts_at');
+  if (error) fail('the event dates', error);
+  return data;
+}
+
+/** The signed-in member's own upcoming events for the dashboard's "My Events" box (owner, 2026-10-31). */
+export async function getMyUpcomingEvents(hostId: string, limit = 6): Promise<CalendarItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('member_events')
+    .select(EVENT_FIELDS)
+    .eq('host_id', hostId)
+    .gt('ends_at', new Date().toISOString())
+    .order('starts_at')
+    .limit(limit);
+  if (error) fail('your events', error);
+  return (data as HostedEvent[]).map(fromMemberEvent);
 }

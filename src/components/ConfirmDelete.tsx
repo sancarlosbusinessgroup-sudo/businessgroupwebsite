@@ -19,6 +19,7 @@ export function ConfirmDelete({
   what,
   className = '',
   extra,
+  label = 'Delete',
 }: {
   action: (formData: FormData) => Promise<void>;
   id: string;
@@ -27,12 +28,15 @@ export function ConfirmDelete({
   className?: string;
   /** Extra hidden fields, e.g. where to go afterwards. */
   extra?: Record<string, string>;
+  /** Visible button text (default "Delete"). */
+  label?: string;
 }) {
   const [asking, setAsking] = useState(false);
   if (!asking)
     return (
       <button type="button" className={`btn btn-outline btn-sm text-red ${className}`} onClick={() => setAsking(true)}>
-        Delete<span className="sr-only"> {what}</span>
+        {label}
+        {label === 'Delete' ? <span className="sr-only"> {what}</span> : null}
       </button>
     );
   return (

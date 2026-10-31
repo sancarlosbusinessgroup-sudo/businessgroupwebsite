@@ -40,6 +40,8 @@ export const memberNav: readonly NavItem[] = [
   },
   { href: '/members', label: 'Directory' },
   { href: '/gallery', label: 'Gallery' },
+  // Owner, 2026-10-31: member events, beside Gallery.
+  { href: '/events', label: 'Events' },
   // "My profile" sits top right with Admin and Log out (owner, 2026-10-30).
   // Owner 2026-10-30: "Invite A Guest" sits right next to Support, even when the menu wraps.
   { href: '/invite-guest', label: 'Invite A Guest', keepWith: 'help' },

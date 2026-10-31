@@ -372,64 +372,100 @@ export const seatLimitSchema = z.object({
 export const eventCategories = ['Networking', 'Social', 'Workshop', 'Community'] as const;
 
 /** Member event form. Times are typed as Pacific wall-clock and converted to UTC here. */
+/** Most dates one post can hold (each date is its own event row, linked by a series id; owner, 2026-10-31). */
+export const MAX_EVENT_DATES = 10;
+export const eventVisibilities = ['public', 'members'] as const;
+
+/**
+ * Form field names for date row `i`: the first row keeps the original names (`startsAt`, `endsAt`), the others are
+ * numbered (`startsAt.1`, `endsAt.1`, …). `dateId.N` carries an existing event's id when editing a series.
+ */
+export const eventDateField = (name: 'startsAt' | 'endsAt' | 'dateId', i: number) => (i === 0 ? name : `${name}.${i}`);
+
+type RawDate = { index: number; id?: string; startsAt?: string; endsAt?: string };
+
+/** Collects the date rows from flat form fields, in row order. */
+function collectDates(raw: Record<string, unknown>): RawDate[] {
+  const rows = new Map<number, RawDate>();
+  for (const [k, v] of Object.entries(raw)) {
+    const m = /^(startsAt|endsAt|dateId)(?:\.(\d+))?$/.exec(k);
+    if (!m || typeof v !== 'string') continue;
+    const index = m[2] ? Number(m[2]) : 0;
+    const row = rows.get(index) ?? { index };
+    if (m[1] === 'dateId') row.id = v || undefined;
+    else row[m[1] as 'startsAt' | 'endsAt'] = v;
+    rows.set(index, row);
+  }
+  return [...rows.values()].filter((r) => r.index === 0 || r.startsAt || r.endsAt || r.id).sort((a, b) => a.index - b.index);
+}
+
 export const memberEventSchema = (now: Date = new Date()) =>
   z
-    .object({
-      title: z
-        .string({ error: 'Event title is required' })
-        .trim()
-        .min(1, 'Event title is required')
-        .min(3, 'Use at least 3 characters')
-        .max(160, 'Keep the title under 160 characters'),
-      description: optionalText(4000, 'Description'),
-      category: z.enum(eventCategories, { error: 'Choose a category' }),
-      startsAt: z.string({ error: 'Choose when it starts' }).transform((v, ctx) => {
-        const iso = pacificLocalToIso(v);
-        if (!iso) {
-          ctx.addIssue({ code: 'custom', message: 'Choose when it starts' });
-          return z.NEVER;
-        }
-        return iso;
+    .preprocess(
+      (raw) => (raw && typeof raw === 'object' ? { ...(raw as Record<string, unknown>), dates: collectDates(raw as Record<string, unknown>) } : raw),
+      z.object({
+        title: z
+          .string({ error: 'Event title is required' })
+          .trim()
+          .min(1, 'Event title is required')
+          .min(3, 'Use at least 3 characters')
+          .max(160, 'Keep the title under 160 characters'),
+        description: optionalText(4000, 'Description'),
+        category: z.enum(eventCategories, { error: 'Choose a category' }),
+        visibility: z
+          .enum(eventVisibilities, { error: 'Choose who can see the event' })
+          .optional()
+          .transform((v) => v ?? 'public'),
+        dates: z.array(z.object({ index: z.number(), id: z.string().optional(), startsAt: z.string().optional(), endsAt: z.string().optional() })),
+        format: z.enum(['online', 'in_person'], { error: 'Choose online or in person' }),
+        onlineUrl: z
+          .string()
+          .trim()
+          .optional()
+          .transform((v) => (v ? v : null)),
+        location: z
+          .string()
+          .trim()
+          .max(200, 'Keep the address under 200 characters')
+          .optional()
+          .transform((v) => (v ? v : null)),
       }),
-      endsAt: z.string({ error: 'Choose when it ends' }).transform((v, ctx) => {
-        const iso = pacificLocalToIso(v);
-        if (!iso) {
-          ctx.addIssue({ code: 'custom', message: 'Choose when it ends' });
-          return z.NEVER;
-        }
-        return iso;
-      }),
-      format: z.enum(['online', 'in_person'], { error: 'Choose online or in person' }),
-      onlineUrl: z
-        .string()
-        .trim()
-        .optional()
-        .transform((v) => (v ? v : null)),
-      location: z
-        .string()
-        .trim()
-        .max(200, 'Keep the address under 200 characters')
-        .optional()
-        .transform((v) => (v ? v : null)),
-    })
-    .superRefine((v, ctx) => {
-      if (v.startsAt < new Date(now.getTime() - 60 * 60000).toISOString())
-        ctx.addIssue({ code: 'custom', path: ['startsAt'], message: 'Choose a date and time in the future' });
-      if (v.endsAt <= v.startsAt) ctx.addIssue({ code: 'custom', path: ['endsAt'], message: 'The end must be after the start' });
+    )
+    .transform((v, ctx) => {
+      if (v.dates.length > MAX_EVENT_DATES) ctx.addIssue({ code: 'custom', path: ['dates'], message: `Add up to ${MAX_EVENT_DATES} dates` });
+      const dates: { id: string | null; startsAt: string; endsAt: string }[] = [];
+      for (const d of v.dates) {
+        const startKey = eventDateField('startsAt', d.index);
+        const endKey = eventDateField('endsAt', d.index);
+        const startsAt = d.startsAt ? pacificLocalToIso(d.startsAt) : null;
+        const endsAt = d.endsAt ? pacificLocalToIso(d.endsAt) : null;
+        const id = d.id && z.uuid().safeParse(d.id).success ? d.id : null;
+        if (!startsAt) ctx.addIssue({ code: 'custom', path: [startKey], message: 'Choose when it starts' });
+        if (!endsAt) ctx.addIssue({ code: 'custom', path: [endKey], message: 'Choose when it ends' });
+        if (!startsAt || !endsAt) continue;
+        // A date that already exists may stay where it is; new dates must be in the future.
+        if (!id && startsAt < new Date(now.getTime() - 60 * 60000).toISOString())
+          ctx.addIssue({ code: 'custom', path: [startKey], message: 'Choose a date and time in the future' });
+        if (endsAt <= startsAt) ctx.addIssue({ code: 'custom', path: [endKey], message: 'The end must be after the start' });
+        dates.push({ id, startsAt, endsAt });
+      }
       if (v.format === 'online' && !(v.onlineUrl && /^https:\/\/[^\s]+\.[^\s]+$/i.test(v.onlineUrl) && v.onlineUrl.length <= 500))
         ctx.addIssue({ code: 'custom', path: ['onlineUrl'], message: 'Use a secure link that starts with https://' });
       if (v.format === 'in_person' && !v.location) ctx.addIssue({ code: 'custom', path: ['location'], message: 'Add the address' });
-    })
-    .transform((v) => ({
-      title: v.title,
-      description: v.description ?? null,
-      category: v.category,
-      startsAt: v.startsAt,
-      endsAt: v.endsAt,
-      isOnline: v.format === 'online',
-      onlineUrl: v.format === 'online' ? v.onlineUrl : null,
-      location: v.format === 'in_person' ? v.location : null,
-    }));
+      const first = dates[0];
+      return {
+        title: v.title,
+        description: v.description ?? null,
+        category: v.category,
+        visibility: v.visibility,
+        dates,
+        startsAt: first?.startsAt ?? '',
+        endsAt: first?.endsAt ?? '',
+        isOnline: v.format === 'online',
+        onlineUrl: v.format === 'online' ? v.onlineUrl : null,
+        location: v.format === 'in_person' ? v.location : null,
+      };
+    });
 
 // --- Admin editing (owner, 2026-10-27) ---------------------------------------
 
