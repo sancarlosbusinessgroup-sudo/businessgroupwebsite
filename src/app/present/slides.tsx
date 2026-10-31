@@ -520,7 +520,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       case 'leadership': {
         // Grouped like the group's printed Management Team slide (owner, 2026-10-22):
         // column 1 the first two leaders (and the Attendance Managers), column 2 the other roles,
-        // column 3 the Membership Committee. Each person: photo, role in bold, name, business in italics.
+        // column 2 the other roles and, in its own box below, the Member Coach; column 3 the Membership Committee. Each person: photo, role in bold, name, business in italics.
         const team = groupLeadership(d.leadership);
         type P = (typeof d.leadership)[number];
         const Person = ({ p, role }: { p: P; role?: string }) => (
@@ -583,13 +583,25 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                   </Group>
                 ) : null}
               </Panel>
-              <Panel color={STEP_COLORS[2]}>
-                <Group>
-                  {others.map((p) => (
-                    <Person key={p.id} p={p} role={p.title} />
-                  ))}
-                </Group>
-              </Panel>
+              {/* Column 2: the other roles, then the Member Coach in a box of their own (owner, 2026-10-30). */}
+              <div className="flex min-w-0 flex-col gap-[1.6cqw]">
+                <Panel color={STEP_COLORS[2]}>
+                  <Group>
+                    {others.map((p) => (
+                      <Person key={p.id} p={p} role={p.title} />
+                    ))}
+                  </Group>
+                </Panel>
+                {team.coaches.length ? (
+                  <Panel color={STEP_COLORS[3]}>
+                    <Group heading={team.coaches.length > 1 ? 'Member Coaches' : 'Member Coach'}>
+                      {team.coaches.map((p) => (
+                        <Person key={p.id} p={p} />
+                      ))}
+                    </Group>
+                  </Panel>
+                ) : null}
+              </div>
               {team.committee.length ? (
                 <Panel color={STEP_COLORS[4]}>
                   <Group heading="Membership Committee">

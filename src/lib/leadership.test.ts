@@ -16,4 +16,13 @@ describe('groupLeadership', () => {
     expect(g.committee.map((c) => c.name)).toEqual(['Mark Rogers', 'David Flaig']);
     expect(g.attendance.map((c) => c.name)).toEqual(['Shannon Kampa']);
   });
+
+  it('puts Member Coaches in their own group, not with the other roles (owner, 2026-10-30)', () => {
+    const g = groupLeadership([
+      { id: '1', name: 'Jeanie Jackson', role: 'Speaker Schedule' },
+      { id: '2', name: 'Ranger Kielak', role: 'Member Coach' },
+    ]);
+    expect(g.leaders.map((l) => l.name)).toEqual(['Jeanie Jackson']);
+    expect(g.coaches.map((c) => c.name)).toEqual(['Ranger Kielak']);
+  });
 });

@@ -46,7 +46,7 @@ const Bullets = ({ items }: { items: readonly string[] }) => (
 
 export default async function BylawsPage() {
   const team = await getLeadership();
-  const { leaders, committee, attendance } = groupLeadership(team);
+  const { leaders, committee, attendance, coaches } = groupLeadership(team);
 
   return (
     <>
@@ -110,6 +110,7 @@ export default async function BylawsPage() {
               {[
                 { title: 'Membership Committee', people: committee },
                 { title: 'Attendance Managers', people: attendance },
+                { title: coaches.length > 1 ? 'Member Coaches' : 'Member Coach', people: coaches },
               ]
                 .filter((g) => g.people.length)
                 .map((g) => (
