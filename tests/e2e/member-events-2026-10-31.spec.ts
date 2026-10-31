@@ -156,8 +156,8 @@ test.describe('member events (2026-10-31)', () => {
     await expect(page).toHaveURL(/\/events\?deleted=1/);
   });
 
-  test('the footer reads "© <year> Bay Area Referral Partners Provided By Vabrato Inc" (owner, 2026-10-31)', async ({ page }) => {
+  test('the footer reads "© <year> Bay Area Referral Partners Provided By Vabrato Inc." (owner, 2026-10-31)', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('footer')).toContainText(`© ${new Date().getFullYear()} Bay Area Referral Partners Provided By Vabrato Inc`);
+    await expect(page.locator('footer')).toContainText(`© ${new Date().getFullYear()} Bay Area Referral Partners Provided By Vabrato Inc.`);
   });
 });
