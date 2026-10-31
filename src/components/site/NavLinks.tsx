@@ -89,7 +89,12 @@ function SubMenu({ item, isActive, onNavigate }: { item: NavItem; isActive: (hre
   );
 }
 
-export function NavLinks({ items, actions }: { items: readonly NavItem[]; actions: ReactNode }) {
+/**
+ * `stacked` (signed-in members, owner 2026-10-30): the account links (name, Admin, My profile, Log out) sit top right
+ * beside the logo, and the tabs fill a second row of their own under a thin line, spread evenly across the width.
+ * On phones both are behind the Menu button, as before.
+ */
+export function NavLinks({ items, actions, stacked = false }: { items: readonly NavItem[]; actions: ReactNode; stacked?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -110,31 +115,48 @@ export function NavLinks({ items, actions }: { items: readonly NavItem[]; action
       </Link>
     );
 
+  const menuButton = (
+    <button type="button" className="btn btn-outline btn-sm ml-auto md:hidden" aria-expanded={open} aria-controls="site-nav" onClick={() => setOpen((o) => !o)}>
+      {open ? 'Close' : 'Menu'}
+    </button>
+  );
+  const tabs = groupNav(items).map((group) =>
+    group.length > 1 ? (
+      // In the stacked layout every tab fits on one row from lg up, so the pair spreads out like the others there.
+      <div key={group[0]!.href} className={`flex flex-col gap-1 md:flex-row md:flex-nowrap ${stacked ? 'lg:contents' : ''}`}>
+        {group.map(renderItem)}
+      </div>
+    ) : (
+      renderItem(group[0]!)
+    ),
+  );
+
+  if (stacked) {
+    return (
+      <>
+        {menuButton}
+        <div id="site-nav" className={`${open ? 'flex' : 'hidden'} w-full flex-col gap-3 md:contents`}>
+          <div className="border-line-soft flex flex-wrap items-center gap-x-4 gap-y-1 border-b pb-3 md:ml-auto md:border-0 md:pb-0">{actions}</div>
+          <nav
+            aria-label="Main"
+            className="border-line-soft flex flex-col gap-1 md:w-full md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-y-1 md:border-t md:pt-3"
+          >
+            {tabs}
+          </nav>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <button
-        type="button"
-        className="btn btn-outline btn-sm ml-auto md:hidden"
-        aria-expanded={open}
-        aria-controls="site-nav"
-        onClick={() => setOpen((o) => !o)}
-      >
-        {open ? 'Close' : 'Menu'}
-      </button>
+      {menuButton}
       <div
         id="site-nav"
         className={`${open ? 'flex' : 'hidden'} w-full flex-col gap-3 md:flex md:w-auto md:flex-1 md:flex-row md:flex-wrap md:items-center md:justify-between`}
       >
         <nav aria-label="Main" className="flex flex-col gap-1 md:flex-row md:flex-wrap">
-          {groupNav(items).map((group) =>
-            group.length > 1 ? (
-              <div key={group[0]!.href} className="flex flex-col gap-1 md:flex-row md:flex-nowrap">
-                {group.map(renderItem)}
-              </div>
-            ) : (
-              renderItem(group[0]!)
-            ),
-          )}
+          {tabs}
         </nav>
         <div className="flex flex-wrap items-center gap-2.5">{actions}</div>
       </div>

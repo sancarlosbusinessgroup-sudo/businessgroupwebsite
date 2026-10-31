@@ -74,6 +74,29 @@ test.describe('members invite a guest', () => {
     await expect(nav.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('aria-current', 'page');
   });
 
+  test('members: account links on top (name, Admin, My profile, Log out), tabs evenly spread on a row of their own (owner, 2026-10-30)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await login(page, users.admin);
+    const header = page.locator('header');
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    expect((await nav.getByRole('link').allTextContents()).map((t) => t.trim())).not.toContain('My profile');
+    const top = (await header.getByRole('link', { name: 'My profile' }).boundingBox())!;
+    const logout = (await header.getByRole('button', { name: 'Log out' }).boundingBox())!;
+    const admin = (await header.getByRole('link', { name: 'Admin', exact: true }).boundingBox())!;
+    expect(Math.round(top.y)).toBe(Math.round(logout.y));
+    expect(Math.round(admin.y)).toBe(Math.round(top.y));
+    expect(admin.x).toBeLessThan(top.x);
+    expect(top.x).toBeLessThan(logout.x);
+    // Every tab on one row, below the account links.
+    const tabs = await nav.locator('a:visible, button:visible').all();
+    const ys = new Set<number>();
+    for (const t of tabs) ys.add(Math.round((await t.boundingBox())!.y));
+    expect(ys.size).toBe(1);
+    expect([...ys][0]!).toBeGreaterThan(top.y + top.height);
+    await header.getByRole('link', { name: 'My profile' }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+  });
+
   test('the form checks the guest details, saves them for the member and emails the guest and admins (not the member)', async ({ page }) => {
     const email = `member.guest.${Date.now()}@example.org`;
     const last = `Invitee${String(Date.now()).slice(-6)}`;

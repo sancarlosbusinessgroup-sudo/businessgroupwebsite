@@ -14,25 +14,39 @@ export async function Header() {
 
   const signOutButton = (
     <form action={signOut}>
-      <button type="submit" className="font-display text-ink-muted flex min-h-11 cursor-pointer items-center border-0 bg-transparent px-1.5 text-sm font-bold">
+      <button
+        type="submit"
+        className={`font-display text-ink-soft hover:text-heading flex min-h-11 cursor-pointer items-center border-0 bg-transparent px-1.5 ${approved ? 'text-[15px] font-semibold' : 'text-sm font-bold'}`}
+      >
         Log out
       </button>
     </form>
   );
 
+  // Thin upright line between the account links (owner's layout, 2026-10-30); not shown in the phone menu.
+  const divider = <span aria-hidden="true" className="bg-line hidden h-7 w-px md:block" />;
+
   let actions;
   if (approved) {
     actions = (
       <>
-        <Link href="/dashboard" className="font-display text-heading flex min-h-11 items-center gap-2.5 text-[15px] font-bold no-underline">
+        <Link href="/dashboard" className="font-display text-heading flex min-h-11 w-full items-center gap-2.5 text-[15px] font-bold no-underline md:w-auto">
           <Avatar name={name} size={38} />
           {name}
         </Link>
         {profile?.role === 'admin' ? (
-          <Link href="/admin" className="font-display flex min-h-11 items-center px-1.5 text-sm font-bold no-underline">
+          <Link href="/admin" className="font-display flex min-h-11 items-center px-1.5 text-[15px] font-bold no-underline">
             Admin
           </Link>
         ) : null}
+        {divider}
+        <Link
+          href="/profile"
+          className="font-display text-ink-soft hover:text-heading flex min-h-11 items-center px-1.5 text-[15px] font-semibold no-underline"
+        >
+          My profile
+        </Link>
+        {divider}
         {signOutButton}
       </>
     );
@@ -62,7 +76,7 @@ export async function Header() {
             <span className="text-teal-text text-[15px] font-semibold tracking-[0.04em]">Referral Partners</span>
           </span>
         </Link>
-        <NavLinks items={approved ? memberNav : publicNav} actions={actions} />
+        <NavLinks items={approved ? memberNav : publicNav} actions={actions} stacked={approved} />
       </div>
     </header>
   );
