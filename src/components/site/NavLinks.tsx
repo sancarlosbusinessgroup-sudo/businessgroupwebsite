@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { NavItem } from '@/lib/content';
+import { useDropdown } from './useDropdown';
 
 const linkClass = (active: boolean) =>
   `flex min-h-11 items-center rounded-full px-3 text-[15px] font-semibold no-underline ${
@@ -23,40 +24,16 @@ function groupNav(items: readonly NavItem[]): NavItem[][] {
 
 /** A menu entry that opens a short list of links (disclosure pattern: button + list). */
 function SubMenu({ item, isActive, onNavigate }: { item: NavItem; isActive: (href: string) => boolean; onNavigate: () => void }) {
-  const [open, setOpen] = useState(false);
-  const wrap = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
+  const { open, close, wrapProps, buttonProps, panelClass } = useDropdown();
   const children = item.children ?? [];
   const active = children.some((c) => isActive(c.href));
   const id = `submenu-${item.label.toLowerCase().replace(/[^a-z]+/g, '-')}`;
 
-  useEffect(() => {
-    if (!open) return;
-    function onDown(e: MouseEvent) {
-      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        setOpen(false);
-        button.current?.focus();
-      }
-    }
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
   return (
-    <div ref={wrap} className="relative">
+    <div {...wrapProps} className="relative">
       <button
-        ref={button}
-        type="button"
-        aria-expanded={open}
+        {...buttonProps}
         aria-controls={id}
-        onClick={() => setOpen((o) => !o)}
         className={`${linkClass(active)} w-full cursor-pointer gap-1.5 border-0 bg-transparent font-[inherit] md:w-auto`}
       >
         {item.label}
@@ -66,8 +43,7 @@ function SubMenu({ item, isActive, onNavigate }: { item: NavItem; isActive: (hre
       </button>
       <ul
         id={id}
-        hidden={!open}
-        className="border-line bg-surface m-0 flex list-none flex-col gap-0.5 rounded-2xl p-1.5 pl-4 md:absolute md:top-full md:left-0 md:z-40 md:mt-1 md:min-w-[200px] md:border md:pl-1.5 md:shadow-lg"
+        className={`border-line bg-surface m-0 list-none flex-col gap-0.5 rounded-2xl p-1.5 pl-4 md:absolute md:top-full md:left-0 md:z-40 md:mt-1 md:min-w-[200px] md:border md:pl-1.5 md:shadow-lg ${panelClass}`}
       >
         {children.map((c) => (
           <li key={c.href}>
@@ -75,7 +51,7 @@ function SubMenu({ item, isActive, onNavigate }: { item: NavItem; isActive: (hre
               href={c.href}
               aria-current={isActive(c.href) ? 'page' : undefined}
               onClick={() => {
-                setOpen(false);
+                close();
                 onNavigate();
               }}
               className={linkClass(isActive(c.href))}

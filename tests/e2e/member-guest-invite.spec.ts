@@ -175,6 +175,32 @@ test.describe('members invite a guest', () => {
     }
   });
 
+  test('header dropdowns open when the mouse rests on them and close when it moves away (owner, 2026-10-30)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await login(page, users.admin);
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    const report = nav.getByRole('button', { name: 'Report Activity' });
+    await report.hover();
+    await expect(report).toHaveAttribute('aria-expanded', 'true');
+    await expect(nav.getByRole('link', { name: 'Referrals', exact: true })).toBeVisible();
+    // Moving down into the list keeps it open.
+    await nav.getByRole('link', { name: 'One-on-ones', exact: true }).hover();
+    await expect(nav.getByRole('link', { name: 'One-on-ones', exact: true })).toBeVisible();
+    await page.mouse.move(5, 700);
+    await expect(report).toHaveAttribute('aria-expanded', 'false');
+    await expect(nav.getByRole('link', { name: 'Referrals', exact: true })).toBeHidden();
+
+    const header = page.locator('header');
+    const admin = header.getByRole('button', { name: 'Admin', exact: true });
+    await admin.hover();
+    await expect(header.getByRole('list', { name: 'Admin sections' }).getByRole('link', { name: 'Overview' })).toBeVisible();
+    // A click right after the hover keeps it open.
+    await admin.click();
+    await expect(admin).toHaveAttribute('aria-expanded', 'true');
+    await page.mouse.move(5, 700);
+    await expect(header.getByRole('list', { name: 'Admin sections' })).toBeHidden();
+  });
+
   test('the form checks the guest details, saves them for the member and emails the guest and admins (not the member)', async ({ page }) => {
     const email = `member.guest.${Date.now()}@example.org`;
     const last = `Invitee${String(Date.now()).slice(-6)}`;
