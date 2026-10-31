@@ -17,7 +17,7 @@ export async function Header() {
     <form action={signOut}>
       <button
         type="submit"
-        className={`font-display text-ink-soft hover:text-heading flex min-h-11 cursor-pointer items-center border-0 bg-transparent px-1.5 ${approved ? 'text-[15px] font-semibold' : 'text-sm font-bold'}`}
+        className={`font-display text-ink-soft hover:bg-teal-tint hover:text-teal-hover flex min-h-11 cursor-pointer items-center rounded-full border-0 bg-transparent px-3 transition-colors ${approved ? 'text-[15px] font-semibold' : 'text-sm font-bold'}`}
       >
         Log out
       </button>
@@ -39,7 +39,7 @@ export async function Header() {
         {divider}
         <Link
           href="/profile"
-          className="font-display text-ink-soft hover:text-heading flex min-h-11 items-center px-1.5 text-[15px] font-semibold no-underline"
+          className="font-display text-ink-soft hover:bg-teal-tint hover:text-teal-hover flex min-h-11 items-center rounded-full px-3 text-[15px] font-semibold no-underline transition-colors"
         >
           My profile
         </Link>

@@ -16,7 +16,7 @@ export function AdminNav({ current }: { current: (typeof links)[number]['href'] 
           href={l.href}
           aria-current={l.href === current ? 'page' : undefined}
           className={`font-display flex min-h-11 items-center justify-center rounded-full px-3 text-center text-sm leading-tight font-bold no-underline xl:px-5 ${
-            l.href === current ? 'bg-surface text-heading' : 'text-ink-muted'
+            l.href === current ? 'bg-surface text-heading' : 'text-ink-muted hover:bg-surface/70 hover:text-heading transition-colors'
           }`}
         >
           {l.label}

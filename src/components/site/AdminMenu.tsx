@@ -50,7 +50,7 @@ export function AdminMenu() {
         aria-expanded={open}
         aria-controls="admin-menu"
         onClick={() => setOpen((o) => !o)}
-        className={`font-display flex min-h-11 cursor-pointer items-center gap-1 rounded-full border-0 bg-transparent px-1.5 text-[15px] font-bold ${
+        className={`font-display hover:bg-teal-tint hover:text-teal-hover flex min-h-11 cursor-pointer items-center gap-1 rounded-full border-0 bg-transparent px-3 text-[15px] font-bold transition-colors ${
           active ? 'text-teal-hover' : 'text-teal-text'
         }`}
       >
@@ -72,7 +72,7 @@ export function AdminMenu() {
               aria-current={isCurrent(l.href) ? 'page' : undefined}
               onClick={() => setOpen(false)}
               className={`font-display flex min-h-11 items-center rounded-full px-3 text-[15px] font-semibold no-underline ${
-                isCurrent(l.href) ? 'bg-teal-tint text-teal-hover' : 'text-ink-soft hover:text-heading'
+                isCurrent(l.href) ? 'bg-teal-tint text-teal-hover' : 'text-ink-soft hover:bg-teal-tint hover:text-teal-hover transition-colors'
               }`}
             >
               {l.label}

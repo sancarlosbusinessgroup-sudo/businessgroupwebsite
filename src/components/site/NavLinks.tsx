@@ -7,7 +7,7 @@ import type { NavItem } from '@/lib/content';
 
 const linkClass = (active: boolean) =>
   `flex min-h-11 items-center rounded-full px-3 text-[15px] font-semibold no-underline ${
-    active ? 'bg-teal-tint text-teal-hover' : 'text-ink-soft hover:text-heading'
+    active ? 'bg-teal-tint text-teal-hover' : 'text-ink-soft hover:bg-teal-tint hover:text-teal-hover transition-colors'
   }`;
 
 /** Consecutive entries with the same `keepWith` become one group that never wraps apart. */
