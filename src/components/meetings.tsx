@@ -124,6 +124,7 @@ export function EventCard({ item, member }: { item: CalendarItem; member: boolea
           <span className="pill bg-green-tint text-green-ink">{item.categoryLabel}</span>
           {item.cancelledReason ? <span className="pill bg-red-tint text-red">Cancelled</span> : null}
           {item.visibility === 'members' ? <span className="pill bg-amber-tint text-amber">Members only</span> : null}
+          {item.kind === 'member' ? <span className="pill bg-teal-tint text-teal-hover">{item.isPaid ? (item.price ?? 'Paid') : 'Free'}</span> : null}
           <span>
             {formatMeetingTime(start)}–{formatMeetingTime(end)}
           </span>

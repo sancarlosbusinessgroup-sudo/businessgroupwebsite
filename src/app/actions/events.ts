@@ -46,6 +46,10 @@ export async function saveMemberEvent(input: Record<string, string>): Promise<Ev
     is_online: d.isOnline,
     online_url: d.onlineUrl,
     location: d.location,
+    is_paid: d.isPaid,
+    price: d.price,
+    payment_url: d.paymentUrl,
+    payment_info: d.paymentInfo,
     ...(image.data ? { image_path: image.data } : {}),
   };
   const fail = (e: { message: string } | null): EventFormResult => {

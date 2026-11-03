@@ -45,6 +45,10 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
             onlineUrl: e.onlineUrl ?? '',
             location: e.location ?? '',
             description: e.description ?? '',
+            cost: e.isPaid ? 'paid' : 'free',
+            price: e.price ?? '',
+            paymentUrl: e.paymentUrl ?? '',
+            paymentInfo: e.paymentInfo ?? '',
           }}
         />
       </div>

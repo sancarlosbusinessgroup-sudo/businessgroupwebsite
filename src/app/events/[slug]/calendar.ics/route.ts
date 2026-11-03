@@ -18,7 +18,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
         description:
           m.kind === 'group'
             ? `${m.description ?? ''}\n\nMembers: join from ${env.siteUrl}/meetings`
-            : [m.hostName ? `Member event hosted by ${m.hostName}` : null, m.description].filter(Boolean).join('\n\n'),
+            : [
+                m.hostName ? `Member event hosted by ${m.hostName}` : null,
+                m.isPaid
+                  ? `Cost: ${m.price}${m.paymentUrl ? `\nPay here: ${m.paymentUrl}` : ''}${m.paymentInfo ? `\nHow to pay: ${m.paymentInfo}` : ''}`
+                  : 'Cost: Free',
+                m.description,
+              ]
+                .filter(Boolean)
+                .join('\n\n'),
         location: m.is_online && m.onlineUrl ? m.onlineUrl : m.location,
         start: new Date(m.starts_at),
         end: new Date(m.ends_at),

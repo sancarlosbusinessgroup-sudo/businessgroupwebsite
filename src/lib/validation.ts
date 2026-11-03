@@ -500,6 +500,28 @@ export const memberEventSchema = (now: Date = new Date()) =>
           .max(200, 'Keep the address under 200 characters')
           .optional()
           .transform((v) => (v ? v : null)),
+        // Free or paid (owner, 2026-11-03). Older forms without the field mean free.
+        cost: z
+          .enum(['free', 'paid'], { error: 'Choose free or paid' })
+          .optional()
+          .transform((v) => v ?? 'free'),
+        price: z
+          .string()
+          .trim()
+          .max(80, 'Keep the price under 80 characters')
+          .optional()
+          .transform((v) => (v ? v : null)),
+        paymentUrl: z
+          .string()
+          .trim()
+          .optional()
+          .transform((v) => (v ? v : null)),
+        paymentInfo: z
+          .string()
+          .trim()
+          .max(300, 'Keep it under 300 characters')
+          .optional()
+          .transform((v) => (v ? v : null)),
       }),
     )
     .transform((v, ctx) => {
@@ -525,6 +547,14 @@ export const memberEventSchema = (now: Date = new Date()) =>
       if (v.format === 'in_person' && !v.location) ctx.addIssue({ code: 'custom', path: ['location'], message: 'Add the address' });
       if (v.category === 'Other' && (v.categoryOther?.length ?? 0) < 2)
         ctx.addIssue({ code: 'custom', path: ['categoryOther'], message: 'Tell us what kind of event it is' });
+      const paid = v.cost === 'paid';
+      if (paid) {
+        if (!v.price) ctx.addIssue({ code: 'custom', path: ['price'], message: 'Add the price' });
+        if (v.paymentUrl && !(/^https:\/\/[^\s]+\.[^\s]+$/i.test(v.paymentUrl) && v.paymentUrl.length <= 500))
+          ctx.addIssue({ code: 'custom', path: ['paymentUrl'], message: 'Use a secure link that starts with https://' });
+        if (v.paymentInfo && v.paymentInfo.length < 2) ctx.addIssue({ code: 'custom', path: ['paymentInfo'], message: 'Use at least 2 characters' });
+        if (!v.paymentUrl && !v.paymentInfo) ctx.addIssue({ code: 'custom', path: ['paymentUrl'], message: 'Add a payment link or tell guests how to pay' });
+      }
       const first = dates[0];
       return {
         title: v.title,
@@ -538,6 +568,10 @@ export const memberEventSchema = (now: Date = new Date()) =>
         isOnline: v.format === 'online',
         onlineUrl: v.format === 'online' ? v.onlineUrl : null,
         location: v.format === 'in_person' ? v.location : null,
+        isPaid: paid,
+        price: paid ? v.price : null,
+        paymentUrl: paid ? v.paymentUrl : null,
+        paymentInfo: paid ? v.paymentInfo : null,
       };
     });
 
