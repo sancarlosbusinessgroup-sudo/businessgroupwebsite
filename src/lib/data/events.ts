@@ -39,6 +39,11 @@ export type CalendarItem = {
   categoryOther: string | null;
   /** What to show as the category: the host's description for "Other", else the category. */
   categoryLabel: string;
+  /** Member events: free or paid, with the price and where to pay (owner, 2026-11-03). Group meetings: free. */
+  isPaid: boolean;
+  price: string | null;
+  paymentUrl: string | null;
+  paymentInfo: string | null;
 };
 
 type HostedEvent = Tables<'member_events'> & { host: { first_name: string; last_name: string; slug: string } | null };
@@ -75,6 +80,10 @@ export function fromMeeting(m: MeetingWithSpeakers): CalendarItem {
     seriesId: null,
     categoryOther: null,
     categoryLabel: m.category,
+    isPaid: false,
+    price: null,
+    paymentUrl: null,
+    paymentInfo: null,
   };
 }
 
@@ -105,6 +114,10 @@ export function fromMemberEvent(e: HostedEvent): CalendarItem {
     seriesId: e.series_id,
     categoryOther: e.category_other,
     categoryLabel: e.category === 'Other' && e.category_other ? e.category_other : e.category,
+    isPaid: e.is_paid,
+    price: e.price,
+    paymentUrl: e.payment_url,
+    paymentInfo: e.payment_info,
   };
 }
 

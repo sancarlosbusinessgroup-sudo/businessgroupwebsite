@@ -325,6 +325,31 @@ describe('phase B forms', () => {
     expect(memberEventSchema(now).safeParse({ ...ok, category: 'Other', categoryOther: 'x'.repeat(61) }).success).toBe(false);
     expect(memberEventSchema(now).safeParse({ ...ok, categoryOther: 'Book club' }).data?.categoryOther).toBeNull();
   });
+  it('member event: free by default; paid needs a price and a payment link or instructions (owner, 2026-11-03)', () => {
+    expect(memberEventSchema(now).safeParse(ok).data).toMatchObject({ isPaid: false, price: null, paymentUrl: null, paymentInfo: null });
+    // Payment details typed before switching back to free are dropped.
+    expect(memberEventSchema(now).safeParse({ ...ok, cost: 'free', price: '$25', paymentUrl: 'https://pay.example.com' }).data).toMatchObject({
+      isPaid: false,
+      price: null,
+      paymentUrl: null,
+    });
+    const errs = (v: object) => fieldErrors(memberEventSchema(now).safeParse({ ...ok, cost: 'paid', ...v }).error!);
+    expect(errs({}).price).toBe('Add the price');
+    expect(errs({ price: '$25' }).paymentUrl).toBe('Add a payment link or tell guests how to pay');
+    expect(errs({ price: '$25', paymentUrl: 'http://pay.example.com' }).paymentUrl).toBe('Use a secure link that starts with https://');
+    expect(errs({ price: 'x'.repeat(81), paymentInfo: 'At the door' }).price).toBe('Keep the price under 80 characters');
+    expect(memberEventSchema(now).safeParse({ ...ok, cost: 'paid', price: ' $25 ', paymentUrl: 'https://pay.example.com/e/1' }).data).toMatchObject({
+      isPaid: true,
+      price: '$25',
+      paymentUrl: 'https://pay.example.com/e/1',
+      paymentInfo: null,
+    });
+    expect(memberEventSchema(now).safeParse({ ...ok, cost: 'paid', price: '$20', paymentInfo: 'Pay at the door' }).data).toMatchObject({
+      isPaid: true,
+      paymentInfo: 'Pay at the door',
+    });
+    expect(memberEventSchema(now).safeParse({ ...ok, cost: 'maybe' }).success).toBe(false);
+  });
   it('speaker topic is required (3–120 chars); description optional', () => {
     expect(speakerTopicSchema.safeParse({ topic: '' }).success).toBe(false);
     expect(speakerTopicSchema.safeParse({ topic: 'x'.repeat(121) }).success).toBe(false);

@@ -565,6 +565,10 @@ export type Database = {
           id: string;
           image_path: string | null;
           is_online: boolean;
+          is_paid: boolean;
+          payment_info: string | null;
+          payment_url: string | null;
+          price: string | null;
           location: string | null;
           online_url: string | null;
           slug: string;
@@ -584,6 +588,10 @@ export type Database = {
           id?: string;
           image_path?: string | null;
           is_online?: boolean;
+          is_paid?: boolean;
+          payment_info?: string | null;
+          payment_url?: string | null;
+          price?: string | null;
           location?: string | null;
           online_url?: string | null;
           slug?: string;
@@ -603,6 +611,10 @@ export type Database = {
           id?: string;
           image_path?: string | null;
           is_online?: boolean;
+          is_paid?: boolean;
+          payment_info?: string | null;
+          payment_url?: string | null;
+          price?: string | null;
           location?: string | null;
           online_url?: string | null;
           slug?: string;

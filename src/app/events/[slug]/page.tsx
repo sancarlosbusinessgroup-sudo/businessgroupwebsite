@@ -116,6 +116,27 @@ export default async function EventDetail({ params }: Props) {
               <strong>Address:</strong> {m.location}
             </p>
           ) : null}
+          {/* Owner, 2026-11-03: free or paid, and where to pay. */}
+          {m.kind === 'member' ? (
+            <section aria-labelledby="cost-h" className="bg-teal-tint flex flex-col gap-1.5 rounded-2xl p-4 text-base">
+              <h2 id="cost-h" className="text-teal-hover m-0 text-[13px] font-bold tracking-[0.08em] uppercase">
+                Cost
+              </h2>
+              <p className="text-heading m-0 text-lg font-bold">{m.isPaid ? m.price : 'Free'}</p>
+              {m.isPaid && m.paymentInfo ? (
+                <p className="m-0 whitespace-pre-line">
+                  <strong>How to pay:</strong> {m.paymentInfo}
+                </p>
+              ) : null}
+              {m.isPaid && m.paymentUrl && upcoming ? (
+                <p className="m-0">
+                  <a href={m.paymentUrl} target="_blank" rel="noopener noreferrer nofollow" className="font-bold break-all">
+                    Payment link<span className="sr-only"> (opens in a new tab)</span>
+                  </a>
+                </p>
+              ) : null}
+            </section>
+          ) : null}
           {m.regular ? (
             <div className="flex flex-col gap-3">
               <h2 className="h3">Presentations</h2>
@@ -154,6 +175,16 @@ export default async function EventDetail({ params }: Props) {
           {m.kind === 'member' && m.is_online && m.onlineUrl && upcoming ? (
             <a className="btn btn-primary" href={m.onlineUrl} target="_blank" rel="noopener noreferrer nofollow">
               Join online
+            </a>
+          ) : null}
+          {m.kind === 'member' && m.isPaid && m.paymentUrl && upcoming ? (
+            <a
+              className={m.is_online && m.onlineUrl ? 'btn btn-outline' : 'btn btn-primary'}
+              href={m.paymentUrl}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+            >
+              Pay for this event<span className="sr-only"> (opens in a new tab)</span>
             </a>
           ) : null}
           {upcoming ? (

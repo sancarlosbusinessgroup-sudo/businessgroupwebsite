@@ -34,6 +34,11 @@ export type EventDefaults = {
   onlineUrl: string;
   location: string;
   description: string;
+  /** Free or paid, with the price and where to pay (owner, 2026-11-03). */
+  cost: 'free' | 'paid';
+  price: string;
+  paymentUrl: string;
+  paymentInfo: string;
 };
 
 type Props = {
@@ -54,6 +59,7 @@ export function EventForm({ userId, defaults, minStart, onSaved }: Props) {
   const editing = !!defaults?.id;
   const [format, setFormat] = useState<'online' | 'in_person'>(defaults?.format ?? 'in_person');
   const [category, setCategory] = useState(defaults?.category ?? 'Networking');
+  const [cost, setCost] = useState<'free' | 'paid'>(defaults?.cost ?? 'free');
   const [visibility, setVisibility] = useState<'public' | 'members'>(defaults?.visibility ?? 'public');
   const [dates, setDates] = useState<DateRow[]>(() => toRows(defaults?.dates));
   const setDate = (key: number, patch: Partial<DateRow>) => setDates((rows) => rows.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -240,6 +246,56 @@ export function EventForm({ userId, defaults, minStart, onSaved }: Props) {
         ) : (
           <TextField name="location" label="Address" defaultValue={defaults?.location} error={errors.location} maxLength={200} />
         )}
+      </fieldset>
+
+      {/* Owner, 2026-11-03: free or paid; a paid event says what it costs and where to pay. */}
+      <fieldset className="border-line m-0 flex flex-col gap-3 rounded-xl border p-4">
+        <legend className="label px-1.5">Cost</legend>
+        <div className="flex flex-wrap gap-5">
+          {(
+            [
+              ['free', 'Free'],
+              ['paid', 'Paid'],
+            ] as const
+          ).map(([v, l]) => (
+            <label key={v} className="flex min-h-11 items-center gap-2">
+              <input type="radio" name="cost" value={v} checked={cost === v} onChange={() => setCost(v)} className="h-5 w-5 accent-[var(--teal)]" />
+              {l}
+            </label>
+          ))}
+        </div>
+        {cost === 'paid' ? (
+          <div className="flex flex-col gap-4">
+            <TextField
+              name="price"
+              label="Price"
+              required
+              maxLength={80}
+              placeholder="e.g. $25, or $20 members / $30 guests"
+              defaultValue={defaults?.price}
+              error={errors.price}
+            />
+            <p className="help m-0">Tell guests where to pay: add a payment link, instructions, or both.</p>
+            <TextField
+              name="paymentUrl"
+              type="url"
+              label="Payment link"
+              placeholder="https://"
+              defaultValue={defaults?.paymentUrl}
+              error={errors.paymentUrl}
+              help="Eventbrite, PayPal, Square, Stripe, your website… Shown as a “Pay for this event” button."
+            />
+            <TextArea
+              name="paymentInfo"
+              label="How to pay"
+              rows={3}
+              maxLength={300}
+              placeholder="e.g. Pay at the door (cash or card), or Venmo @your-name with your name in the note."
+              defaultValue={defaults?.paymentInfo}
+              error={errors.paymentInfo}
+            />
+          </div>
+        ) : null}
       </fieldset>
 
       <TextArea name="description" label="Description" defaultValue={defaults?.description} error={errors.description} maxLength={4000} />
