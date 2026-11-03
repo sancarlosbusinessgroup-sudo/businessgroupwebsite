@@ -88,7 +88,8 @@ export const getCategories = shared('getCategories', ['categories'], async (): P
   const supabase = publicClient();
   const { data, error } = await supabase.from('categories').select('*').order('name');
   if (error) fail('categories', error);
-  return data;
+  // "Other" always goes last; the rest stay alphabetical (owner, 2026-11-04).
+  return [...data.filter((c) => c.name !== 'Other'), ...data.filter((c) => c.name === 'Other')];
 });
 
 export type DirectoryMember = Pick<
