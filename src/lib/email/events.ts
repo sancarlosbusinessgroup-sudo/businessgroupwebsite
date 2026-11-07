@@ -346,3 +346,43 @@ export async function sendGuestZoomLink(guestId: string, day: string): Promise<Z
     }),
   });
 }
+
+/** A presenter added their own slide material (owner, 2026-11-07): every admin gets one email per item. */
+export async function onPresenterMaterial(o: {
+  materialId: string;
+  meetingId: string;
+  slot: 'education' | 'presentation';
+  profileId: string;
+  what: string;
+  title: string | null;
+}): Promise<void> {
+  const db = createAdminClient();
+  if (!db) return;
+  const [{ data: m }, people, admins] = await Promise.all([
+    db.from('meetings').select('slug, starts_at').eq('id', o.meetingId).maybeSingle(),
+    loadRecipients([o.profileId]),
+    loadAdmins(),
+  ]);
+  const presenter = people.get(o.profileId);
+  if (!m || !presenter) return;
+  const d = new Date(m.starts_at);
+  const when = `${formatMeetingDate(d)} at ${formatMeetingTime(d)}`;
+  for (const a of admins) {
+    if (a.id === o.profileId) continue; // an admin presenting doesn't need to hear about their own upload
+    await deliver({
+      kind: 'presenter_material',
+      dedupeKey: o.materialId,
+      to: { email: a.email, name: `${a.firstName} ${a.lastName}`, profileId: a.id },
+      email: T.presenterMaterialEmail({
+        siteUrl: siteUrl(),
+        toFirstName: a.firstName,
+        presenter: `${presenter.firstName} ${presenter.lastName}`,
+        slot: o.slot,
+        when,
+        what: o.what,
+        title: o.title,
+        setupUrl: `${siteUrl()}/present/${m.slug}/setup`,
+      }),
+    });
+  }
+}

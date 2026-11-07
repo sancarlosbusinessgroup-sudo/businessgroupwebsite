@@ -181,7 +181,14 @@ export const getGallery = shared(
   ['gallery'],
   async (album?: Tables<'gallery_photos'>['album'], limit = 60): Promise<Tables<'gallery_photos'>[]> => {
     const supabase = publicClient();
-    let q = supabase.from('gallery_photos').select('*').order('taken_on', { ascending: false, nullsFirst: false }).limit(limit);
+    // Admin-chosen order first (owner, 2026-11-07); photos never moved (0) show first, newest date first.
+    let q = supabase
+      .from('gallery_photos')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('taken_on', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(limit);
     if (album) q = q.eq('album', album);
     const { data, error } = await q;
     if (error) fail('photos', error);

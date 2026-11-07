@@ -420,10 +420,48 @@ export function presentationReminderEmail(o: {
             : 'Please add your topic on the Meetings page so it can appear in the meeting reminder, on the slides and in the recap.',
         },
         {
-          p: 'If you want to show slides, a PDF, a PowerPoint, an image, a video or a website during your presentation, send the file or link to an admin before the meeting and they will add it to the deck.',
+          p: 'If you want to show slides, a PDF, a PowerPoint, an image, a video or a website during your presentation, add it under your slot on the Meetings page before the meeting starts. It goes into the meeting slides right after your presentation slide.',
         },
       ],
       cta: { label: o.topic ? 'Open Meetings' : 'Add your topic', href: `${o.siteUrl}/meetings` },
+      footer: accountFooter,
+    }),
+  };
+}
+
+/** A presenter added their own material for their slot (owner, 2026-11-07): admins are told, so nothing surprises them. */
+export function presenterMaterialEmail(o: {
+  siteUrl: string;
+  toFirstName: string;
+  presenter: string;
+  slot: 'education' | 'presentation';
+  when: string;
+  what: string;
+  title?: string | null;
+  setupUrl: string;
+}): Email {
+  const slotTitle = slotTitles[o.slot];
+  return {
+    subject: `${o.presenter} added a ${o.what} for their ${slotTitle}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: `It shows in the slides right after their presentation, ${o.when}.`,
+      heading: 'New presentation material',
+      blocks: [
+        {
+          p: `Hi ${o.toFirstName}, ${o.presenter} added material for their presentation. It shows in the meeting slides right after their presentation slide.`,
+        },
+        {
+          list: [
+            ['Presenter', o.presenter],
+            ['Slot', slotTitle],
+            ['Meeting', o.when],
+            ['Added', o.title ? `${o.what}: ${o.title}` : o.what],
+          ],
+        },
+        { p: 'You can check it, move it or remove it in Customize slides.' },
+      ],
+      cta: { label: 'Open Customize slides', href: o.setupUrl },
       footer: accountFooter,
     }),
   };

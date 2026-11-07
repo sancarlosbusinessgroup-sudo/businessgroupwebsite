@@ -14,6 +14,7 @@ import { bustPublic } from '@/lib/data/public';
 import { onMemberStatus, onSlotAssigned, onSlotRevoked } from '@/lib/email/events';
 import { safely } from '@/lib/email/notify';
 import { isoToPacificLocal, pacificLocalToIso } from '@/lib/dates';
+import { type MoveTo, moveInOrder } from '@/lib/gallery-order';
 import {
   type ActionState,
   adminOneOnOneSchema,
@@ -387,6 +388,35 @@ export async function adminUpdateGalleryPhoto(_prev: ActionState, formData: Form
   revalidatePath('/admin/gallery');
   await bustPublic('gallery');
   return { status: 'success', message: 'Saved.', values };
+}
+
+/** Move a photo earlier or later in the gallery (owner, 2026-11-07). Saves the whole order so positions stay 1…n. */
+export async function adminMoveGalleryPhoto(formData: FormData): Promise<void> {
+  const id = uuid.safeParse(formData.get('id'));
+  const raw = String(formData.get('to') ?? '');
+  const position = z.coerce.number().int().min(1).max(10000).safeParse(formData.get('position'));
+  const to: MoveTo | null = ['top', 'up', 'down', 'bottom'].includes(raw) ? (raw as MoveTo) : raw === 'position' && position.success ? position.data : null;
+  if (!id.success || to === null) return;
+  const { supabase, isAdmin } = await admin();
+  if (!isAdmin) return;
+  const { data: rows, error } = await supabase
+    .from('gallery_photos')
+    .select('id')
+    .order('sort_order', { ascending: true })
+    .order('taken_on', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(5000);
+  if (error || !rows) return;
+  const order = moveInOrder(
+    rows.map((r) => r.id),
+    id.data,
+    to,
+  );
+  await supabase.rpc('admin_reorder_gallery', { p_ids: order });
+  revalidatePath('/gallery');
+  revalidatePath('/admin/gallery');
+  await bustPublic('gallery');
+  revalidatePath('/');
 }
 
 /** Remove a photo and its files. */

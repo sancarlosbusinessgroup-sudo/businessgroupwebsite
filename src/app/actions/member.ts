@@ -131,6 +131,18 @@ export async function releaseSpeakerSlot(formData: FormData): Promise<void> {
   if (!id.success || !slot.success) return;
   const { supabase, user } = await session();
   if (!user) return;
+  // Their own slides for that slot go too (owner, 2026-11-07): removed while they still hold the slot, which the policy requires.
+  const afterSlide = slot.data === 'education' ? 'five_minute' : 'ten_minute';
+  const { data: files } = await supabase
+    .from('meeting_slide_media')
+    .delete()
+    .eq('meeting_id', id.data)
+    .eq('after_slide', afterSlide)
+    .eq('created_by', user.id)
+    .select('storage_path');
+  const paths = (files ?? []).map((f) => f.storage_path).filter((p): p is string => !!p);
+  if (paths.length) await supabase.storage.from('slide-media').remove(paths);
+  await supabase.from('meeting_slide_links').delete().eq('meeting_id', id.data).eq('after_slide', afterSlide).eq('created_by', user.id);
   await supabase.from('meeting_speakers').delete().eq('meeting_id', id.data).eq('slot', slot.data).eq('profile_id', user.id);
   revalidatePath('/meetings');
   await bustPublic('meetings');

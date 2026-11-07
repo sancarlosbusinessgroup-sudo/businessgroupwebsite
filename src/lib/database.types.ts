@@ -343,6 +343,7 @@ export type Database = {
           taken_on: string | null;
           thumb_path: string;
           uploaded_by: string | null;
+          sort_order: number;
         };
         Insert: {
           album: E['gallery_album'];
@@ -353,6 +354,7 @@ export type Database = {
           taken_on?: string | null;
           thumb_path: string;
           uploaded_by?: string | null;
+          sort_order?: number;
         };
         Update: {
           album?: E['gallery_album'];
@@ -363,6 +365,7 @@ export type Database = {
           taken_on?: string | null;
           thumb_path?: string;
           uploaded_by?: string | null;
+          sort_order?: number;
         };
         Relationships: [
           {
@@ -658,6 +661,13 @@ export type Database = {
             referencedRelation: 'meetings';
             referencedColumns: ['id'];
           },
+          {
+            foreignKeyName: 'meeting_slide_links_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
         ];
       };
       meeting_slide_media: {
@@ -700,6 +710,13 @@ export type Database = {
             columns: ['meeting_id'];
             isOneToOne: false;
             referencedRelation: 'meetings';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'meeting_slide_media_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },
         ];
@@ -1280,6 +1297,9 @@ export type Database = {
         Returns: string;
       };
       set_speaker_topic: { Args: { p_meeting: string; p_slot: string; p_topic: string; p_description: string }; Returns: undefined };
+      holds_presentation: { Args: { p_meeting: string; p_after: string }; Returns: boolean };
+      can_upload_presenter_file: { Args: { p_name: string }; Returns: boolean };
+      admin_reorder_gallery: { Args: { p_ids: string[] }; Returns: undefined };
       admin_member_stats: { Args: { p_from?: string | null; p_to?: string | null }; Returns: MemberPeriodStats[] };
       confirm_one_on_one: { Args: { p_id: string }; Returns: undefined };
       complete_onboarding: { Args: { p_share_contacts: boolean; p_agreed: boolean }; Returns: undefined };

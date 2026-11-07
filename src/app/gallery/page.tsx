@@ -39,7 +39,7 @@ export default async function GalleryPage() {
         {isAdmin(viewer) ? (
           <p className="m-0">
             <Link href="/admin/gallery" className="btn btn-outline btn-sm">
-              Edit as admin: captions, albums, remove photos
+              Edit as admin: order, captions, albums, remove photos
             </Link>
           </p>
         ) : null}

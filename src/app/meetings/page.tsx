@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 import { joinMeeting, releaseSpeakerSlot } from '../actions/member';
 import { ClaimSlotForm } from './ClaimSlotForm';
 import { SpeakerTopicForm } from './SpeakerTopicForm';
+import { PresenterMaterials, type MyMaterial } from './PresenterMaterials';
 import { slotDescriptions, slotShort, slotTitles } from '@/lib/content';
 import { CorrectionForm } from './CorrectionForm';
 import { RsvpSelect } from './RsvpSelect';
@@ -55,6 +56,36 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const detail = new Map((attRes.data ?? []).map((a) => [a.meeting_id, a]));
   const missed = (await absencesFor(supabase, [{ id: me.id, since: memberSince(me) }])).get(me.id);
   const now = new Date();
+
+  // Slides the member added (or an admin added) for presentations they hold (owner, 2026-11-07).
+  const afterOf = { education: 'five_minute', presentation: 'ten_minute' } as const;
+  const presenting = upcoming
+    .filter((m) => (['education', 'presentation'] as const).some((slot) => speakerFor(m, slot)?.profile_id === me.id))
+    .map((m) => m.id);
+  const [myMediaRes, myLinksRes] = presenting.length
+    ? await Promise.all([
+        supabase
+          .from('meeting_slide_media')
+          .select('id, meeting_id, kind, title, after_slide, page_count, created_by, created_at')
+          .in('meeting_id', presenting)
+          .in('after_slide', ['five_minute', 'ten_minute'])
+          .order('created_at'),
+        supabase
+          .from('meeting_slide_links')
+          .select('id, meeting_id, title, url, after_slide, created_by, created_at')
+          .in('meeting_id', presenting)
+          .in('after_slide', ['five_minute', 'ten_minute'])
+          .order('created_at'),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const myMaterials = [
+    ...(myMediaRes.data ?? []).map((x) => ({ ...x, url: null as string | null })),
+    ...(myLinksRes.data ?? []).map((x) => ({ ...x, kind: 'link' as const, page_count: null })),
+  ].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const materialsFor = (meetingId: string, slot: 'education' | 'presentation'): MyMaterial[] =>
+    myMaterials
+      .filter((x) => x.meeting_id === meetingId && x.after_slide === afterOf[slot])
+      .map((x) => ({ id: x.id, kind: x.kind, title: x.title, afterSlide: x.after_slide, pageCount: x.page_count, url: x.url, mine: x.created_by === me.id }));
 
   /** One upcoming meeting with its RSVP, Zoom and presentation-slot controls. */
   const row = (m: (typeof upcoming)[number]) => {
@@ -123,7 +154,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           ? (['education', 'presentation'] as const)
               .map((slot) => ({ slot, s: speakerFor(m, slot) }))
               .filter(({ s }) => s?.profile_id === me.id)
-              .map(({ slot, s }) => (
+              .flatMap(({ slot, s }) => [
                 <SpeakerTopicForm
                   key={`topic-${slot}`}
                   meetingId={m.id}
@@ -131,8 +162,16 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                   when={formatMeetingDate(start)}
                   topic={s?.topic ?? null}
                   description={s?.topic_description ?? null}
-                />
-              ))
+                />,
+                <PresenterMaterials
+                  key={`slides-${slot}`}
+                  meetingId={m.id}
+                  slot={slot}
+                  userId={me.id}
+                  when={formatMeetingDate(start)}
+                  items={materialsFor(m.id, slot)}
+                />,
+              ])
           : null}
       </li>
     );

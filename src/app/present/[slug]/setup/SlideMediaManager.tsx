@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useActionState, useId, useState } from 'react';
+import { addMyMaterialFile, addMyMaterialLink } from '@/app/actions/presenter';
 import { addSlideFile, addVideoOrLink, moveSlideMedia, removeSlideMedia } from '@/app/actions/slides';
 import { SelectField, SubmitButton, TextField } from '@/components/forms';
 import { Notice } from '@/components/ui';
@@ -18,9 +19,11 @@ export type MediaRow = {
   afterSlide: string;
   pageCount: number | null;
   url?: string | null;
+  /** Who added it, when it wasn't an admin (presenters add their own on the Meetings page). */
+  by?: string | null;
 };
 
-const kindLabel = { image: 'Image', pdf: 'PDF', youtube: 'YouTube video', powerpoint: 'PowerPoint', link: 'Website' } as const;
+export const kindLabel = { image: 'Image', pdf: 'PDF', youtube: 'YouTube video', powerpoint: 'PowerPoint', link: 'Website' } as const;
 
 function AfterSelect({ name, options, defaultValue, id, error }: { name: string; options: Option[]; defaultValue: string; id?: string; error?: string }) {
   return (
@@ -34,16 +37,21 @@ function AfterSelect({ name, options, defaultValue, id, error }: { name: string;
   );
 }
 
-function UploadForm({
+/** A presenter adding to their own slot (Meetings page): files go to their own folder and admins are emailed. */
+export type PresenterMode = { userId: string; slot: 'education' | 'presentation' };
+
+export function UploadForm({
   meetingId,
   options,
   fixedAfter,
   name = 'Upload an image, PDF or PowerPoint',
+  presenter,
 }: {
   meetingId: string;
   options: Option[];
   fixedAfter?: string;
   name?: string;
+  presenter?: PresenterMode;
 }) {
   const router = useRouter();
   const fileId = useId();
@@ -79,24 +87,23 @@ function UploadForm({
       }
       setMsg({ tone: 'info', text: 'Uploading…' });
       const ext = ppt ?? (kind === 'pdf' ? 'pdf' : (file.type.split('/')[1] ?? 'img').replace('jpeg', 'jpg'));
-      const path = `${meetingId}/${crypto.randomUUID()}.${ext}`;
+      const path = presenter ? `${meetingId}/${presenter.userId}/${crypto.randomUUID()}.${ext}` : `${meetingId}/${crypto.randomUUID()}.${ext}`;
       const contentType = ppt === 'pptx' ? PPTX_TYPE : ppt === 'ppt' ? PPT_TYPE : file.type;
       const { error } = await createClient().storage.from('slide-media').upload(path, file, { contentType });
       if (error) throw error;
-      const res = await addSlideFile({
-        meetingId,
-        kind,
-        path,
-        title: String(data.get('title') ?? ''),
-        afterSlide: String(data.get('afterSlide') ?? ''),
-        pageCount,
-      });
-      if (res.status !== 'success') throw new Error(res.message);
+      const title = String(data.get('title') ?? '');
+      const res = presenter
+        ? await addMyMaterialFile({ meetingId, slot: presenter.slot, kind, path, title, pageCount })
+        : await addSlideFile({ meetingId, kind, path, title, afterSlide: String(data.get('afterSlide') ?? ''), pageCount });
+      if (res.status !== 'success') {
+        setMsg({ tone: 'error', text: presenter && res.message ? res.message : 'Upload failed. Please try again.' });
+        return;
+      }
       setMsg({ tone: 'success', text: res.message ?? 'Added.' });
       form.reset();
       router.refresh();
     } catch {
-      setMsg({ tone: 'error', text: 'Upload failed. Please try again.' });
+      setMsg({ tone: 'error', text: presenter ? 'Upload failed. Please refresh the page and try again.' : 'Upload failed. Please try again.' });
     } finally {
       setBusy(false);
     }
@@ -138,19 +145,21 @@ function UploadForm({
   );
 }
 
-function LinkForm({
+export function LinkForm({
   meetingId,
   options,
   fixedAfter,
   name = 'Add a YouTube video or website',
+  presenter,
 }: {
   meetingId: string;
   options: Option[];
   fixedAfter?: string;
   name?: string;
+  presenter?: PresenterMode;
 }) {
   const uid = useId();
-  const [state, action] = useActionState(addVideoOrLink, idle);
+  const [state, action] = useActionState(presenter ? addMyMaterialLink : addVideoOrLink, idle);
   const errors = state.errors ?? {};
   return (
     <form action={action} noValidate className="flex flex-col gap-3" aria-label={name} key={state.status === 'success' ? state.message : 'yt'}>
@@ -158,6 +167,7 @@ function LinkForm({
       {state.status === 'success' ? <Notice tone="success">{state.message}</Notice> : null}
       {state.status === 'error' && state.message ? <Notice tone="error">{state.message}</Notice> : null}
       <input type="hidden" name="meetingId" value={meetingId} />
+      {presenter ? <input type="hidden" name="slot" value={presenter.slot} /> : null}
       <TextField
         name="link"
         id={`${uid}-url`}
@@ -211,6 +221,7 @@ function MediaList({ media, label, name }: { media: MediaRow[]; label: (k: strin
             <p className="text-ink-muted m-0 text-sm">
               {kindLabel[m.kind]}
               {m.kind === 'pdf' && m.pageCount ? ` · ${m.pageCount} page${m.pageCount === 1 ? '' : 's'}` : ''} · after “{label(m.afterSlide)}”
+              {m.by ? ` · added by ${m.by}` : ''}
             </p>
           </div>
           <form action={removeSlideMedia}>
@@ -238,7 +249,8 @@ export function PresentationMaterials({ meetingId, options, media }: { meetingId
               Materials for the {p.title}
             </h2>
             <p className="text-ink-muted m-0 mt-1">
-              Image, PDF, YouTube video or website from the presenter. {p.help} The presentation’s timer shows on top of these slides.
+              Image, PDF, PowerPoint, YouTube video or website from the presenter. Presenters can also add their own on the Meetings page until the meeting
+              starts. {p.help} The presentation’s timer shows on top of these slides.
             </p>
           </div>
           <MediaList media={media.filter((m) => m.afterSlide === p.slot)} label={label} name={`Materials for the ${p.title}`} />

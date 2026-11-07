@@ -31,9 +31,10 @@ export async function loadMaterials(): Promise<MaterialsReport> {
   ]);
   const media = mediaRes.data ?? [];
 
-  // File sizes come from storage: one listing per meeting folder (files are stored as <meeting id>/<file>).
+  // File sizes come from storage: one listing per folder (files are stored as <meeting id>/<file>).
   const sizes = new Map<string, number>();
-  const folders = [...new Set(media.map((m) => m.storage_path?.split('/')[0]).filter((f): f is string => !!f))];
+  // Presenters' own files are one level deeper: <meeting id>/<member id>/<file> (owner, 2026-11-07).
+  const folders = [...new Set(media.map((m) => m.storage_path?.slice(0, m.storage_path.lastIndexOf('/'))).filter((f): f is string => !!f))];
   await Promise.all(
     folders.map(async (folder) => {
       const { data } = await db.storage.from('slide-media').list(folder, { limit: 1000 });

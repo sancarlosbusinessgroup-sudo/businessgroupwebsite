@@ -21,14 +21,31 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
     supabase.from('meeting_slide_settings').select('slides, notes, timers').eq('meeting_id', meeting.id).maybeSingle(),
     supabase
       .from('meeting_slide_media')
-      .select('id, kind, title, after_slide, page_count, created_at')
+      .select('id, kind, title, after_slide, page_count, created_at, creator:profiles(first_name, last_name, role)')
       .eq('meeting_id', meeting.id)
       .order('sort')
       .order('created_at'),
-    supabase.from('meeting_slide_links').select('id, title, url, after_slide, created_at').eq('meeting_id', meeting.id).order('created_at'),
+    supabase
+      .from('meeting_slide_links')
+      .select('id, title, url, after_slide, created_at, creator:profiles(first_name, last_name, role)')
+      .eq('meeting_id', meeting.id)
+      .order('created_at'),
   ]);
+  // Presenters' own uploads say who added them; admins' don't (owner, 2026-11-07).
+  const by = (c: unknown) => {
+    const p = (Array.isArray(c) ? c[0] : c) as { first_name: string; last_name: string; role: string } | null;
+    return p && p.role !== 'admin' ? `${p.first_name} ${p.last_name}` : null;
+  };
   const media = [
-    ...(mediaRes.data ?? []).map((m) => ({ id: m.id, kind: m.kind, title: m.title, afterSlide: m.after_slide, pageCount: m.page_count, at: m.created_at })),
+    ...(mediaRes.data ?? []).map((m) => ({
+      id: m.id,
+      kind: m.kind,
+      title: m.title,
+      afterSlide: m.after_slide,
+      pageCount: m.page_count,
+      at: m.created_at,
+      by: by(m.creator),
+    })),
     ...(linksRes.data ?? []).map((l) => ({
       id: l.id,
       kind: 'link' as const,
@@ -37,6 +54,7 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
       pageCount: null,
       url: l.url,
       at: l.created_at,
+      by: by(l.creator),
     })),
   ].sort((a, b) => a.at.localeCompare(b.at));
   const options = SLIDE_KEYS.map((k) => ({ key: k, label: `${slideTime(k) ? `${slideTime(k)} · ` : ''}${slideLabel(k)}` }));

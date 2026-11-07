@@ -146,6 +146,19 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
             </nav>
           </div>
 
+          {/* Owner 2026-11-07: "Post an event" sits under the heading (was a side card). */}
+          {kind === 'member' ? (
+            <div className="card flex flex-wrap items-center justify-between gap-4 p-5" data-testid="post-event-banner">
+              <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
+                <h3 className="font-display m-0 text-lg">Hosting something?</h3>
+                <p className="text-ink-muted m-0 text-[15px]">Members can post workshops, socials and open houses. They appear here right away.</p>
+              </div>
+              <Link className="btn btn-primary btn-sm" href={member ? '/events/new' : '/login?next=/events/new'}>
+                {member ? 'Post an event' : 'Log in to post an event'}
+              </Link>
+            </div>
+          ) : null}
+
           {view === 'list' ? (
             upcoming.length === 0 ? (
               <EmptyState title={c.empty}>
@@ -278,13 +291,6 @@ export async function CalendarPage({ kind, sp }: { kind: CalendarKind; sp: Calen
           ) : null}
           {kind === 'member' ? (
             <>
-              <div className="card flex flex-col gap-2.5 p-5">
-                <h2 className="font-display m-0 text-lg">Hosting something?</h2>
-                <p className="text-ink-muted m-0 text-[15px]">Members can post workshops, socials and open houses. They appear here right away.</p>
-                <Link className="btn btn-primary btn-sm self-start" href={member ? '/events/new' : '/login?next=/events/new'}>
-                  {member ? 'Post an event' : 'Log in to post an event'}
-                </Link>
-              </div>
               <div className="card flex flex-col gap-2.5 p-5">
                 <h2 className="font-display m-0 text-lg">Looking for our meetings?</h2>
                 <p className="text-ink-muted m-0 text-[15px]">The group meets {site.meetingCadence.toLowerCase()} on Zoom.</p>
