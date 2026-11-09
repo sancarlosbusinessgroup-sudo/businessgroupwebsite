@@ -287,9 +287,29 @@ export type Database = {
         Relationships: [];
       };
       email_settings: {
-        Row: { id: number; meeting_recaps_enabled: boolean; management_recaps_enabled: boolean; updated_by: string | null; updated_at: string };
-        Insert: { id?: number; meeting_recaps_enabled?: boolean; management_recaps_enabled?: boolean; updated_by?: string | null; updated_at?: string };
-        Update: { meeting_recaps_enabled?: boolean; management_recaps_enabled?: boolean; updated_by?: string | null; updated_at?: string };
+        Row: {
+          id: number;
+          meeting_recaps_enabled: boolean;
+          management_recaps_enabled: boolean;
+          recap_extra_emails: string[];
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          meeting_recaps_enabled?: boolean;
+          management_recaps_enabled?: boolean;
+          recap_extra_emails?: string[];
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          meeting_recaps_enabled?: boolean;
+          management_recaps_enabled?: boolean;
+          recap_extra_emails?: string[];
+          updated_by?: string | null;
+          updated_at?: string;
+        };
         Relationships: [];
       };
       email_preferences: {
@@ -1244,6 +1264,9 @@ export type Database = {
           profile_id: string | null;
           guest_id: string | null;
           invited_by: string | null;
+          visitor_business: string | null;
+          visitor_email: string | null;
+          visitor_phone: string | null;
           created_at: string;
         };
         Insert: {
@@ -1260,6 +1283,9 @@ export type Database = {
           profile_id?: string | null;
           guest_id?: string | null;
           invited_by?: string | null;
+          visitor_business?: string | null;
+          visitor_email?: string | null;
+          visitor_phone?: string | null;
           created_at?: string;
         };
         Update: {
@@ -1273,6 +1299,9 @@ export type Database = {
           profile_id?: string | null;
           guest_id?: string | null;
           invited_by?: string | null;
+          visitor_business?: string | null;
+          visitor_email?: string | null;
+          visitor_phone?: string | null;
         };
         Relationships: [
           {

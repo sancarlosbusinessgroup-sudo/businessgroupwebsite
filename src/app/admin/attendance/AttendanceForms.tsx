@@ -4,7 +4,7 @@ import { useActionState } from 'react';
 import { SubmitButton } from '@/components/forms';
 import { Pill } from '@/components/ui';
 import { idle, type ActionState } from '@/lib/validation';
-import { fetchFromZoom, resolveParticipant, saveAttendance, setVisitorInviter } from '../../actions/attendance';
+import { fetchFromZoom, resolveParticipant, saveAttendance, setVisitorDetails } from '../../actions/attendance';
 
 function Status({ state }: { state: ActionState }) {
   if (state.status === 'success')
@@ -88,26 +88,33 @@ export function ReviewRow({ item, members }: { item: ReviewItem; members: Member
   );
 }
 
+export type ZoomVisitor = {
+  id: string;
+  name: string;
+  invitedBy: string | null;
+  business: string | null;
+  email: string | null;
+  phone: string | null;
+  zoomEmail: string | null;
+};
+
 /**
- * A visitor who was only in the Zoom report (didn't fill in the guest form): choose the member who invited them, so the
- * recaps say who to thank (owner, 2026-11-10).
+ * A visitor who was only in the Zoom report (didn't fill in the guest form): who invited them, and their company,
+ * email and phone if known, for the recaps (owner, 2026-11-10).
  */
-export function VisitorInviterRow({ item, members }: { item: { id: string; name: string; invitedBy: string | null }; members: MemberOption[] }) {
-  const [state, action] = useActionState(setVisitorInviter, idle);
-  const fid = `inv-${item.id}`;
+export function VisitorInviterRow({ item, members }: { item: ZoomVisitor; members: MemberOption[] }) {
+  const [state, action] = useActionState(setVisitorDetails, idle);
+  const f = (k: string) => `${k}-${item.id}`;
   return (
-    <li className="border-line-soft flex flex-col gap-2 border-b py-3 last:border-b-0">
-      <form action={action} className="flex flex-wrap items-end gap-3" aria-label={`Who invited ${item.name}`}>
+    <li className="border-line-soft flex flex-col gap-2 border-b py-4 last:border-b-0">
+      <strong className="text-heading">{item.name}</strong>
+      <form action={action} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label={`Details for ${item.name}`}>
         <input type="hidden" name="id" value={item.id} />
-        <div className="min-w-[10rem] flex-[1_1_10rem]">
-          <span className="label">Visitor</span>
-          <strong className="text-heading flex min-h-11 items-center">{item.name}</strong>
-        </div>
-        <div className="w-64 max-w-full">
-          <label className="label" htmlFor={fid}>
+        <div>
+          <label className="label" htmlFor={f('inv')}>
             Invited by
           </label>
-          <select key={item.invitedBy ?? ''} id={fid} name="invitedBy" className="field" defaultValue={item.invitedBy ?? ''}>
+          <select key={item.invitedBy ?? ''} id={f('inv')} name="invitedBy" className="field" defaultValue={item.invitedBy ?? ''}>
             <option value="">Not known / no one</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
@@ -116,11 +123,39 @@ export function VisitorInviterRow({ item, members }: { item: { id: string; name:
             ))}
           </select>
         </div>
-        <SubmitButton pendingText="Saving…" className="btn btn-primary btn-sm">
-          Save
-        </SubmitButton>
+        <div>
+          <label className="label" htmlFor={f('biz')}>
+            Company
+          </label>
+          <input id={f('biz')} name="business" className="field" maxLength={120} defaultValue={item.business ?? ''} />
+        </div>
+        <div>
+          <label className="label" htmlFor={f('email')}>
+            Email
+          </label>
+          <input
+            id={f('email')}
+            name="email"
+            type="email"
+            className="field"
+            maxLength={254}
+            defaultValue={item.email ?? item.zoomEmail ?? ''}
+            placeholder={item.zoomEmail ? undefined : 'Not in Zoom'}
+          />
+        </div>
+        <div>
+          <label className="label" htmlFor={f('phone')}>
+            Phone
+          </label>
+          <input id={f('phone')} name="phone" type="tel" className="field" maxLength={40} defaultValue={item.phone ?? ''} />
+        </div>
+        <div className="flex flex-wrap items-center gap-3 sm:col-span-2 lg:col-span-4">
+          <SubmitButton pendingText="Saving…" className="btn btn-primary btn-sm">
+            Save
+          </SubmitButton>
+          <Status state={state} />
+        </div>
       </form>
-      <Status state={state} />
     </li>
   );
 }

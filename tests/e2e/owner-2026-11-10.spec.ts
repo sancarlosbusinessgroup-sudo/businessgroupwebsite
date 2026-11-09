@@ -77,25 +77,38 @@ test.describe('Zoom-only visitors and who invited them', () => {
     await expect(page.getByRole('region', { name: /Needs review/ })).toHaveCount(0);
 
     const visitors = page.getByRole('region', { name: /Visitors/ });
-    const form = visitors.getByRole('form', { name: 'Who invited Geoff Weakley' });
+    const form = visitors.getByRole('form', { name: 'Details for Geoff Weakley' });
     await form.getByLabel('Invited by').selectOption({ label: 'Morgan Member' });
+    // Management can fill in what Zoom doesn't give us (owner, 2026-11-10).
+    await form.getByLabel('Email').fill('not an email');
+    // The browser stops a bad address before it is sent (the server checks it too).
+    expect(await form.getByLabel('Email').evaluate((e) => (e as HTMLInputElement).validity.valid)).toBe(false);
+    await form.getByLabel('Company').fill('Weakley Consulting');
+    await form.getByLabel('Email').fill('Geoff@Weakley.example');
+    await form.getByLabel('Phone').fill('650-555-0199');
     await form.getByRole('button', { name: 'Save' }).click();
     await expect(visitors.getByRole('status')).toHaveText('Saved.');
     await page.reload();
-    await expect(page.getByRole('form', { name: 'Who invited Geoff Weakley' }).getByLabel('Invited by')).toHaveValue(/[0-9a-f-]{36}/);
+    const saved = page.getByRole('form', { name: 'Details for Geoff Weakley' });
+    await expect(saved.getByLabel('Invited by')).toHaveValue(/[0-9a-f-]{36}/);
+    await expect(saved.getByLabel('Email')).toHaveValue('geoff@weakley.example');
+    await expect(saved.getByLabel('Company')).toHaveValue('Weakley Consulting');
     await expectAccessible(page);
 
     // Fetching again keeps the visitor and their inviter.
     await page.getByRole('button', { name: 'Fetch from Zoom again' }).click();
     await expect(page.getByRole('status').first()).not.toContainText('to review');
     await page.reload();
-    await expect(page.getByRole('form', { name: 'Who invited Geoff Weakley' }).getByLabel('Invited by')).toHaveValue(/[0-9a-f-]{36}/);
+    await expect(page.getByRole('form', { name: 'Details for Geoff Weakley' }).getByLabel('Invited by')).toHaveValue(/[0-9a-f-]{36}/);
+    await expect(page.getByRole('form', { name: 'Details for Geoff Weakley' }).getByLabel('Phone')).toHaveValue('650-555-0199');
 
     // Member recap: Geoff is welcomed, Morgan thanked; the two removed parts are gone.
     await page.goto('/admin/recap');
     await page.getByText('Plain-text version').click();
     const text = page.locator('pre');
-    await expect(text).toContainText('Geoff Weakley');
+    await expect(text).toContainText(/Geoff Weakley\s+Weakley Consulting\s+geoff@weakley\.example\s+650-555-0199/);
+    // He is on the list of people the recap goes to.
+    await expect(page.getByRole('form', { name: 'Send the Member recap' })).toContainText('Geoff Weakley');
     await expect(text).toContainText('Thanks to Morgan for inviting our guest!');
     await expect(text).not.toContainText('Claim a spot for future presentations');
     await expect(text).not.toContainText('pulling its weight');
@@ -103,6 +116,8 @@ test.describe('Zoom-only visitors and who invited them', () => {
     // Management recap: listed as Zoom-only with the inviter's full name.
     await page.goto('/admin/management-recap');
     await page.getByText('Plain-text version').click();
-    await expect(page.locator('pre')).toContainText(/In Zoom only \(not signed up on the website\)\s+Geoff Weakley\s+Invited by: Morgan Member/);
+    await expect(page.locator('pre')).toContainText(
+      /In Zoom only \(not signed up on the website\)\s+Geoff Weakley\s+Weakley Consulting\s+Invited by: Morgan Member\s+geoff@weakley\.example\s+650-555-0199/,
+    );
   });
 });

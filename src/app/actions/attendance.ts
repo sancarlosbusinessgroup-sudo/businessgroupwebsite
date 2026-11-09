@@ -114,21 +114,28 @@ export async function resolveParticipant(_prev: ActionState, formData: FormData)
   return { status: 'success', message: remember === 'on' ? 'Linked. This Zoom name will be matched automatically next time.' : 'Linked.' };
 }
 
-const inviterSchema = z.object({ id: z.uuid(), invitedBy: z.union([z.uuid(), z.literal('')]) });
+const visitorSchema = z.object({
+  id: z.uuid(),
+  invitedBy: z.union([z.uuid(), z.literal('')]),
+  business: z.string().trim().max(120, 'Company: 120 characters at most.'),
+  email: z.union([z.literal(''), z.string().trim().toLowerCase().pipe(z.email('Please enter a valid email.')).pipe(z.string().max(254))]),
+  phone: z.string().trim().max(40, 'Phone: 40 characters at most.'),
+});
 
 /**
  * Owner 2026-11-10: a visitor who was only in the Zoom report (never filled in the guest form) gets the member who
- * invited them, so the Member and Management recaps can thank that member. Blank clears it.
+ * invited them, and optionally their company, email and phone, so the recaps list them properly and the Member recap
+ * can be sent to them. Blank clears a field.
  */
-export async function setVisitorInviter(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function setVisitorDetails(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();
-  const parsed = inviterSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { status: 'error', message: GENERIC };
-  const { id, invitedBy } = parsed.data;
+  const parsed = visitorSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { status: 'error', message: parsed.error.issues[0]?.message ?? GENERIC };
+  const { id, invitedBy, business, email, phone } = parsed.data;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('zoom_participants')
-    .update({ invited_by: invitedBy || null })
+    .update({ invited_by: invitedBy || null, visitor_business: business || null, visitor_email: email || null, visitor_phone: phone || null })
     .eq('id', id)
     .eq('resolution', 'visitor')
     .select('meeting_id')
@@ -137,7 +144,7 @@ export async function setVisitorInviter(_prev: ActionState, formData: FormData):
   done(data.meeting_id);
   revalidatePath('/admin/recap');
   revalidatePath('/admin/management-recap');
-  return { status: 'success', message: invitedBy ? 'Saved.' : 'Cleared.' };
+  return { status: 'success', message: 'Saved.' };
 }
 
 async function countPresent(meetingId: string) {

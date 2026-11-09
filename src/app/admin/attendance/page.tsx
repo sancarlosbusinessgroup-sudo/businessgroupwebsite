@@ -55,7 +55,11 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
     const live = isLiveWindow(meeting, now) && !meeting.cancelled_reason;
     const [impRes, partRes, attRes, linkRes, liveData] = await Promise.all([
       supabase.from('attendance_imports').select('*').eq('meeting_id', meeting.id).maybeSingle(),
-      supabase.from('zoom_participants').select('id, name, email, minutes, resolution, invited_by').eq('meeting_id', meeting.id).order('name'),
+      supabase
+        .from('zoom_participants')
+        .select('id, name, email, minutes, resolution, invited_by, visitor_business, visitor_email, visitor_phone')
+        .eq('meeting_id', meeting.id)
+        .order('name'),
       supabase.from('attendance').select('profile_id, status, substitute, zoom, joined_at, left_at, minutes').eq('meeting_id', meeting.id),
       supabase.from('meeting_links').select('join_url').eq('meeting_id', meeting.id).maybeSingle(),
       loadLiveAttendance(supabase, meeting.id),
@@ -146,12 +150,24 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
             {zoomVisitors.length ? (
               <>
                 <p className="text-ink-muted m-0 text-sm">
-                  These visitors were in the Zoom report but didn’t sign up on the website. Choose the member who invited each one and save; the Member and
-                  Management recaps then list them and thank that member.
+                  These visitors were in the Zoom report but didn’t sign up on the website. Choose the member who invited each one, add their company, email and
+                  phone if you know them, and save. The recaps then list them and thank that member, and the Member recap is sent to the email.
                 </p>
                 <ul className="m-0 list-none p-0">
                   {zoomVisitors.map((v) => (
-                    <VisitorInviterRow key={v.id} item={{ id: v.id, name: v.name, invitedBy: v.invited_by }} members={memberOptions} />
+                    <VisitorInviterRow
+                      key={v.id}
+                      item={{
+                        id: v.id,
+                        name: v.name,
+                        invitedBy: v.invited_by,
+                        business: v.visitor_business,
+                        email: v.visitor_email,
+                        phone: v.visitor_phone,
+                        zoomEmail: v.email,
+                      }}
+                      members={memberOptions}
+                    />
                   ))}
                 </ul>
               </>

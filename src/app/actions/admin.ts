@@ -267,20 +267,54 @@ export async function setGuestOneOnOnes(formData: FormData): Promise<void> {
   revalidatePath('/admin');
 }
 
-/** Admin → Member recap: send the checked recap now (owner, 2026-11-10: no automatic send). */
+/** The saved "also send to" list on Admin → Member recap: commas, semicolons, spaces or new lines between addresses. */
+function parseRecapList(raw: string): { ok: true; emails: string[] } | { ok: false; message: string } {
+  const parts = [
+    ...new Set(
+      raw
+        .split(/[\s,;]+/)
+        .map((x) => x.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ];
+  const bad = parts.filter((x) => !z.email().safeParse(x).success || x.length > 254);
+  if (bad.length) return { ok: false, message: `Please check ${bad.length === 1 ? 'this address' : 'these addresses'}: ${bad.slice(0, 5).join(', ')}` };
+  if (parts.length > 100) return { ok: false, message: 'The list can hold at most 100 addresses.' };
+  return { ok: true, emails: parts };
+}
+
+async function saveRecapListFor(emails: string[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data, error } = await supabase
+    .from('email_settings')
+    .update({ recap_extra_emails: emails, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
+    .eq('id', 1)
+    .select('id');
+  return !error && !!data?.length;
+}
+
+/** Admin → Member recap: save the "also send to" list without sending (owner, 2026-11-10). */
+export async function saveRecapList(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const list = parseRecapList(String(formData.get('extraEmails') ?? ''));
+  if (!list.ok) return { status: 'error', message: list.message };
+  if (!(await saveRecapListFor(list.emails))) return { status: 'error', message: GENERIC };
+  revalidatePath('/admin/recap');
+  return { status: 'success', message: `List saved (${list.emails.length} ${list.emails.length === 1 ? 'address' : 'addresses'}).` };
+}
+
+/** Admin → Member recap: save the list, then send the checked recap now (owner, 2026-11-10: no automatic send). */
 export async function sendMemberRecapNow(_prev: ActionState, formData: FormData): Promise<ActionState> {
   await requireAdmin();
   const meetingId = z.uuid().safeParse(formData.get('meetingId'));
   if (!meetingId.success) return { status: 'error', message: GENERIC };
-  const raw = String(formData.get('extraEmails') ?? '');
-  const parts = raw
-    .split(/[\s,;]+/)
-    .map((x) => x.trim())
-    .filter(Boolean);
-  const bad = parts.filter((x) => !z.email().safeParse(x).success);
-  if (bad.length) return { status: 'error', message: `Please check ${bad.length === 1 ? 'this address' : 'these addresses'}: ${bad.slice(0, 5).join(', ')}` };
-  if (parts.length > 100) return { status: 'error', message: 'Please add at most 100 extra addresses at a time.' };
-  const r = await sendMemberRecap(meetingId.data, parts);
+  const list = parseRecapList(String(formData.get('extraEmails') ?? ''));
+  if (!list.ok) return { status: 'error', message: list.message };
+  if (!(await saveRecapListFor(list.emails))) return { status: 'error', message: GENERIC };
+  const r = await sendMemberRecap(meetingId.data, list.emails);
   if (!r) return { status: 'error', message: GENERIC };
   revalidatePath('/admin/recap');
   const sent = r.members + r.visitors + r.extra;

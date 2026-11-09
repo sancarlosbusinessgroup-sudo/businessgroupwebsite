@@ -339,11 +339,11 @@ test.describe('email notifications', () => {
       await login(page, users.admin, undefined, '/admin/recap');
       const form = page.getByRole('form', { name: 'Send the Member recap' });
       await expect(form).toContainText('Vera Visitor');
-      await form.getByLabel('More email addresses (optional)').fill(`not-an-email, ${extraEmail}`);
+      await form.getByLabel('Also send to (saved list)').fill(`not-an-email, ${extraEmail}`);
       await form.getByRole('button', { name: 'Send recap' }).click();
       await form.getByRole('button', { name: /^Yes, send to \d+ people$/ }).click();
       await expect(form.getByRole('alert')).toContainText('not-an-email');
-      await form.getByLabel('More email addresses (optional)').fill(extraEmail);
+      await form.getByLabel('Also send to (saved list)').fill(extraEmail);
       await form.getByRole('button', { name: 'Send recap' }).click();
       await form.getByRole('button', { name: /^Yes, send to \d+ people$/ }).click();
       await expect(form.getByRole('status')).toContainText(/Sent to \d+: \d+ members, 1 visitor, 1 extra address\./);
@@ -370,6 +370,8 @@ test.describe('email notifications', () => {
       // Sending again reaches no one new; the daily job never sends it.
       await page.goto('/admin/recap');
       await expect(page.getByTestId('recap-sent')).toContainText('Already sent to');
+      // The extra address is remembered for next time.
+      await expect(form.getByLabel('Also send to (saved list)')).toHaveValue(extraEmail);
       await form.getByRole('button', { name: 'Send recap' }).click();
       await form.getByRole('button', { name: /^Yes, send to/ }).click();
       await expect(form.getByRole('status')).toContainText('Nothing new to send.');
@@ -379,6 +381,7 @@ test.describe('email notifications', () => {
     } finally {
       await rest(`guest_requests?id=eq.${guest?.id}`, 'DELETE');
       await rest(`meetings?id=eq.${meetingId}`, 'DELETE');
+      await rest('email_settings?id=eq.1', 'PATCH', { recap_extra_emails: [] });
       const [riley] = await rest(`profiles?select=id&first_name=eq.Riley&last_name=eq.Second`, 'GET');
       if (riley) await rest(`email_preferences?profile_id=eq.${riley.id}`, 'DELETE');
     }
