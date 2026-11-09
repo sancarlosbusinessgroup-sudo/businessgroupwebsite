@@ -59,6 +59,7 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
   '/admin/attendance': {
     summary: 'Who was at each meeting, read from Zoom or taken by hand, with late arrivals, early leavers and who is near the absence limit.',
     steps: [
+      'During the meeting, “Live attendance” at the top shows who has joined Zoom, who is late (after 8:30 AM) and who isn’t here yet, refreshed every 10 seconds. Link an unknown Zoom name to a member right there.',
       'Pick a meeting. Around noon Pacific on meeting days the site reads the Zoom participant list and marks members present, with join and leave times.',
       '“Needs review” lists Zoom names the site couldn’t match. Link each to a member (it remembers the name next time), mark it as a visitor, or ignore it.',
       'You can change anyone’s attendance by hand and save. “Sent a substitute” counts as present; “Excused” still counts as missed.',

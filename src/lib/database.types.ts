@@ -1194,6 +1194,41 @@ export type Database = {
           { foreignKeyName: 'rsvps_profile_id_fkey'; columns: ['profile_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
         ];
       };
+      zoom_live_events: {
+        Row: {
+          id: string;
+          meeting_id: string;
+          event: 'joined' | 'left';
+          key: string;
+          name: string;
+          email: string | null;
+          at: string;
+          received_at: string;
+        };
+        Insert: {
+          id?: string;
+          meeting_id: string;
+          event: 'joined' | 'left';
+          key: string;
+          name: string;
+          email?: string | null;
+          at: string;
+          received_at?: string;
+        };
+        Update: {
+          name?: string;
+          email?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'zoom_live_events_meeting_id_fkey';
+            columns: ['meeting_id'];
+            isOneToOne: false;
+            referencedRelation: 'meetings';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       zoom_participants: {
         Row: {
           id: string;

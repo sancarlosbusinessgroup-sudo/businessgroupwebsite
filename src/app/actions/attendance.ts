@@ -192,3 +192,22 @@ export async function saveAttendance(_prev: ActionState, formData: FormData): Pr
   done(meetingId.data);
   return { status: 'success', message: rows.length ? `Saved ${rows.length} ${rows.length === 1 ? 'change' : 'changes'}.` : 'Saved. Nothing changed.' };
 }
+
+const liveLinkSchema = z.object({
+  key: z.string().regex(/^(email|name):.{1,290}$/),
+  profileId: z.uuid(),
+});
+
+/**
+ * Live attendance (owner, 2026-11-10): during the meeting, link an unknown Zoom name to a member. The name is
+ * remembered (zoom_aliases), so the live view and the after-meeting import both match it from now on.
+ */
+export async function linkLiveName(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const parsed = liveLinkSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { status: 'error', message: 'Choose the member first.' };
+  const supabase = await createClient();
+  const { error } = await supabase.from('zoom_aliases').upsert({ key: parsed.data.key, profile_id: parsed.data.profileId });
+  if (error) return { status: 'error', message: GENERIC };
+  return { status: 'success', message: 'Linked. This Zoom name will be matched automatically from now on.' };
+}
