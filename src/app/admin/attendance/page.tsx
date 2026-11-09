@@ -6,9 +6,12 @@ import { requireAdmin } from '@/lib/auth';
 import { absencesFor, memberSince } from '@/lib/data/attendance';
 import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
+import { loadLiveAttendance } from '@/lib/data/live-attendance';
 import { ABSENCE_LIMIT, lateEarly, parseZoomMeetingId } from '@/lib/zoom';
 import { zoomConfigured } from '@/lib/zoom-api';
+import { isLiveWindow } from '@/lib/zoom-live';
 import { AttendanceTable, FetchZoomButton, ReviewRow, type AttendanceRow } from './AttendanceForms';
+import { LiveAttendance } from './LiveAttendance';
 
 export const metadata: Metadata = { title: 'Attendance' };
 
@@ -24,7 +27,8 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
       .from('meetings')
       .select('id, title, starts_at, ends_at, cancelled_reason')
       .eq('category', 'Networking')
-      .lte('starts_at', now.toISOString())
+      // Up to an hour ahead, so the live view is ready as people start joining.
+      .lte('starts_at', new Date(now.getTime() + 3_600_000).toISOString())
       .order('starts_at', { ascending: false })
       .limit(26),
     supabase
@@ -48,11 +52,13 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
 
   let body = <EmptyState title="No meetings yet">Attendance appears here after the first meeting.</EmptyState>;
   if (meeting) {
-    const [impRes, partRes, attRes, linkRes] = await Promise.all([
+    const live = isLiveWindow(meeting, now) && !meeting.cancelled_reason;
+    const [impRes, partRes, attRes, linkRes, liveData] = await Promise.all([
       supabase.from('attendance_imports').select('*').eq('meeting_id', meeting.id).maybeSingle(),
       supabase.from('zoom_participants').select('id, name, email, minutes, resolution').eq('meeting_id', meeting.id).order('name'),
       supabase.from('attendance').select('profile_id, status, substitute, zoom, joined_at, left_at, minutes').eq('meeting_id', meeting.id),
       supabase.from('meeting_links').select('join_url').eq('meeting_id', meeting.id).maybeSingle(),
+      loadLiveAttendance(supabase, meeting.id),
     ]);
     const imp = impRes.data;
     const parts = partRes.data ?? [];
@@ -77,8 +83,20 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
     });
     const present = rows.filter((r) => r.choice === 'present' || r.choice === 'substitute').length;
 
+    // Shown while the meeting is on, and afterwards until the Zoom report has been fetched.
+    const showLive = !!liveData && (live || (liveData.events > 0 && !(imp?.source === 'zoom' && imp.status === 'done')));
+
     body = (
       <>
+        {showLive ? (
+          <LiveAttendance
+            key={meeting.id}
+            meetingId={meeting.id}
+            initial={liveData}
+            live={live}
+            members={members.map((x) => ({ id: x.id, name: `${x.first_name} ${x.last_name}` }))}
+          />
+        ) : null}
         <section className="card flex flex-col gap-4 p-5" aria-labelledby="zoom-h">
           <h2 id="zoom-h" className="font-display m-0 text-xl font-extrabold">
             {formatMeetingDate(new Date(meeting.starts_at))}
