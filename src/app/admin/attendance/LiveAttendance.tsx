@@ -130,7 +130,7 @@ export function LiveAttendance({
         <h2 id="live-h" className="font-display m-0 text-xl font-extrabold">
           Live attendance
         </h2>
-        <p className="text-ink-muted m-0 text-sm" role="status">
+        <p className="text-ink-muted m-0 text-sm">
           {here} of {here + data.notYet.length} members joined
           {live
             ? ` · updated ${updated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', timeZone: 'America/Los_Angeles' })}`
