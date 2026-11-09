@@ -40,6 +40,7 @@ export async function saveMemberEvent(input: Record<string, string>): Promise<Ev
   const shared = {
     title: d.title,
     description: d.description,
+    host_label: d.hostLabel,
     category: d.category,
     category_other: d.categoryOther,
     visibility: d.visibility,

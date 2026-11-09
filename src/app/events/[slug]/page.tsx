@@ -6,6 +6,7 @@ import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { calendarEventFor } from '@/lib/calendar-links';
 import { notFound } from 'next/navigation';
 import { Countdown } from '@/components/Countdown';
+import { Linkify, VenueLink } from '@/components/TextLinks';
 import { speakerFor } from '@/components/meetings';
 import { Avatar, PageHero } from '@/components/ui';
 import { getViewer, isAdmin, isApproved } from '@/lib/auth';
@@ -46,6 +47,8 @@ export default async function EventDetail({ params }: Props) {
   const upcoming = end.getTime() > nowMs() && !cancelled;
   const image = mediaUrl('gallery', m.imagePath);
   const where = m.is_online ? (m.kind === 'group' ? (m.location ?? 'Online · Zoom') : 'Online') : (m.location ?? '');
+  // In-person venues open in Google Maps (owner, 2026-11-09).
+  const venue = !m.is_online && m.location ? m.location : null;
   // Other dates of an event posted with several dates (owner, 2026-10-31).
   const series = m.kind === 'member' ? await getSeriesDates(m.seriesId) : [];
   const otherDates = series.filter((d) => d.id !== m.id && Date.parse(d.ends_at) > nowMs());
@@ -66,7 +69,12 @@ export default async function EventDetail({ params }: Props) {
       <PageHero
         crumb={m.kind === 'group' ? 'Meetings' : 'Member events'}
         title={m.title}
-        lead={`${formatMeetingDate(start)} · ${formatMeetingTime(start)}–${formatMeetingTime(end)} PT · ${where}`}
+        lead={
+          <>
+            {formatMeetingDate(start)} · {formatMeetingTime(start)}–{formatMeetingTime(end)} PT ·{' '}
+            {venue ? <VenueLink address={venue} className="font-semibold text-inherit" /> : where}
+          </>
+        }
       >
         {upcoming ? (
           <div className="card min-w-0 flex-[1_1_360px] p-5">
@@ -110,10 +118,14 @@ export default async function EventDetail({ params }: Props) {
               <Image src={image} alt="" fill sizes="(min-width: 1024px) 700px, 100vw" className="object-cover" />
             </div>
           ) : null}
-          {m.description ? <p className="m-0 whitespace-pre-line">{m.description}</p> : null}
-          {m.kind === 'member' && !m.is_online && m.location ? (
+          {m.description ? (
+            <p className="m-0 whitespace-pre-line" data-testid="event-description">
+              <Linkify text={m.description} />
+            </p>
+          ) : null}
+          {m.kind === 'member' && venue ? (
             <p className="m-0">
-              <strong>Address:</strong> {m.location}
+              <strong>Address:</strong> <VenueLink address={venue} className="font-semibold" />
             </p>
           ) : null}
           {/* Owner, 2026-11-03: free or paid, and where to pay. */}
@@ -125,7 +137,7 @@ export default async function EventDetail({ params }: Props) {
               <p className="text-heading m-0 text-lg font-bold">{m.isPaid ? m.price : 'Free'}</p>
               {m.isPaid && m.paymentInfo ? (
                 <p className="m-0 whitespace-pre-line">
-                  <strong>How to pay:</strong> {m.paymentInfo}
+                  <strong>How to pay:</strong> <Linkify text={m.paymentInfo} />
                 </p>
               ) : null}
               {m.isPaid && m.paymentUrl && upcoming ? (

@@ -476,6 +476,8 @@ export const memberEventSchema = (now: Date = new Date()) =>
           .min(3, 'Use at least 3 characters')
           .max(160, 'Keep the title under 160 characters'),
         description: optionalText(4000, 'Description'),
+        // Displayed "Hosted by" name (owner, 2026-11-09); blank = the poster's own name. Ownership stays with the poster.
+        hostLabel: optionalText(80, 'Hosted by'),
         category: z.enum(memberEventCategories, { error: 'Choose a category' }),
         categoryOther: z
           .string()
@@ -545,6 +547,7 @@ export const memberEventSchema = (now: Date = new Date()) =>
       if (v.format === 'online' && !(v.onlineUrl && /^https:\/\/[^\s]+\.[^\s]+$/i.test(v.onlineUrl) && v.onlineUrl.length <= 500))
         ctx.addIssue({ code: 'custom', path: ['onlineUrl'], message: 'Use a secure link that starts with https://' });
       if (v.format === 'in_person' && !v.location) ctx.addIssue({ code: 'custom', path: ['location'], message: 'Add the address' });
+      if (v.hostLabel && v.hostLabel.length < 2) ctx.addIssue({ code: 'custom', path: ['hostLabel'], message: 'Use at least 2 characters' });
       if (v.category === 'Other' && (v.categoryOther?.length ?? 0) < 2)
         ctx.addIssue({ code: 'custom', path: ['categoryOther'], message: 'Tell us what kind of event it is' });
       const paid = v.cost === 'paid';
@@ -559,6 +562,7 @@ export const memberEventSchema = (now: Date = new Date()) =>
       return {
         title: v.title,
         description: v.description ?? null,
+        hostLabel: v.hostLabel ?? null,
         category: v.category,
         categoryOther: v.category === 'Other' ? v.categoryOther : null,
         visibility: v.visibility,

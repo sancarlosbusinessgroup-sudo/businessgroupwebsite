@@ -8,7 +8,7 @@ import { EventForm } from '@/app/events/EventForm';
  * Dashboard "Add an event" (owner, 2026-10-31): the Post an event form in a pop-up, so members add events without
  * leaving the dashboard. After saving it says so, with a link to the event; the My Events list refreshes behind it.
  */
-export function AddEventDialog({ userId, minStart }: { userId: string; minStart: string }) {
+export function AddEventDialog({ userId, hostName, minStart }: { userId: string; hostName: string; minStart: string }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
   const [round, setRound] = useState(0);
@@ -77,7 +77,7 @@ export function AddEventDialog({ userId, minStart }: { userId: string; minStart:
               </div>
             </div>
           ) : open ? (
-            <EventForm key={round} userId={userId} minStart={minStart} onSaved={setSaved} />
+            <EventForm key={round} userId={userId} hostName={hostName} minStart={minStart} onSaved={setSaved} />
           ) : null}
         </div>
       </dialog>

@@ -34,6 +34,8 @@ export type EventDefaults = {
   onlineUrl: string;
   location: string;
   description: string;
+  /** Displayed "Hosted by" name; blank shows the poster's name (owner, 2026-11-09). */
+  hostLabel: string;
   /** Free or paid, with the price and where to pay (owner, 2026-11-03). */
   cost: 'free' | 'paid';
   price: string;
@@ -43,6 +45,8 @@ export type EventDefaults = {
 
 type Props = {
   userId: string;
+  /** The poster's own name: the default "Hosted by" shown when the field is left blank. */
+  hostName: string;
   defaults?: EventDefaults;
   minStart: string;
   /** Pop-up use (dashboard): called with the new event's link instead of opening it. */
@@ -54,7 +58,7 @@ let rowKey = 0;
 const toRows = (dates: EventDateDefaults[] | undefined): DateRow[] =>
   (dates?.length ? dates : [{ startsAt: '', endsAt: '' }]).map((d) => ({ ...d, key: ++rowKey }));
 
-export function EventForm({ userId, defaults, minStart, onSaved }: Props) {
+export function EventForm({ userId, hostName, defaults, minStart, onSaved }: Props) {
   const router = useRouter();
   const editing = !!defaults?.id;
   const [format, setFormat] = useState<'online' | 'in_person'>(defaults?.format ?? 'in_person');
@@ -298,7 +302,24 @@ export function EventForm({ userId, defaults, minStart, onSaved }: Props) {
         ) : null}
       </fieldset>
 
-      <TextArea name="description" label="Description" defaultValue={defaults?.description} error={errors.description} maxLength={4000} />
+      <TextArea
+        name="description"
+        label="Description"
+        defaultValue={defaults?.description}
+        error={errors.description}
+        maxLength={4000}
+        help="Web addresses you type here become clickable links."
+      />
+      {/* Owner, 2026-11-09: the displayed host name can differ from the poster's name; the event still belongs to the poster. */}
+      <TextField
+        name="hostLabel"
+        label="Hosted by"
+        maxLength={80}
+        placeholder={hostName}
+        defaultValue={defaults?.hostLabel}
+        error={errors.hostLabel}
+        help={`Shown as “Hosted by …”. Leave blank to show your name (${hostName}). You can put your business or a co-host here; the event stays yours.`}
+      />
       <div className="flex flex-col gap-2">
         <TextField
           name="image"

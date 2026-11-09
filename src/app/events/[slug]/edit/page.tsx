@@ -33,6 +33,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
         </div>
         <EventForm
           userId={viewer.userId}
+          hostName={e.posterName ?? `${viewer.profile.first_name} ${viewer.profile.last_name}`}
           minStart={isoToPacificLocal(new Date(Math.min(nowMs(), Date.parse(e.starts_at))).toISOString())}
           defaults={{
             id: e.id,
@@ -45,6 +46,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ slug
             onlineUrl: e.onlineUrl ?? '',
             location: e.location ?? '',
             description: e.description ?? '',
+            hostLabel: e.hostLabel ?? '',
             cost: e.isPaid ? 'paid' : 'free',
             price: e.price ?? '',
             paymentUrl: e.paymentUrl ?? '',

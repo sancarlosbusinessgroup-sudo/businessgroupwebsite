@@ -565,6 +565,7 @@ export type Database = {
           description: string | null;
           ends_at: string;
           host_id: string;
+          host_label: string | null;
           id: string;
           image_path: string | null;
           is_online: boolean;
@@ -588,6 +589,7 @@ export type Database = {
           description?: string | null;
           ends_at: string;
           host_id?: string;
+          host_label?: string | null;
           id?: string;
           image_path?: string | null;
           is_online?: boolean;
@@ -611,6 +613,7 @@ export type Database = {
           description?: string | null;
           ends_at?: string;
           host_id?: string;
+          host_label?: string | null;
           id?: string;
           image_path?: string | null;
           is_online?: boolean;

@@ -325,6 +325,13 @@ describe('phase B forms', () => {
     expect(memberEventSchema(now).safeParse({ ...ok, category: 'Other', categoryOther: 'x'.repeat(61) }).success).toBe(false);
     expect(memberEventSchema(now).safeParse({ ...ok, categoryOther: 'Book club' }).data?.categoryOther).toBeNull();
   });
+  it('member event: "Hosted by" label is optional; blank means the poster\'s name; 2–80 characters when given (owner, 2026-11-09)', () => {
+    expect(memberEventSchema(now).safeParse(ok).data).toMatchObject({ hostLabel: null });
+    expect(memberEventSchema(now).safeParse({ ...ok, hostLabel: '   ' }).data).toMatchObject({ hostLabel: null });
+    expect(memberEventSchema(now).safeParse({ ...ok, hostLabel: ' Acme Realty & friends ' }).data).toMatchObject({ hostLabel: 'Acme Realty & friends' });
+    expect(fieldErrors(memberEventSchema(now).safeParse({ ...ok, hostLabel: 'A' }).error!).hostLabel).toBe('Use at least 2 characters');
+    expect(fieldErrors(memberEventSchema(now).safeParse({ ...ok, hostLabel: 'x'.repeat(81) }).error!).hostLabel).toMatch(/80 characters/);
+  });
   it('member event: free by default; paid needs a price and a payment link or instructions (owner, 2026-11-03)', () => {
     expect(memberEventSchema(now).safeParse(ok).data).toMatchObject({ isPaid: false, price: null, paymentUrl: null, paymentInfo: null });
     // Payment details typed before switching back to free are dropped.

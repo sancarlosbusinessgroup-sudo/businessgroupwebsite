@@ -22,6 +22,8 @@ const WELCOME_PHOTO = '/images/hero-bridge.jpg';
 /** Owner's BARP Champion artwork (2026-10-24): logo, crown, title and confetti. "Coming soon" version for when nobody is named yet. */
 const CHAMPION_BG = '/images/champion-bg.webp';
 const CHAMPION_SOON = '/images/champion-coming-soon.webp';
+/** Owner's birthday artwork (2026-11-09): pastel balloons with gold ribbons; the middle is clear for the names. */
+const BIRTHDAY_BG = '/images/birthday-bg.webp';
 const NAVY = '#12346e';
 const BLUE = '#1f7fd0';
 const INK = '#1c2b4a';
@@ -223,24 +225,28 @@ function Hero({ ctx, kicker, title, children }: { ctx: Ctx; kicker: string; titl
   );
 }
 
-/** Three party balloons for the birthday slide (decorative). */
-function Balloons() {
-  const colors = ['#f472b6', '#38bdf8', '#fbbf24'];
+/**
+ * Happy-birthday slide on the owner's balloon artwork (2026-11-09), with the same fireworks as the BARP Champion slide
+ * and the faces rising in one after another. Still for people who prefer reduced motion (global CSS).
+ */
+function BirthdayPage({ ctx, children }: { ctx: Ctx; children?: ReactNode }) {
   return (
-    <svg viewBox="0 0 120 90" style={{ width: '14cqw', height: '10.5cqw' }} aria-hidden="true">
-      {colors.map((c, i) => {
-        const x = 30 + i * 30;
-        const y = i === 1 ? 26 : 32;
-        return (
-          <g key={c}>
-            <path d={`M${x} ${y + 18} q 4 18 -2 40`} stroke="#94a3b8" strokeWidth="1.2" fill="none" />
-            <ellipse cx={x} cy={y} rx="14" ry="18" fill={c} />
-            <ellipse cx={x - 5} cy={y - 7} rx="3.5" ry="5" fill="white" opacity="0.5" />
-            <path d={`M${x - 3} ${y + 18} h6 l-3 4 z`} fill={c} />
-          </g>
-        );
-      })}
-    </svg>
+    <div className="relative h-full overflow-hidden bg-white">
+      <Image src={BIRTHDAY_BG} alt="" fill sizes="100vw" className="object-cover" data-testid="birthday-background" aria-hidden="true" />
+      <Fireworks />
+      <div className="absolute inset-x-[16cqw] top-[5cqw] bottom-[9cqw] flex flex-col items-center justify-center text-center">{children}</div>
+      <p className="absolute right-[3cqw] bottom-[1.8cqw] m-0 text-[1.25cqw] font-semibold tabular-nums" style={{ color: NAVY }}>
+        {ctx.n} / {ctx.total}
+      </p>
+      <style>{`
+        @keyframes bday-rise { from { opacity: 0; transform: translateY(2.5cqw) scale(0.92); } to { opacity: 1; transform: none; } }
+        @keyframes bday-pop { 0% { opacity: 0; transform: scale(0.6); } 60% { transform: scale(1.06); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes bday-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.5cqw); } }
+        .bday-title { animation: bday-pop 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+        .bday-item { animation: bday-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+        .bday-face { animation: bday-float 3.2s ease-in-out infinite; }
+      `}</style>
+    </div>
   );
 }
 
@@ -837,16 +843,26 @@ export function buildSlides(d: DeckData): DeckSlide[] {
             id: 'birthdays',
             label: 'Happy birthday',
             render: (ctx) => (
-              <Page ctx={ctx} title="Happy birthday!" center>
+              <BirthdayPage ctx={ctx}>
                 <div className="flex flex-col items-center gap-[2cqw]">
-                  <Balloons />
-                  <p className="font-display m-0 text-[2cqw] font-bold tracking-[0.18em] uppercase" style={{ color: BLUE }}>
-                    Celebrating in {monthName}
-                  </p>
-                  <ul className="m-0 flex list-none flex-wrap justify-center gap-[2.4cqw] p-0">
-                    {d.birthdays.map((b) => (
-                      <li key={b.id} className="flex flex-col items-center gap-[0.8cqw]">
-                        <span className="rounded-full shadow-[0_0.5cqw_1.6cqw_rgba(18,52,110,0.22)] ring-[0.35cqw] ring-[#f472b6]">
+                  <div className="bday-title flex flex-col items-center gap-[0.8cqw]">
+                    <h2
+                      className="font-display m-0 text-[5.2cqw] leading-[1.02] font-extrabold tracking-[-0.01em]"
+                      style={{ color: NAVY, textShadow: '0 0.15cqw 0.6cqw rgba(255,255,255,0.9)' }}
+                    >
+                      Happy birthday!
+                    </h2>
+                    <p className="font-display m-0 text-[1.9cqw] font-bold tracking-[0.2em] uppercase" style={{ color: '#c58b12' }}>
+                      Celebrating in {monthName}
+                    </p>
+                  </div>
+                  <ul className="m-0 flex list-none flex-wrap justify-center gap-[2.6cqw] p-0">
+                    {d.birthdays.map((b, i) => (
+                      <li key={b.id} className="bday-item flex flex-col items-center gap-[0.8cqw]" style={{ animationDelay: `${0.45 + i * 0.22}s` }}>
+                        <span
+                          className="bday-face rounded-full bg-white shadow-[0_0.6cqw_2cqw_rgba(18,52,110,0.22)] ring-[0.4cqw] ring-[#f6c445]"
+                          style={{ animationDelay: `${i * 0.4}s` }}
+                        >
                           <Face name={b.name} path={b.avatar} size={10} />
                         </span>
                         <span className="font-display text-[2.4cqw] leading-tight font-extrabold" style={{ color: NAVY }}>
@@ -859,7 +875,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                     ))}
                   </ul>
                 </div>
-              </Page>
+              </BirthdayPage>
             ),
           });
         }
@@ -1016,34 +1032,46 @@ export function buildSlides(d: DeckData): DeckSlide[] {
           title: 'Upcoming events & announcements',
           body: d.events.length ? (
             <ul className="m-0 grid list-none grid-cols-2 content-start gap-[1.4cqw] p-0">
-              {d.events.map((e) => (
-                <li key={e.id} className={`${card()} flex gap-[1.3cqw] p-[1.3cqw]`}>
-                  {/* Calendar-page badge: the month large on a coloured band, the day below (owner, 2026-10-23: month more obvious). */}
-                  <span className="flex w-[8.4cqw] flex-none flex-col overflow-hidden rounded-[1cqw] bg-white shadow-[0_0.3cqw_0.9cqw_rgba(18,52,110,0.18)] ring-1 ring-[#d6e4f5]">
-                    <span
-                      className="font-display py-[0.5cqw] text-center text-[2cqw] leading-none font-extrabold tracking-[0.06em] text-white uppercase"
-                      style={{ background: 'linear-gradient(160deg, #1f7fd0, #0a47a9)' }}
-                    >
-                      {new Date(e.starts_at).toLocaleString('en-US', { month: 'short', timeZone: site.timezone })}
+              {d.events.map((e) => {
+                // The event's own image, when the host added one (owner, 2026-11-09).
+                const img = mediaUrl('gallery', e.imagePath);
+                return (
+                  <li key={e.id} className={`${card()} flex items-stretch gap-[1.3cqw] p-[1.3cqw]`}>
+                    {/* Calendar-page badge: the month large on a coloured band, the day below (owner, 2026-10-23: month more obvious). */}
+                    <span className="flex w-[8.4cqw] flex-none flex-col overflow-hidden rounded-[1cqw] bg-white shadow-[0_0.3cqw_0.9cqw_rgba(18,52,110,0.18)] ring-1 ring-[#d6e4f5]">
+                      <span
+                        className="font-display py-[0.5cqw] text-center text-[2cqw] leading-none font-extrabold tracking-[0.06em] text-white uppercase"
+                        style={{ background: 'linear-gradient(160deg, #1f7fd0, #0a47a9)' }}
+                      >
+                        {new Date(e.starts_at).toLocaleString('en-US', { month: 'short', timeZone: site.timezone })}
+                      </span>
+                      <span className="font-display py-[0.6cqw] text-center text-[3.4cqw] leading-none font-extrabold" style={{ color: NAVY }}>
+                        {new Date(e.starts_at).toLocaleString('en-US', { day: 'numeric', timeZone: site.timezone })}
+                      </span>
                     </span>
-                    <span className="font-display py-[0.6cqw] text-center text-[3.4cqw] leading-none font-extrabold" style={{ color: NAVY }}>
-                      {new Date(e.starts_at).toLocaleString('en-US', { day: 'numeric', timeZone: site.timezone })}
+                    <span className="flex min-w-0 flex-col gap-[0.2cqw]">
+                      <span className="text-[2cqw] leading-tight font-bold" style={{ color: NAVY }}>
+                        {e.title}
+                      </span>
+                      <span className="text-[1.6cqw] font-bold" style={{ color: BLUE }}>
+                        {new Date(e.starts_at).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: site.timezone })}
+                      </span>
+                      <span className="text-[1.5cqw]" style={{ color: MUTED }}>
+                        {formatMeetingTime(new Date(e.starts_at))} · {e.is_online ? 'Online' : e.location}
+                        {e.kind === 'member' && e.hostName ? ` · Hosted by ${e.hostName}` : ''}
+                      </span>
                     </span>
-                  </span>
-                  <span className="flex min-w-0 flex-col gap-[0.2cqw]">
-                    <span className="text-[2cqw] leading-tight font-bold" style={{ color: NAVY }}>
-                      {e.title}
-                    </span>
-                    <span className="text-[1.6cqw] font-bold" style={{ color: BLUE }}>
-                      {new Date(e.starts_at).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: site.timezone })}
-                    </span>
-                    <span className="text-[1.5cqw]" style={{ color: MUTED }}>
-                      {formatMeetingTime(new Date(e.starts_at))} · {e.is_online ? 'Online' : e.location}
-                      {e.kind === 'member' && e.hostName ? ` · Hosted by ${e.hostName}` : ''}
-                    </span>
-                  </span>
-                </li>
-              ))}
+                    {img ? (
+                      <span
+                        className="relative ml-auto aspect-[4/3] w-[11cqw] flex-none self-center overflow-hidden rounded-[0.9cqw] shadow-[0_0.3cqw_0.9cqw_rgba(18,52,110,0.18)] ring-1 ring-[#d6e4f5]"
+                        data-testid="event-slide-image"
+                      >
+                        <Image src={img} alt="" fill sizes="20vw" className="object-cover" />
+                      </span>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <Lead>No events posted yet. Members can post events on the Events page.</Lead>

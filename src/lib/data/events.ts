@@ -26,8 +26,12 @@ export type CalendarItem = {
   onlineUrl: string | null;
   imagePath: string | null;
   hostId: string | null;
+  /** The displayed "Hosted by" name: the host's own label when set, else their name (owner, 2026-11-09). */
   hostName: string | null;
   hostSlug: string | null;
+  /** The label the host typed, if any, and the poster's own name (for the edit form). */
+  hostLabel: string | null;
+  posterName: string | null;
   speakers: Speaker[];
   tags: string[];
   organizerId: string | null;
@@ -73,6 +77,8 @@ export function fromMeeting(m: MeetingWithSpeakers): CalendarItem {
     hostId: null,
     hostName: null,
     hostSlug: null,
+    hostLabel: null,
+    posterName: null,
     speakers: m.meeting_speakers,
     tags: m.tags,
     organizerId: m.organizer_id,
@@ -105,8 +111,10 @@ export function fromMemberEvent(e: HostedEvent): CalendarItem {
     onlineUrl: e.online_url,
     imagePath: e.image_path,
     hostId: e.host_id,
-    hostName: e.host ? `${e.host.first_name} ${e.host.last_name}` : null,
+    hostName: e.host_label ?? (e.host ? `${e.host.first_name} ${e.host.last_name}` : null),
     hostSlug: e.host?.slug ?? null,
+    hostLabel: e.host_label,
+    posterName: e.host ? `${e.host.first_name} ${e.host.last_name}` : null,
     speakers: [],
     tags: [],
     organizerId: null,

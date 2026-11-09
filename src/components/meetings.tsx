@@ -7,6 +7,7 @@ import { formatDayMonth, formatMeetingDate, formatMeetingTime } from '@/lib/date
 import { env, mediaUrl } from '@/lib/env';
 import { AddToCalendar } from './AddToCalendar';
 import { Avatar, DateBadge } from './ui';
+import { Linkify, VenueLink } from './TextLinks';
 import { Countdown } from './Countdown';
 
 export function speakerFor(m: MeetingWithSpeakers | { speakers: Speaker[] }, slot: 'education' | 'presentation') {
@@ -129,7 +130,7 @@ export function EventCard({ item, member }: { item: CalendarItem; member: boolea
             {formatMeetingTime(start)}–{formatMeetingTime(end)}
           </span>
           <span aria-hidden="true">·</span>
-          <span>{where}</span>
+          <span>{!item.is_online && item.location ? <VenueLink address={item.location} className="font-semibold" /> : where}</span>
         </div>
         {item.kind === 'member' ? (
           <p className="text-berry m-0 text-sm font-semibold">Member event · hosted by {item.hostName ?? `a ${site.shortName} member`}</p>
@@ -145,7 +146,9 @@ export function EventCard({ item, member }: { item: CalendarItem; member: boolea
         {item.cancelledReason ? (
           <p className="text-red m-0 text-base font-semibold">No meeting this week: {item.cancelledReason}.</p>
         ) : item.description ? (
-          <p className="text-ink-soft m-0 line-clamp-3 text-base">{item.description}</p>
+          <p className="text-ink-soft m-0 line-clamp-3 text-base">
+            <Linkify text={item.description} />
+          </p>
         ) : null}
         <div className="mt-1.5 flex flex-wrap gap-2.5">
           {item.kind === 'group' && item.is_online && !item.cancelledReason ? (

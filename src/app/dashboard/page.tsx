@@ -131,7 +131,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
             <WeeklyAskForm current={me.weekly_ask} updated={me.weekly_ask_updated_at ? formatShortDate(new Date(me.weekly_ask_updated_at)) : null} />
             {/* Owner, 2026-10-31: the member's own events, right under My ask this week. */}
-            <MyEventsCard events={myEvents} userId={me.id} minStart={isoToPacificLocal(new Date(nowMs()).toISOString())} />
+            <MyEventsCard events={myEvents} userId={me.id} hostName={`${me.first_name} ${me.last_name}`} minStart={isoToPacificLocal(new Date(nowMs()).toISOString())} />
           </div>
 
           <div className="flex min-w-0 flex-[2_1_320px] flex-col gap-5">

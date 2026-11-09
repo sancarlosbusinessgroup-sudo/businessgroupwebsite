@@ -18,7 +18,7 @@ export default async function NewEventPage() {
           <h1 className="font-display m-0 mt-3 text-[clamp(28px,3.4vw,40px)] font-extrabold">Post an event</h1>
           <p className="text-ink-muted m-0 mt-1">Share a workshop, social or open house with members and visitors. You can edit or delete it later.</p>
         </div>
-        <EventForm userId={viewer.userId} minStart={isoToPacificLocal(new Date(nowMs()).toISOString())} />
+        <EventForm userId={viewer.userId} hostName={`${viewer.profile.first_name} ${viewer.profile.last_name}`} minStart={isoToPacificLocal(new Date(nowMs()).toISOString())} />
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import { AddEventDialog } from './AddEventDialog';
  * Dashboard "My Events" (owner, 2026-10-31): the member's own upcoming events, a pop-up to add one, and a link to all
  * member events. Dates posted together show as one line with the next date and how many more there are.
  */
-export function MyEventsCard({ events, userId, minStart }: { events: CalendarItem[]; userId: string; minStart: string }) {
+export function MyEventsCard({ events, userId, hostName, minStart }: { events: CalendarItem[]; userId: string; hostName: string; minStart: string }) {
   const groups: { first: CalendarItem; more: number }[] = [];
   const bySeries = new Map<string, { first: CalendarItem; more: number }>();
   for (const e of events) {
@@ -28,7 +28,7 @@ export function MyEventsCard({ events, userId, minStart }: { events: CalendarIte
           My Events
         </h2>
         <div className="flex flex-wrap gap-2">
-          <AddEventDialog userId={userId} minStart={minStart} />
+          <AddEventDialog userId={userId} hostName={hostName} minStart={minStart} />
           <Link href="/events" className="btn btn-outline btn-sm">
             Member Events
           </Link>
