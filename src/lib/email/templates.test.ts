@@ -228,6 +228,17 @@ describe('email templates', () => {
       events: [],
     });
     expect(none.text).not.toMatch(/welcome today’s visitors/i);
+    // Extra addresses have no name (owner, 2026-11-10).
+    const noName = t.meetingRecapEmail({
+      siteUrl,
+      firstName: '',
+      meetingTitle: 'M',
+      slidesHref: `${siteUrl}/present/m`,
+      visitors: [],
+      inviters: [],
+      events: [],
+    });
+    expect(noName.text).toContain('Thanks for coming!');
   });
 
   it('guest Zoom link email: the join button, meeting time, passcode when there is one, what to bring', () => {

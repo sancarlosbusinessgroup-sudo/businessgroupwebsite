@@ -107,12 +107,13 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
   },
   '/admin/recap': {
     summary:
-      "The email every member gets after a meeting: today's visitors, the slides and presentations, member events and who presents next. Preview it and switch it on or off here.",
+      "The email members and visitors get after a meeting: today's visitors, the slides and presentations, member events and who presents next. Check it here, then send it.",
     steps: [
-      'The Member recap is the email every member gets after each meeting, around noon Pacific.',
+      'The Member recap is the email members and that meeting’s visitors get after each meeting. It is never sent automatically: you send it from this page.',
       'It welcomes the day’s visitors and thanks who invited them, links the slides and the presenters’ materials, lists member events and who presents next time.',
-      'The preview below is built from the most recent meeting’s live data, exactly as members will see it (with your first name in the greeting). Nothing is sent from this page.',
-      'Use the switch to turn the automatic Member recap off or on. Turn it off before noon on a meeting day to stop that meeting’s recap.',
+      'The preview below is built from the most recent meeting’s live data, exactly as members will see it (with your first name in the greeting).',
+      'When it looks right, add any extra email addresses if you like, press Send recap, then confirm. Each address gets it once; sending again only reaches new addresses.',
+      'Tip: for a Zoom-only visitor to be listed, mark them as a visitor and choose who invited them on Attendance before you send.',
       'Members can turn the recap off for themselves in My profile → Edit → Email notifications.',
     ],
   },

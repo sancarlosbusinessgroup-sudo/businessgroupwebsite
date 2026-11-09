@@ -275,64 +275,68 @@ export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
     }
   }
 
-  // 5. Meeting recap, as a fallback for one the after-meeting job missed.
-  report.meetingRecaps = await runRecaps(now);
+  // 5. The Member recap is no longer sent automatically (owner, 2026-11-10): admins press Send on Admin → Member recap.
   // 6. Management recap, sent by now even if attendance was never taken (with a note to take it).
   report.managementRecaps = await runManagementRecaps(now);
 
   return report;
 }
 
-/**
- * Meeting recap to every approved member after a regular meeting ends (Vercel Cron → /api/cron/after-meeting,
- * around noon Pacific; the daily job repeats it next morning in case that run was missed). Only meetings that
- * ended in the past 36 hours, once per member per meeting. The content comes from ./recap.ts, which the admin
- * preview (/admin/recap) also uses.
- */
-export async function runRecaps(now: Date = new Date()): Promise<number> {
-  const db = createAdminClient();
-  if (!db) return 0;
-  // Admins can switch the recap off on Admin → Meeting recap (email_settings). Off = nothing is sent.
-  if (!(await recapsEnabled(db))) return 0;
-  const url = siteUrl();
-  const nowIso = now.toISOString();
-  const { data: ended } = await db
-    .from('meetings')
-    .select('id, slug, title, meeting_speakers(slot, display_name, business, topic, topic_description)')
-    .eq('category', 'Networking')
-    .is('cancelled_reason', null)
-    .eq('hidden', false)
-    .lte('ends_at', nowIso)
-    .gte('ends_at', new Date(now.getTime() - 36 * 3_600_000).toISOString())
-    .order('starts_at');
-  if (!ended?.length) return 0;
+export type RecapSendResult = { members: number; visitors: number; extra: number; already: number; failed: number };
 
+/**
+ * The Member recap, sent only when an admin presses Send on Admin → Member recap (owner, 2026-11-10: no automatic
+ * send, so it is always checked first). Goes to every approved member (except those who turned the recap off), to the
+ * meeting's visitors who left an email, and to any extra addresses the admin typed. Once per address per meeting
+ * (email_log), so pressing Send again only reaches addresses that haven't had it yet.
+ */
+export async function sendMemberRecap(meetingId: string, extraEmails: string[] = [], now: Date = new Date()): Promise<RecapSendResult | null> {
+  const db = createAdminClient();
+  if (!db) return null;
+  const { data: m } = await db
+    .from('meetings')
+    .select('id, slug, title, starts_at, meeting_speakers(slot, display_name, business, topic, topic_description)')
+    .eq('id', meetingId)
+    .maybeSingle();
+  if (!m) return null;
+  const url = siteUrl();
   const [shared, { data: members }] = await Promise.all([recapShared(db, now), db.from('profiles').select('id').eq('status', 'approved')]);
-  const ids = (members ?? []).map((m) => m.id);
+  const content = await recapForMeeting(db, m, shared);
+  const ids = (members ?? []).map((x) => x.id);
   const people = await loadRecipients(ids);
   const off = await loadOptOuts(ids, 'meeting_recaps');
+  const visitors = await recapVisitorRecipients(db, m.id);
 
-  let sent = 0;
-  for (const m of ended) {
-    const content = await recapForMeeting(db, m, shared);
-    for (const r of people.values()) {
-      if (off.has(r.id)) continue;
-      const s = await deliver({
-        kind: 'meeting_recap',
-        dedupeKey: m.id,
-        to: { email: r.email, name: `${r.firstName} ${r.lastName}`, profileId: r.id },
-        email: T.meetingRecapEmail({ siteUrl: url, firstName: r.firstName, ...content }),
-      });
-      if (s === 'sent') sent += 1;
-    }
+  const result: RecapSendResult = { members: 0, visitors: 0, extra: 0, already: 0, failed: 0 };
+  const seen = new Set<string>();
+  const send = async (group: 'members' | 'visitors' | 'extra', to: { email: string; name?: string; profileId?: string | null }, firstName: string) => {
+    const key = to.email.trim().toLowerCase();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    const s = await deliver({ kind: 'meeting_recap', dedupeKey: m.id, to, email: T.meetingRecapEmail({ siteUrl: url, firstName, ...content }) });
+    if (s === 'sent') result[group] += 1;
+    else if (s === 'duplicate') result.already += 1;
+    else if (s === 'failed') result.failed += 1;
+  };
+  for (const r of people.values()) {
+    if (off.has(r.id)) continue;
+    await send('members', { email: r.email, name: `${r.firstName} ${r.lastName}`, profileId: r.id }, r.firstName);
   }
-  return sent;
+  for (const v of visitors) await send('visitors', { email: v.email, name: v.name }, v.firstName);
+  for (const e of extraEmails) await send('extra', { email: e }, '');
+  return result;
 }
 
-/** The admin on/off switch for the meeting recap. A missing row counts as on (the original behaviour). */
-export async function recapsEnabled(db: NonNullable<ReturnType<typeof createAdminClient>>): Promise<boolean> {
-  const { data } = await db.from('email_settings').select('meeting_recaps_enabled').eq('id', 1).maybeSingle();
-  return data?.meeting_recaps_enabled !== false;
+/** The meeting's visitors who left an email: guests marked Visited (or further) at it, and Zoom-only visitors with a Zoom email. */
+export async function recapVisitorRecipients(db: NonNullable<ReturnType<typeof createAdminClient>>, meetingId: string) {
+  const [{ data: guests }, { data: zoom }] = await Promise.all([
+    db.from('guest_requests').select('first_name, last_name, email').eq('meeting_id', meetingId).in('status', ['visited', 'applied', 'joined']),
+    db.from('zoom_participants').select('name, email').eq('meeting_id', meetingId).eq('resolution', 'visitor').not('email', 'is', null),
+  ]);
+  return [
+    ...(guests ?? []).filter((g) => g.email).map((g) => ({ email: g.email as string, name: `${g.first_name} ${g.last_name}`, firstName: g.first_name })),
+    ...(zoom ?? []).filter((z) => z.email).map((z) => ({ email: z.email as string, name: z.name, firstName: z.name.split(/\s+/)[0] ?? '' })),
+  ];
 }
 
 /** The admin on/off switch for the Management recap. A missing row or column counts as on. */

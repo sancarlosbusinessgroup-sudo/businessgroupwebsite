@@ -1,8 +1,8 @@
-// After-meeting job: imports Zoom attendance for meetings that just ended (Phase D), then sends the Member recap and
-// the Management recap.
+// After-meeting job: imports Zoom attendance for meetings that just ended (Phase D), then sends the Management recap.
+// The Member recap is not sent from here (owner, 2026-11-10): admins send it with the button on Admin → Member recap.
 // Meeting recap job, called by Vercel Cron (see vercel.json) around noon Pacific with "Authorization: Bearer $CRON_SECRET".
 import { NextResponse } from 'next/server';
-import { runManagementRecaps, runRecaps } from '@/lib/email/cron';
+import { runManagementRecaps } from '@/lib/email/cron';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { importRecentMeetings } from '@/lib/zoom-import';
 
@@ -25,10 +25,9 @@ export async function GET(request: Request) {
     } catch (e) {
       console.error('[cron] zoom import failed', e instanceof Error ? e.message : e);
     }
-    const meetingRecaps = await runRecaps(now);
     // After the Zoom import, so the Management recap has the attendance.
     const managementRecaps = await runManagementRecaps(now);
-    return NextResponse.json({ ok: true, zoom, meetingRecaps, managementRecaps });
+    return NextResponse.json({ ok: true, zoom, managementRecaps });
   } catch (e) {
     console.error('[cron] after-meeting failed', e instanceof Error ? e.message : e);
     return NextResponse.json({ ok: false }, { status: 500 });

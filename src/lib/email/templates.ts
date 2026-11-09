@@ -768,7 +768,7 @@ export function meetingRecapEmail(o: {
       preheader: o.visitors.length
         ? 'Welcome today’s visitors, plus the slides, presentations, member events and who’s up next.'
         : 'Slides, presentations, member events and who’s up next.',
-      heading: `Thanks for coming, ${o.firstName}!`,
+      heading: o.firstName ? `Thanks for coming, ${o.firstName}!` : 'Thanks for coming!',
       blocks,
       footer: prefsFooter(o.siteUrl),
     }),

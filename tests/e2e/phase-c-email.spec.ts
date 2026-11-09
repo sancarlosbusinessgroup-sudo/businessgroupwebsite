@@ -209,7 +209,9 @@ test.describe('email notifications', () => {
     expect(admin?.textContent).toContain('Invited by: Morgan Member');
   });
 
-  test('daily job: refuses callers without the secret; sends the presenter reminder 5 days before, the meeting-day reminder, visitor follow-ups and the Monday digest once', async ({ request }) => {
+  test('daily job: refuses callers without the secret; sends the presenter reminder 5 days before, the meeting-day reminder, visitor follow-ups and the Monday digest once', async ({
+    request,
+  }) => {
     expect((await request.get('/api/cron/daily')).status()).toBe(401);
     expect((await request.get('/api/cron/daily', { headers: { authorization: 'Bearer wrong' } })).status()).toBe(401);
 
@@ -225,7 +227,13 @@ test.describe('email notifications', () => {
     await rest('meeting_links', 'POST', { meeting_id: meetingId, join_url: 'https://zoom.example.test/j/123' });
     // The member has the 10-minute slot: they get the "prepare your presentation" reminder 5 days before.
     const [me] = await db<{ id: string }>('profiles?select=id&first_name=eq.Morgan&last_name=eq.Member');
-    await rest('meeting_speakers', 'POST', { meeting_id: meetingId, slot: 'presentation', profile_id: me?.id, display_name: 'Morgan Member', topic: 'Referral habits' });
+    await rest('meeting_speakers', 'POST', {
+      meeting_id: meetingId,
+      slot: 'presentation',
+      profile_id: me?.id,
+      display_name: 'Morgan Member',
+      topic: 'Referral habits',
+    });
     const guestEmail = `guest.followup.${Date.now()}@example.org`;
     const [g] = await rest('guest_requests', 'POST', { first_name: 'Fran', last_name: 'Follow', email: guestEmail, meeting_id: meetingId });
     try {
@@ -268,19 +276,19 @@ test.describe('email notifications', () => {
     }
   });
 
-  test('after-meeting job: sends the meeting recap to members once, with visitors, presenters, their materials and slides; respects the opt-out', async ({
+  test('Member recap: an admin sends it with the button to members, the visitor and extra addresses, once each; respects the opt-out', async ({
     request,
     page,
   }) => {
     expect((await request.get('/api/cron/after-meeting')).status()).toBe(401);
-    // A regular meeting on Monday 8 March 2027 (8:15–9:30 AM PST), job run "as of" noon that day.
+    // A regular meeting that ended a minute ago, so Admin → Member recap shows it (owner, 2026-11-10: sent by hand only).
     const slug = `recap-test-${Date.now()}`;
     const [m] = await rest('meetings', 'POST', {
       slug,
       title: 'Recap test meeting',
       category: 'Networking',
-      starts_at: '2027-03-08T16:15:00Z',
-      ends_at: '2027-03-08T17:30:00Z',
+      starts_at: new Date(Date.now() - 76 * 60_000).toISOString(),
+      ends_at: new Date(Date.now() - 60_000).toISOString(),
     });
     const meetingId = m?.id as string;
     await rest('meeting_speakers', 'POST', {
@@ -301,10 +309,12 @@ test.describe('email notifications', () => {
     await rest('meeting_slide_links', 'POST', { meeting_id: meetingId, url: 'https://pia.example.org/deck', after_slide: 'ten_minute', title: 'Pia’s deck' });
     // A visitor invited by Morgan, marked as visited.
     const [morgan] = await rest('profiles?select=id&first_name=eq.Morgan&last_name=eq.Member', 'GET');
+    const veraEmail = `vera.${Date.now()}@example.org`;
+    const extraEmail = `partner.${Date.now()}@example.org`;
     const [guest] = await rest('guest_requests', 'POST', {
       first_name: 'Vera',
       last_name: 'Visitor',
-      email: `vera.${Date.now()}@example.org`,
+      email: veraEmail,
       business_name: 'Vera Dental',
       phone: '650-555-0100',
       website: 'https://vera.example.org',
@@ -319,12 +329,26 @@ test.describe('email notifications', () => {
       await prefs.getByRole('button', { name: 'Save email settings' }).click();
       await expect(prefs.getByRole('status')).toBeVisible();
 
+      // The after-meeting job does not send it.
       const auth = { authorization: 'Bearer local-cron-secret' };
-      const before = await (await request.get('/api/cron/after-meeting?now=2027-03-08T16:30:00Z', { headers: auth })).json();
-      expect(before.meetingRecaps).toBe(0);
-      const run = await request.get('/api/cron/after-meeting?now=2027-03-08T20:00:00Z', { headers: auth });
-      expect(run.status()).toBe(200);
-      expect((await run.json()).meetingRecaps).toBeGreaterThan(0);
+      await request.get('/api/cron/after-meeting', { headers: auth });
+      expect(await emailsTo(users.member, /^Meeting recap: Recap test meeting/, 1500)).toHaveLength(0);
+
+      // An admin checks it and sends it, with one extra address.
+      await page.context().clearCookies();
+      await login(page, users.admin, undefined, '/admin/recap');
+      const form = page.getByRole('form', { name: 'Send the Member recap' });
+      await expect(form).toContainText('Vera Visitor');
+      await form.getByLabel('More email addresses (optional)').fill(`not-an-email, ${extraEmail}`);
+      await form.getByRole('button', { name: 'Send recap' }).click();
+      await form.getByRole('button', { name: /^Yes, send to \d+ people$/ }).click();
+      await expect(form.getByRole('alert')).toContainText('not-an-email');
+      await form.getByLabel('More email addresses (optional)').fill(extraEmail);
+      await form.getByRole('button', { name: 'Send recap' }).click();
+      await form.getByRole('button', { name: /^Yes, send to \d+ people$/ }).click();
+      await expect(form.getByRole('status')).toContainText(/Sent to \d+: \d+ members, 1 visitor, 1 extra address\./);
+      await expectAccessible(page, ['iframe[title="Recap email preview"]']);
+
       const [recap] = await emailsTo(users.member, /^Meeting recap: Recap test meeting/);
       expect(recap?.htmlContent).toContain(`/present/${slug}"`);
       expect(recap?.textContent).toContain('Growing referrals');
@@ -334,13 +358,22 @@ test.describe('email notifications', () => {
       expect(recap?.htmlContent).toContain(`/present/${slug}/material/${video?.id}"`);
       expect(recap?.htmlContent).toContain('href="https://pia.example.org/deck"');
       expect(await emailsTo(users.member2, /^Meeting recap: Recap test meeting/, 1500)).toHaveLength(0);
+      // The visitor and the extra address get it too (no name for the extra address).
+      expect(await emailsTo(veraEmail, /^Meeting recap: Recap test meeting/)).toHaveLength(1);
+      const [toExtra] = await emailsTo(extraEmail, /^Meeting recap: Recap test meeting/);
+      expect(toExtra?.textContent).toContain('Thanks for coming!');
 
       // The material link opens the video for a signed-in member.
       const material = await page.request.get(`/present/${slug}/material/${video?.id}`, { maxRedirects: 0 });
       expect(material.headers().location).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 
-      // The next morning's daily job does not send it again.
-      const daily = await (await request.get('/api/cron/daily?now=2027-03-09T15:00:00Z', { headers: auth })).json();
+      // Sending again reaches no one new; the daily job never sends it.
+      await page.goto('/admin/recap');
+      await expect(page.getByTestId('recap-sent')).toContainText('Already sent to');
+      await form.getByRole('button', { name: 'Send recap' }).click();
+      await form.getByRole('button', { name: /^Yes, send to/ }).click();
+      await expect(form.getByRole('status')).toContainText('Nothing new to send.');
+      const daily = await (await request.get('/api/cron/daily', { headers: auth })).json();
       expect(daily.meetingRecaps).toBe(0);
       expect(await emailsTo(users.member, /^Meeting recap: Recap test meeting/)).toHaveLength(1);
     } finally {

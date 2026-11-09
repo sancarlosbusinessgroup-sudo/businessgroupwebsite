@@ -10,6 +10,8 @@ import { onMemberStatus, sendApplyInvite, sendGuestZoomLink, syncNewsletterList 
 import { localDateKey } from '@/lib/dates';
 import { resendFailedEmail } from '@/lib/email/resend';
 import { safely } from '@/lib/email/notify';
+import { sendMemberRecap } from '@/lib/email/cron';
+import { requireAdmin } from '@/lib/auth';
 import { type ActionState, fieldErrors, formToObject, leadershipSchema, seatLimitSchema } from '@/lib/validation';
 
 // Every write here is also restricted to admins by RLS (is_admin()). Actions with side effects outside the
@@ -265,28 +267,29 @@ export async function setGuestOneOnOnes(formData: FormData): Promise<void> {
   revalidatePath('/admin');
 }
 
-/** Admin → Meeting recap: turn the automatic recap email on or off. */
-export async function setRecapsEnabled(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const enabled = z.enum(['on', 'off']).safeParse(formData.get('recaps'));
-  if (!enabled.success) return { status: 'error', message: GENERIC };
-  const supabase = await createClient();
-  const { data: isAdmin } = await supabase.rpc('is_admin');
-  if (!isAdmin) return { status: 'error', message: 'Admins only.' };
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const on = enabled.data === 'on';
-  const { data, error } = await supabase
-    .from('email_settings')
-    .update({ meeting_recaps_enabled: on, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
-    .eq('id', 1)
-    .select('id');
-  if (error || !data?.length) return { status: 'error', message: GENERIC };
+/** Admin → Member recap: send the checked recap now (owner, 2026-11-10: no automatic send). */
+export async function sendMemberRecapNow(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const meetingId = z.uuid().safeParse(formData.get('meetingId'));
+  if (!meetingId.success) return { status: 'error', message: GENERIC };
+  const raw = String(formData.get('extraEmails') ?? '');
+  const parts = raw
+    .split(/[\s,;]+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  const bad = parts.filter((x) => !z.email().safeParse(x).success);
+  if (bad.length) return { status: 'error', message: `Please check ${bad.length === 1 ? 'this address' : 'these addresses'}: ${bad.slice(0, 5).join(', ')}` };
+  if (parts.length > 100) return { status: 'error', message: 'Please add at most 100 extra addresses at a time.' };
+  const r = await sendMemberRecap(meetingId.data, parts);
+  if (!r) return { status: 'error', message: GENERIC };
   revalidatePath('/admin/recap');
-  return {
-    status: 'success',
-    message: on ? 'Recap email is on. Members get it after each meeting.' : 'Recap email is off. Nothing will be sent until you turn it back on.',
-  };
+  const sent = r.members + r.visitors + r.extra;
+  const bits = [`${r.members} ${r.members === 1 ? 'member' : 'members'}`, `${r.visitors} ${r.visitors === 1 ? 'visitor' : 'visitors'}`];
+  if (r.extra) bits.push(`${r.extra} extra ${r.extra === 1 ? 'address' : 'addresses'}`);
+  let msg = sent ? `Sent to ${sent}: ${bits.join(', ')}.` : 'Nothing new to send.';
+  if (r.already) msg += ` ${r.already} already had this recap, so they were skipped.`;
+  if (r.failed) return { status: 'error', message: `${msg} ${r.failed} could not be sent; see Admin → Overview → recent emails to resend.` };
+  return { status: 'success', message: msg };
 }
 
 /** Admin → Management recap: turn the automatic Management recap email on or off. */
