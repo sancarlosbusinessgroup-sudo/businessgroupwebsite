@@ -8,7 +8,7 @@ import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { ABSENCE_LIMIT, lateEarly, parseZoomMeetingId } from '@/lib/zoom';
 import { zoomConfigured } from '@/lib/zoom-api';
-import { AttendanceTable, FetchZoomButton, ReviewRow, type AttendanceRow } from './AttendanceForms';
+import { AttendanceTable, FetchZoomButton, ReviewRow, VisitorInviterRow, type AttendanceRow } from './AttendanceForms';
 
 export const metadata: Metadata = { title: 'Attendance' };
 
@@ -50,14 +50,16 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
   if (meeting) {
     const [impRes, partRes, attRes, linkRes] = await Promise.all([
       supabase.from('attendance_imports').select('*').eq('meeting_id', meeting.id).maybeSingle(),
-      supabase.from('zoom_participants').select('id, name, email, minutes, resolution').eq('meeting_id', meeting.id).order('name'),
+      supabase.from('zoom_participants').select('id, name, email, minutes, resolution, invited_by').eq('meeting_id', meeting.id).order('name'),
       supabase.from('attendance').select('profile_id, status, substitute, zoom, joined_at, left_at, minutes').eq('meeting_id', meeting.id),
       supabase.from('meeting_links').select('join_url').eq('meeting_id', meeting.id).maybeSingle(),
     ]);
     const imp = impRes.data;
     const parts = partRes.data ?? [];
     const pending = parts.filter((p) => p.resolution === 'pending');
-    const visitors = parts.filter((p) => p.resolution === 'visitor' || p.resolution === 'guest');
+    const zoomVisitors = parts.filter((p) => p.resolution === 'visitor');
+    const invitedGuests = parts.filter((p) => p.resolution === 'guest');
+    const memberOptions = members.map((x) => ({ id: x.id, name: `${x.first_name} ${x.last_name}` }));
     const att = new Map((attRes.data ?? []).map((a) => [a.profile_id, a]));
     const hasZoomLink = !!parseZoomMeetingId(linkRes.data?.join_url);
     const rows: AttendanceRow[] = members.map((p) => {
@@ -107,30 +109,44 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
               Needs review ({pending.length})
             </h2>
             <p className="text-ink-muted m-0 text-sm">
-              People in the Zoom report the site couldn’t match to a member or an invited guest. Link each one to a member, mark them as a visitor, or ignore
-              them.
+              People in the Zoom report the site couldn’t match to a member or an invited guest. Link each one to a member, mark them as a visitor (then choose
+              who invited them under Visitors), or ignore them.
             </p>
             <ul className="m-0 list-none p-0">
               {pending.map((p) => (
-                <ReviewRow key={p.id} item={p} members={members.map((x) => ({ id: x.id, name: `${x.first_name} ${x.last_name}` }))} />
+                <ReviewRow key={p.id} item={p} members={memberOptions} />
               ))}
             </ul>
           </section>
         ) : null}
 
-        {visitors.length ? (
+        {zoomVisitors.length || invitedGuests.length ? (
           <section className="card flex flex-col gap-2 p-5" aria-labelledby="visitors-h">
             <h2 id="visitors-h" className="font-display m-0 text-xl font-extrabold">
-              Visitors ({visitors.length})
+              Visitors ({zoomVisitors.length + invitedGuests.length})
             </h2>
-            <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-              {visitors.map((v) => (
-                <li key={v.id} className="bg-line-soft rounded-full px-3 py-1 text-sm">
-                  {v.name}
-                  {v.resolution === 'guest' ? ' · invited guest (marked Visited)' : ''}
-                </li>
-              ))}
-            </ul>
+            {zoomVisitors.length ? (
+              <>
+                <p className="text-ink-muted m-0 text-sm">
+                  These visitors were in the Zoom report but didn’t sign up on the website. Choose the member who invited each one and save; the Member and
+                  Management recaps then list them and thank that member.
+                </p>
+                <ul className="m-0 list-none p-0">
+                  {zoomVisitors.map((v) => (
+                    <VisitorInviterRow key={v.id} item={{ id: v.id, name: v.name, invitedBy: v.invited_by }} members={memberOptions} />
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            {invitedGuests.length ? (
+              <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+                {invitedGuests.map((v) => (
+                  <li key={v.id} className="bg-line-soft rounded-full px-3 py-1 text-sm">
+                    {v.name} · invited guest (marked Visited)
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </section>
         ) : null}
 

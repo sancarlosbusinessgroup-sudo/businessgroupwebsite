@@ -756,11 +756,10 @@ export function meetingRecapEmail(o: {
         ['10-Minute Presenter', o.next.ten ?? open],
       ],
     });
-    blocks.push({ button: ['Claim a spot for future presentations', `${o.siteUrl}/meetings`] });
+    // "Claim a spot for future presentations" button removed for now (owner, 2026-11-10); she decides in 2027 whether
+    // to bring it back: blocks.push({ button: ['Claim a spot for future presentations', `${o.siteUrl}/meetings`] });
   }
-  blocks.push({ h: 'Is your profile pulling its weight?' });
-  blocks.push({ p: 'Your profile is how members know who to send your way. Keep your services, ideal client, photo and this week’s ask up to date.' });
-  blocks.push({ links: [['Update my profile', `${o.siteUrl}/profile?tab=edit`]] });
+  // "Is your profile pulling its weight?" section removed (owner, 2026-11-10).
   blocks.push({ p: 'Go make it a great week. See you next meeting!' });
   return {
     subject: `Meeting recap: ${o.meetingTitle}`,
@@ -841,6 +840,8 @@ export type MgmtVisitor = {
   email?: string | null;
   phone?: string | null;
   signedIn?: boolean;
+  /** Only in the Zoom report: never filled in the guest form (owner, 2026-11-10). */
+  zoomOnly?: boolean;
 };
 
 export type ManagementRecap = {
@@ -905,7 +906,8 @@ export function managementRecapEmail(o: ManagementRecap & { siteUrl: string; fir
     lines.push(`Invited by: ${v.invitedBy || 'not given'}`);
     if (v.email) lines.push([v.email, `mailto:${v.email}`]);
     if (v.phone) lines.push([v.phone, `tel:${v.phone.replace(/[^0-9+]/g, '')}`]);
-    blocks.push({ item: { eyebrow: v.signedIn ? 'Signed in at the meeting' : undefined, title: v.name, lines } });
+    const eyebrow = v.signedIn ? 'Signed in at the meeting' : v.zoomOnly ? 'In Zoom only (not signed up on the website)' : undefined;
+    blocks.push({ item: { eyebrow, title: v.name, lines } });
   }
   if (o.visitors.length) blocks.push({ p: 'Next steps for each visitor are on Admin → Guest invite requests: Invite to apply, one-on-ones, then Approved.' });
 

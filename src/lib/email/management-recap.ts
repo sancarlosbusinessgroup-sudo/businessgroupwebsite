@@ -6,7 +6,7 @@ import { absencesFor, memberSince } from '../data/attendance';
 import { formatMeetingDate, formatMeetingTime } from '../dates';
 import { lateEarly } from '../zoom';
 import type { Db } from './recap';
-import type { ManagementRecap } from './templates';
+import type { ManagementRecap, MgmtVisitor } from './templates';
 
 const DAY = 86_400_000;
 
@@ -30,7 +30,7 @@ export async function latestEndedMeetingForMgmt(db: Db, now: Date): Promise<Mgmt
 
 export async function managementRecapFor(db: Db, m: MgmtMeeting, now: Date): Promise<ManagementRecap> {
   const nowIso = now.toISOString();
-  const [impRes, attRes, membersRes, guestsRes, zoomRes, pendingRes, waitingRes, nextRes] = await Promise.all([
+  const [impRes, attRes, membersRes, guestsRes, zoomRes, pendingRes, waitingRes, nextRes, zoomVisitorsRes] = await Promise.all([
     db.from('attendance_imports').select('source, status').eq('meeting_id', m.id).maybeSingle(),
     db.from('attendance').select('profile_id, status, substitute, zoom, joined_at, left_at').eq('meeting_id', m.id),
     db
@@ -64,6 +64,8 @@ export async function managementRecapFor(db: Db, m: MgmtMeeting, now: Date): Pro
       .order('starts_at')
       .limit(1)
       .maybeSingle(),
+    // Visitors only in the Zoom report, with the inviter chosen on Admin → Attendance (owner, 2026-11-10).
+    db.from('zoom_participants').select('name, invited_by').eq('meeting_id', m.id).eq('resolution', 'visitor').order('name'),
   ]);
 
   // Members who joined after this meeting don't count for it.
@@ -93,12 +95,14 @@ export async function managementRecapFor(db: Db, m: MgmtMeeting, now: Date): Pro
 
   // Visitors, and who invited them (the member's full name, or what the visitor typed).
   const guests = guestsRes.data ?? [];
-  const refIds = [...new Set(guests.map((g) => g.referrer_id).filter((x): x is string => !!x))];
+  const guestNames = new Set(guests.map((g) => `${g.first_name} ${g.last_name}`.trim().toLowerCase()));
+  const zoomOnly = (zoomVisitorsRes.data ?? []).filter((z) => !guestNames.has(z.name.trim().toLowerCase()));
+  const refIds = [...new Set([...guests.map((g) => g.referrer_id), ...zoomOnly.map((z) => z.invited_by)].filter((x): x is string => !!x))];
   const { data: refs } = refIds.length
     ? await db.from('profiles').select('id, first_name, last_name').in('id', refIds)
     : { data: [] as { id: string; first_name: string; last_name: string }[] };
   const refName = new Map((refs ?? []).map((r) => [r.id, full(r)]));
-  const visitors = guests.map((g) => ({
+  const visitors: MgmtVisitor[] = guests.map((g) => ({
     name: `${g.first_name} ${g.last_name}`,
     business: g.business_name,
     invitedBy: (g.referrer_id ? refName.get(g.referrer_id) : null) ?? g.invited_by_text?.replace(/\s*\(via referral link\)\s*$/i, '').trim() ?? null,
@@ -106,6 +110,7 @@ export async function managementRecapFor(db: Db, m: MgmtMeeting, now: Date): Pro
     phone: g.phone,
     signedIn: g.source === 'meeting_sign_in',
   }));
+  for (const z of zoomOnly) visitors.push({ name: z.name, invitedBy: z.invited_by ? (refName.get(z.invited_by) ?? null) : null, zoomOnly: true });
 
   const absences = await absencesFor(
     db,

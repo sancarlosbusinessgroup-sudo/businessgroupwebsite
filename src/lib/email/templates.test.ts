@@ -198,7 +198,10 @@ describe('email templates', () => {
     expect(e.text).toContain('Location: Online: Zoom (see separate calendar invite)');
     expect(e.text).toContain('5-Minute Educator: No one yet… Maybe YOU?');
     expect(e.text).toContain('10-Minute Presenter: Pia Co, Pia Presenter');
-    expect(e.text).toContain(`Claim a spot for future presentations: ${siteUrl}/meetings`);
+    // Owner 2026-11-10: "Claim a spot" button and the "profile pulling its weight" section are out of the recap.
+    expect(e.text).not.toContain('Claim a spot for future presentations');
+    expect(e.text).not.toMatch(/pulling its weight/i);
+    expect(e.text).not.toContain('Update my profile');
     expect(e.text).toContain('/profile?tab=edit#email');
   });
 
@@ -281,6 +284,16 @@ describe('management recap email (owner, 2026-10-30)', () => {
     expect(e.text).toContain('the 10-minute slot is still open');
     expect(e.text).not.toContain('has not been taken');
     expect(e.html).toContain(`${siteUrl}/admin/attendance`);
+  });
+
+  it('lists a visitor who was only in Zoom, with the inviter an admin chose (owner, 2026-11-10)', () => {
+    const e = t.managementRecapEmail({
+      siteUrl,
+      firstName: 'Viv',
+      ...base,
+      visitors: [{ name: 'Geoff Weakley', invitedBy: 'Vivienne Kelvin', zoomOnly: true }],
+    });
+    expect(e.text).toMatch(/In Zoom only \(not signed up on the website\)\nGeoff Weakley\nInvited by: Vivienne Kelvin/);
   });
 
   it('warns when attendance has not been taken, and reads well with nothing to report', () => {

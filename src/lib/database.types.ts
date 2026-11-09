@@ -1208,6 +1208,7 @@ export type Database = {
           matched_by: 'email' | 'name' | 'alias' | 'admin' | null;
           profile_id: string | null;
           guest_id: string | null;
+          invited_by: string | null;
           created_at: string;
         };
         Insert: {
@@ -1223,6 +1224,7 @@ export type Database = {
           matched_by?: 'email' | 'name' | 'alias' | 'admin' | null;
           profile_id?: string | null;
           guest_id?: string | null;
+          invited_by?: string | null;
           created_at?: string;
         };
         Update: {
@@ -1235,6 +1237,7 @@ export type Database = {
           matched_by?: 'email' | 'name' | 'alias' | 'admin' | null;
           profile_id?: string | null;
           guest_id?: string | null;
+          invited_by?: string | null;
         };
         Relationships: [
           {

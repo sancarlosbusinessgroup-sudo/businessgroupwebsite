@@ -81,7 +81,7 @@ export async function latestEndedMeeting(db: Db, now: Date): Promise<EndedMeetin
 export async function recapForMeeting(db: Db, m: EndedMeeting, shared: RecapShared): Promise<RecapContent> {
   const url = siteUrl();
   const speakers = m.meeting_speakers ?? [];
-  const [{ data: media }, { data: links }, { data: guests }] = await Promise.all([
+  const [{ data: media }, { data: links }, { data: guests }, { data: zoomVisitors }] = await Promise.all([
     db.from('meeting_slide_media').select('id, kind, title, after_slide').eq('meeting_id', m.id).in('after_slide', ['five_minute', 'ten_minute']).order('sort'),
     db.from('meeting_slide_links').select('title, url, after_slide').eq('meeting_id', m.id).in('after_slide', ['five_minute', 'ten_minute']).order('sort'),
     db
@@ -90,6 +90,8 @@ export async function recapForMeeting(db: Db, m: EndedMeeting, shared: RecapShar
       .eq('meeting_id', m.id)
       .in('status', ['visited', 'applied', 'joined'])
       .order('created_at'),
+    // Visitors only in the Zoom report (no guest form), with the inviter an admin chose on Attendance (owner, 2026-11-10).
+    db.from('zoom_participants').select('name, invited_by').eq('meeting_id', m.id).eq('resolution', 'visitor').order('name'),
   ]);
   const kindLabel = { pdf: 'Presentation (PDF)', powerpoint: 'Presentation (PowerPoint)', image: 'Presentation image', youtube: 'Watch the video' } as const;
   const materialsFor = (slide: string): [string, string][] => [
@@ -106,23 +108,29 @@ export async function recapForMeeting(db: Db, m: EndedMeeting, shared: RecapShar
   const ten = talk('presentation', 'ten_minute');
 
   // Today's visitors and the members who invited them (first names, as the group writes it).
-  const visitors: T.RecapVisitor[] = (guests ?? []).map((g) => ({
-    name: `${g.first_name} ${g.last_name}`,
-    business: g.business_name,
-    email: g.email,
-    website: g.website,
-    phone: g.phone,
-  }));
-  const referrerIds = [...new Set((guests ?? []).map((g) => g.referrer_id).filter((x): x is string => !!x))];
+  const guestNames = new Set((guests ?? []).map((g) => `${g.first_name} ${g.last_name}`.trim().toLowerCase()));
+  const zoomOnly = (zoomVisitors ?? []).filter((z) => !guestNames.has(z.name.trim().toLowerCase()));
+  const visitors: T.RecapVisitor[] = [
+    ...(guests ?? []).map((g) => ({
+      name: `${g.first_name} ${g.last_name}`,
+      business: g.business_name,
+      email: g.email,
+      website: g.website,
+      phone: g.phone,
+    })),
+    ...zoomOnly.map((z) => ({ name: z.name })),
+  ];
+  const referrerIds = [...new Set([...(guests ?? []).map((g) => g.referrer_id), ...zoomOnly.map((z) => z.invited_by)].filter((x): x is string => !!x))];
   const { data: referrers } = referrerIds.length
     ? await db.from('profiles').select('id, first_name').in('id', referrerIds)
     : { data: [] as { id: string; first_name: string }[] };
   const firstName = new Map((referrers ?? []).map((r) => [r.id, r.first_name]));
   const inviters = [
     ...new Set(
-      (guests ?? [])
-        .map((g) => (g.referrer_id ? firstName.get(g.referrer_id) : g.invited_by_text?.replace(/\s*\(via referral link\)\s*$/i, '').trim()))
-        .filter((x): x is string => !!x),
+      [
+        ...(guests ?? []).map((g) => (g.referrer_id ? firstName.get(g.referrer_id) : g.invited_by_text?.replace(/\s*\(via referral link\)\s*$/i, '').trim())),
+        ...zoomOnly.map((z) => (z.invited_by ? firstName.get(z.invited_by) : undefined)),
+      ].filter((x): x is string => !!x),
     ),
   ];
 

@@ -52,7 +52,7 @@ export async function resolveParticipant(_prev: ActionState, formData: FormData)
   if (action !== 'link') {
     const { error } = await supabase
       .from('zoom_participants')
-      .update({ resolution: action === 'visitor' ? 'visitor' : 'ignored', matched_by: 'admin', profile_id: null })
+      .update({ resolution: action === 'visitor' ? 'visitor' : 'ignored', matched_by: 'admin', profile_id: null, invited_by: null })
       .eq('id', id);
     if (error) return { status: 'error', message: GENERIC };
     done(p.meeting_id);
@@ -60,7 +60,10 @@ export async function resolveParticipant(_prev: ActionState, formData: FormData)
   }
 
   if (!profileId) return { status: 'error', message: 'Choose the member first.' };
-  const { error } = await supabase.from('zoom_participants').update({ resolution: 'member', matched_by: 'admin', profile_id: profileId }).eq('id', id);
+  const { error } = await supabase
+    .from('zoom_participants')
+    .update({ resolution: 'member', matched_by: 'admin', profile_id: profileId, invited_by: null })
+    .eq('id', id);
   if (error) return { status: 'error', message: GENERIC };
   // Several Zoom entries can belong to one member: keep the earliest join, latest leave and add the minutes.
   const { data: theirs } = await supabase
@@ -109,6 +112,32 @@ export async function resolveParticipant(_prev: ActionState, formData: FormData)
     .eq('meeting_id', p.meeting_id);
   done(p.meeting_id);
   return { status: 'success', message: remember === 'on' ? 'Linked. This Zoom name will be matched automatically next time.' : 'Linked.' };
+}
+
+const inviterSchema = z.object({ id: z.uuid(), invitedBy: z.union([z.uuid(), z.literal('')]) });
+
+/**
+ * Owner 2026-11-10: a visitor who was only in the Zoom report (never filled in the guest form) gets the member who
+ * invited them, so the Member and Management recaps can thank that member. Blank clears it.
+ */
+export async function setVisitorInviter(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const parsed = inviterSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { status: 'error', message: GENERIC };
+  const { id, invitedBy } = parsed.data;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('zoom_participants')
+    .update({ invited_by: invitedBy || null })
+    .eq('id', id)
+    .eq('resolution', 'visitor')
+    .select('meeting_id')
+    .maybeSingle();
+  if (error || !data) return { status: 'error', message: GENERIC };
+  done(data.meeting_id);
+  revalidatePath('/admin/recap');
+  revalidatePath('/admin/management-recap');
+  return { status: 'success', message: invitedBy ? 'Saved.' : 'Cleared.' };
 }
 
 async function countPresent(meetingId: string) {

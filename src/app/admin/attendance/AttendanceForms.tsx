@@ -4,7 +4,7 @@ import { useActionState } from 'react';
 import { SubmitButton } from '@/components/forms';
 import { Pill } from '@/components/ui';
 import { idle, type ActionState } from '@/lib/validation';
-import { fetchFromZoom, resolveParticipant, saveAttendance } from '../../actions/attendance';
+import { fetchFromZoom, resolveParticipant, saveAttendance, setVisitorInviter } from '../../actions/attendance';
 
 function Status({ state }: { state: ActionState }) {
   if (state.status === 'success')
@@ -82,6 +82,43 @@ export function ReviewRow({ item, members }: { item: ReviewItem; members: Member
         <button type="submit" name="action" value="ignore" className="btn btn-outline btn-sm">
           Ignore
         </button>
+      </form>
+      <Status state={state} />
+    </li>
+  );
+}
+
+/**
+ * A visitor who was only in the Zoom report (didn't fill in the guest form): choose the member who invited them, so the
+ * recaps say who to thank (owner, 2026-11-10).
+ */
+export function VisitorInviterRow({ item, members }: { item: { id: string; name: string; invitedBy: string | null }; members: MemberOption[] }) {
+  const [state, action] = useActionState(setVisitorInviter, idle);
+  const fid = `inv-${item.id}`;
+  return (
+    <li className="border-line-soft flex flex-col gap-2 border-b py-3 last:border-b-0">
+      <form action={action} className="flex flex-wrap items-end gap-3" aria-label={`Who invited ${item.name}`}>
+        <input type="hidden" name="id" value={item.id} />
+        <div className="min-w-[10rem] flex-[1_1_10rem]">
+          <span className="label">Visitor</span>
+          <strong className="text-heading flex min-h-11 items-center">{item.name}</strong>
+        </div>
+        <div className="w-64 max-w-full">
+          <label className="label" htmlFor={fid}>
+            Invited by
+          </label>
+          <select key={item.invitedBy ?? ''} id={fid} name="invitedBy" className="field" defaultValue={item.invitedBy ?? ''}>
+            <option value="">Not known / no one</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <SubmitButton pendingText="Saving…" className="btn btn-primary btn-sm">
+          Save
+        </SubmitButton>
       </form>
       <Status state={state} />
     </li>

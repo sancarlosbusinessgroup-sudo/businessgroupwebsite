@@ -68,7 +68,7 @@ export async function importZoomAttendance(db: Db, meetingId: string, by: string
     db.from('profiles').select('id, first_name, last_name, member_contacts(email)').eq('status', 'approved'),
     db.from('guest_requests').select('id, first_name, last_name, email, status').in('status', ['requested', 'visited']).gte('created_at', since),
     db.from('zoom_aliases').select('key, profile_id'),
-    db.from('zoom_participants').select('key, resolution, matched_by, profile_id, guest_id').eq('meeting_id', meetingId),
+    db.from('zoom_participants').select('key, resolution, matched_by, profile_id, guest_id, invited_by').eq('meeting_id', meetingId),
     db.from('attendance').select('profile_id, status, checked_in_at, method').eq('meeting_id', meetingId),
   ]);
   if (membersRes.error || guestsRes.error || aliasRes.error || existingRes.error || attRes.error) {
@@ -103,15 +103,23 @@ export async function importZoomAttendance(db: Db, meetingId: string, by: string
     };
     const keep = decided.get(p.key);
     let row: (typeof rows)[number];
-    if (keep) row = { ...base, resolution: keep.resolution, matched_by: keep.matched_by, profile_id: keep.profile_id, guest_id: keep.guest_id };
+    if (keep)
+      row = {
+        ...base,
+        resolution: keep.resolution,
+        matched_by: keep.matched_by,
+        profile_id: keep.profile_id,
+        guest_id: keep.guest_id,
+        invited_by: keep.invited_by,
+      };
     else {
       const m = matchParticipant(p, members, guests, aliases);
       row =
         m.kind === 'member'
-          ? { ...base, resolution: 'member', matched_by: m.by, profile_id: m.profileId, guest_id: null }
+          ? { ...base, resolution: 'member', matched_by: m.by, profile_id: m.profileId, guest_id: null, invited_by: null }
           : m.kind === 'guest'
-            ? { ...base, resolution: 'guest', matched_by: m.by, profile_id: null, guest_id: m.guestId }
-            : { ...base, resolution: 'pending', matched_by: null, profile_id: null, guest_id: null };
+            ? { ...base, resolution: 'guest', matched_by: m.by, profile_id: null, guest_id: m.guestId, invited_by: null }
+            : { ...base, resolution: 'pending', matched_by: null, profile_id: null, guest_id: null, invited_by: null };
     }
     rows.push(row);
     if (row.resolution === 'member' && row.profile_id) {
