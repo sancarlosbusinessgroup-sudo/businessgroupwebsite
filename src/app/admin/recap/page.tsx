@@ -28,17 +28,23 @@ export default async function AdminRecapPage() {
   const meeting = db ? await latestEndedMeeting(db, now) : null;
 
   let email: { subject: string; html: string; text: string } | null = null;
-  let audience: { members: number; visitors: string[]; sent: number } | null = null;
+  let audience: { members: number; visitors: string[]; sent: number; saved: string[] } | null = null;
   if (db && meeting) {
     const { data: members } = await db.from('profiles').select('id').eq('status', 'approved');
     const ids = (members ?? []).map((x) => x.id);
-    const [people, off, visitors, { count }] = await Promise.all([
+    const [people, off, visitors, { count }, { data: settings }] = await Promise.all([
       loadRecipients(ids),
       loadOptOuts(ids, 'meeting_recaps'),
       recapVisitorRecipients(db, meeting.id),
       db.from('email_log').select('id', { count: 'exact', head: true }).eq('kind', 'meeting_recap').eq('dedupe_key', meeting.id).eq('status', 'sent'),
+      db.from('email_settings').select('recap_extra_emails').eq('id', 1).maybeSingle(),
     ]);
-    audience = { members: [...people.values()].filter((r) => !off.has(r.id)).length, visitors: visitors.map((v) => v.name), sent: count ?? 0 };
+    audience = {
+      members: [...people.values()].filter((r) => !off.has(r.id)).length,
+      visitors: visitors.map((v) => v.name),
+      sent: count ?? 0,
+      saved: settings?.recap_extra_emails ?? [],
+    };
     const shared = await recapShared(db, now);
     const built = await recapForMeeting(db, meeting, shared);
     email = meetingRecapEmail({ siteUrl: siteUrl(), firstName: viewer.profile.first_name || 'there', ...built });
@@ -83,7 +89,7 @@ export default async function AdminRecapPage() {
                       Already sent to {audience.sent} {audience.sent === 1 ? 'person' : 'people'} for this meeting.
                     </p>
                   ) : null}
-                  <SendRecapForm meetingId={meeting.id} members={audience.members} visitors={audience.visitors} />
+                  <SendRecapForm meetingId={meeting.id} members={audience.members} visitors={audience.visitors} saved={audience.saved} />
                 </div>
               ) : null}
               <iframe

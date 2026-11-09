@@ -65,7 +65,12 @@ export async function managementRecapFor(db: Db, m: MgmtMeeting, now: Date): Pro
       .limit(1)
       .maybeSingle(),
     // Visitors only in the Zoom report, with the inviter chosen on Admin → Attendance (owner, 2026-11-10).
-    db.from('zoom_participants').select('name, invited_by').eq('meeting_id', m.id).eq('resolution', 'visitor').order('name'),
+    db
+      .from('zoom_participants')
+      .select('name, invited_by, email, visitor_business, visitor_email, visitor_phone')
+      .eq('meeting_id', m.id)
+      .eq('resolution', 'visitor')
+      .order('name'),
   ]);
 
   // Members who joined after this meeting don't count for it.
@@ -110,7 +115,15 @@ export async function managementRecapFor(db: Db, m: MgmtMeeting, now: Date): Pro
     phone: g.phone,
     signedIn: g.source === 'meeting_sign_in',
   }));
-  for (const z of zoomOnly) visitors.push({ name: z.name, invitedBy: z.invited_by ? (refName.get(z.invited_by) ?? null) : null, zoomOnly: true });
+  for (const z of zoomOnly)
+    visitors.push({
+      name: z.name,
+      business: z.visitor_business,
+      invitedBy: z.invited_by ? (refName.get(z.invited_by) ?? null) : null,
+      email: z.visitor_email ?? z.email,
+      phone: z.visitor_phone,
+      zoomOnly: true,
+    });
 
   const absences = await absencesFor(
     db,

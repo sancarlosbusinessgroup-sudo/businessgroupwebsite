@@ -91,7 +91,12 @@ export async function recapForMeeting(db: Db, m: EndedMeeting, shared: RecapShar
       .in('status', ['visited', 'applied', 'joined'])
       .order('created_at'),
     // Visitors only in the Zoom report (no guest form), with the inviter an admin chose on Attendance (owner, 2026-11-10).
-    db.from('zoom_participants').select('name, invited_by').eq('meeting_id', m.id).eq('resolution', 'visitor').order('name'),
+    db
+      .from('zoom_participants')
+      .select('name, invited_by, email, visitor_business, visitor_email, visitor_phone')
+      .eq('meeting_id', m.id)
+      .eq('resolution', 'visitor')
+      .order('name'),
   ]);
   const kindLabel = { pdf: 'Presentation (PDF)', powerpoint: 'Presentation (PowerPoint)', image: 'Presentation image', youtube: 'Watch the video' } as const;
   const materialsFor = (slide: string): [string, string][] => [
@@ -118,7 +123,7 @@ export async function recapForMeeting(db: Db, m: EndedMeeting, shared: RecapShar
       website: g.website,
       phone: g.phone,
     })),
-    ...zoomOnly.map((z) => ({ name: z.name })),
+    ...zoomOnly.map((z) => ({ name: z.name, business: z.visitor_business, email: z.visitor_email ?? z.email, phone: z.visitor_phone })),
   ];
   const referrerIds = [...new Set([...(guests ?? []).map((g) => g.referrer_id), ...zoomOnly.map((z) => z.invited_by)].filter((x): x is string => !!x))];
   const { data: referrers } = referrerIds.length

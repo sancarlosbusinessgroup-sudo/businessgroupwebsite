@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { sendMemberRecapNow } from '@/app/actions/admin';
+import { saveRecapList, sendMemberRecapNow } from '@/app/actions/admin';
 import { SubmitButton } from '@/components/forms';
 import { idle } from '@/lib/validation';
 
@@ -9,10 +9,11 @@ import { idle } from '@/lib/validation';
  * Send the Member recap after checking the preview (owner, 2026-11-10). Extra addresses are optional; Send asks once
  * more before anything goes out.
  */
-export function SendRecapForm({ meetingId, members, visitors }: { meetingId: string; members: number; visitors: string[] }) {
+export function SendRecapForm({ meetingId, members, visitors, saved }: { meetingId: string; members: number; visitors: string[]; saved: string[] }) {
   const [state, action] = useActionState(sendMemberRecapNow, idle);
+  const [saveState, saveAction] = useActionState(saveRecapList, idle);
   const [confirming, setConfirming] = useState(false);
-  const [extra, setExtra] = useState('');
+  const [extra, setExtra] = useState(saved.join('\n'));
   const extraCount = extra.split(/[\s,;]+/).filter(Boolean).length;
   const total = members + visitors.length + extraCount;
   return (
@@ -25,12 +26,12 @@ export function SendRecapForm({ meetingId, members, visitors }: { meetingId: str
       </p>
       <div>
         <label className="label" htmlFor="extraEmails">
-          More email addresses (optional)
+          Also send to (saved list)
         </label>
         <textarea
           id="extraEmails"
           name="extraEmails"
-          rows={3}
+          rows={Math.min(8, Math.max(3, saved.length + 1))}
           className="field"
           value={extra}
           onChange={(e) => (setExtra(e.target.value), setConfirming(false))}
@@ -38,7 +39,8 @@ export function SendRecapForm({ meetingId, members, visitors }: { meetingId: str
           aria-describedby="extraEmails-help"
         />
         <p id="extraEmails-help" className="text-ink-muted m-0 mt-1 text-sm">
-          Separate addresses with commas or new lines. Each address gets the recap once; pressing Send again only reaches addresses that haven’t had it.
+          One address per line (or separated by commas). The list is saved for the next meetings when you press Save list or send. Each address gets a meeting’s
+          recap once; pressing Send again only reaches addresses that haven’t had it.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
@@ -52,11 +54,26 @@ export function SendRecapForm({ meetingId, members, visitors }: { meetingId: str
             </button>
           </>
         ) : (
-          <button type="button" className="btn btn-primary" onClick={() => setConfirming(true)}>
-            Send recap
-          </button>
+          <>
+            <button type="button" className="btn btn-primary" onClick={() => setConfirming(true)}>
+              Send recap
+            </button>
+            <button type="submit" formAction={saveAction} className="btn btn-outline">
+              Save list
+            </button>
+          </>
         )}
       </div>
+      {saveState.status === 'success' ? (
+        <p role="status" className="text-green-ink m-0 text-sm font-semibold">
+          {saveState.message}
+        </p>
+      ) : null}
+      {saveState.status === 'error' && saveState.message ? (
+        <p role="alert" className="text-red m-0 text-sm font-semibold">
+          {saveState.message}
+        </p>
+      ) : null}
       {state.status === 'success' ? (
         <p role="status" className="text-green-ink m-0 text-sm font-semibold">
           {state.message}

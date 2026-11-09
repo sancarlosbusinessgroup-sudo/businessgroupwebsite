@@ -331,11 +331,13 @@ export async function sendMemberRecap(meetingId: string, extraEmails: string[] =
 export async function recapVisitorRecipients(db: NonNullable<ReturnType<typeof createAdminClient>>, meetingId: string) {
   const [{ data: guests }, { data: zoom }] = await Promise.all([
     db.from('guest_requests').select('first_name, last_name, email').eq('meeting_id', meetingId).in('status', ['visited', 'applied', 'joined']),
-    db.from('zoom_participants').select('name, email').eq('meeting_id', meetingId).eq('resolution', 'visitor').not('email', 'is', null),
+    db.from('zoom_participants').select('name, email, visitor_email').eq('meeting_id', meetingId).eq('resolution', 'visitor'),
   ]);
   return [
     ...(guests ?? []).filter((g) => g.email).map((g) => ({ email: g.email as string, name: `${g.first_name} ${g.last_name}`, firstName: g.first_name })),
-    ...(zoom ?? []).filter((z) => z.email).map((z) => ({ email: z.email as string, name: z.name, firstName: z.name.split(/\s+/)[0] ?? '' })),
+    ...(zoom ?? [])
+      .filter((z) => z.visitor_email || z.email)
+      .map((z) => ({ email: (z.visitor_email || z.email) as string, name: z.name, firstName: z.name.split(/\s+/)[0] ?? '' })),
   ];
 }
 
