@@ -3,8 +3,6 @@ import { AdminNav } from '@/components/AdminNav';
 import { HowThisWorks } from '@/components/HowThisWorks';
 import { EmptyState, Notice, Pill } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
-import { guestStatusLabels, visitorSignInPath } from '@/lib/content';
-import { env } from '@/lib/env';
 import { getCategorySeats, getNextMeeting } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime, formatShortDate } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
@@ -12,15 +10,12 @@ import { absencesFor, memberSince } from '@/lib/data/attendance';
 import { ABSENCE_LIMIT, parseZoomMeetingId } from '@/lib/zoom';
 import { zoomConfigured } from '@/lib/zoom-api';
 import Link from 'next/link';
-import { resolveCorrection, setGuestOneOnOnes, setGuestStatus, setMemberStatus } from '../actions/admin';
-import { SendZoomLinkButton } from './SendZoomLinkButton';
-import { OpenApplicationOnHash } from './OpenApplicationOnHash';
-import { InviteToApplyButton } from './InviteToApplyButton';
+import { resolveCorrection } from '../actions/admin';
+import { GuestSections } from './GuestSections';
 import { ResendEmailButton } from './ResendEmailButton';
 import { resendTarget } from '@/lib/email/resend-target';
 import { NewsletterSyncForm } from './NewsletterSyncForm';
 import { SeatForm } from './SeatForm';
-import { CopySignInLink } from './CopySignInLink';
 
 export const metadata: Metadata = { title: 'Admin' };
 
@@ -33,21 +28,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { error, zoomError } = await searchParams;
   await requireAdmin();
   const supabase = await createClient();
-  const [pendingRes, guestsRes, corrRes, seats, downloadsRes, onboardRes, mailRes, invitesRes, zoomSentRes] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select(
-        'id, first_name, last_name, business_name, website, guest_meetings_attended, created_at, categories(name), referrer:referred_by(first_name, last_name), member_contacts(email, phone), member_applications(*)',
-      )
-      .eq('status', 'pending')
-      .order('created_at'),
-    supabase
-      .from('guest_requests')
-      .select(
-        'id, first_name, last_name, email, business_name, business_description, phone, website, invited_by_text, status, created_at, one_on_ones_done_at, source, guest_surveys(answered_at, coming_back, interested_in_joining, most_interesting, one_on_one_with, comments)',
-      )
-      .order('created_at', { ascending: false })
-      .limit(50),
+  const [corrRes, seats, downloadsRes, onboardRes, mailRes] = await Promise.all([
     supabase
       .from('attendance_corrections')
       .select('id, note, created_at, profile:profiles!attendance_corrections_profile_id_fkey(first_name, last_name), meeting:meetings(starts_at)')
@@ -69,8 +50,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       .select('id, kind, dedupe_key, recipient, subject, status, error, created_at')
       .order('created_at', { ascending: false })
       .limit(25),
-    supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'apply_invite').eq('status', 'sent').order('created_at').limit(500),
-    supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'guest_zoom_link').eq('status', 'sent').order('created_at').limit(500),
   ]);
   const next = await getNextMeeting();
   const { data: nextLink } = next ? await supabase.from('meeting_links').select('join_url').eq('meeting_id', next.id).maybeSingle() : { data: null };
@@ -84,16 +63,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     (approved ?? []).map((p) => ({ id: p.id, since: memberSince(p) })),
   );
   const atLimit = (approved ?? []).filter((p) => absences.get(p.id)?.atLimit);
-  const invitedOn = new Map((invitesRes.data ?? []).map((r) => [r.dedupe_key.split(':')[0], formatShortDate(new Date(r.created_at))]));
-  const zoomSentOn = new Map((zoomSentRes.data ?? []).map((r) => [r.dedupe_key.split(':')[0], formatShortDate(new Date(r.created_at))]));
-  if (pendingRes.error || guestsRes.error || corrRes.error || downloadsRes.error) throw new Error('Could not load admin data');
-  // Guests who have applied: their pending membership application, matched by email (for "Application approval").
-  const pendingByEmail = new Map(
-    pendingRes.data.flatMap((p) => {
-      const c = Array.isArray(p.member_contacts) ? p.member_contacts[0] : p.member_contacts;
-      return c?.email ? [[c.email.toLowerCase(), { id: p.id, name: `${p.first_name} ${p.last_name}` }] as const] : [];
-    }),
-  );
+  if (corrRes.error || downloadsRes.error) throw new Error('Could not load admin data');
 
   return (
     <div className="bg-canvas">
@@ -140,292 +110,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </p>
         </section>
 
-        <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="ap-h">
-          <OpenApplicationOnHash />
-          <h2 id="ap-h" className="font-display m-0 text-[22px] font-extrabold">
-            Pending applications ({pendingRes.data.length})
-          </h2>
-          {pendingRes.data.length === 0 ? (
-            <EmptyState title="No applications waiting" />
-          ) : (
-            <ul className="m-0 flex list-none flex-col gap-3 p-0">
-              {pendingRes.data.map((p) => {
-                const contact = Array.isArray(p.member_contacts) ? p.member_contacts[0] : p.member_contacts;
-                const referrer = Array.isArray(p.referrer) ? p.referrer[0] : p.referrer;
-                const app = Array.isArray(p.member_applications) ? p.member_applications[0] : p.member_applications;
-                const refs = (app?.references ?? []) as {
-                  name?: string;
-                  business?: string | null;
-                  business_name?: string | null;
-                  email?: string | null;
-                  phone?: string | null;
-                  website?: string | null;
-                }[];
-                return (
-                  <li
-                    key={p.id}
-                    id={`application-${p.id}`}
-                    className="border-line target:ring-teal flex scroll-mt-24 flex-wrap items-center justify-between gap-3 rounded-xl border p-4 target:ring-2"
-                  >
-                    <div className="min-w-0">
-                      <strong>
-                        {p.first_name} {p.last_name}
-                      </strong>{' '}
-                      · {p.business_name} {p.categories ? `(${p.categories.name})` : ''}
-                      <div className="text-ink-muted text-sm">
-                        {contact?.email} · applied {formatShortDate(new Date(p.created_at))} · guest visits: {p.guest_meetings_attended}
-                        {referrer ? ` · referred by ${referrer.first_name} ${referrer.last_name}` : ''}
-                      </div>
-                      {app ? (
-                        <details className="mt-2">
-                          <summary className="text-teal-text cursor-pointer text-sm font-bold">View application</summary>
-                          <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-2 text-[15px] sm:grid-cols-2">
-                            {[
-                              { k: 'Application date', v: formatShortDate(new Date(`${app.applied_on}T12:00:00Z`)) },
-                              { k: 'Business phone', v: app.business_phone },
-                              { k: 'Business address', v: app.business_address },
-                              { k: 'Website', v: p.website },
-                              { k: 'In business for', v: app.years_in_business },
-                              { k: 'Product or service', v: app.product_service },
-                              { k: 'Education & credentials', v: app.credentials },
-                              { k: 'Networking groups', v: app.networking_groups },
-                              { k: 'Signed', v: `${app.signature_name} · ${formatShortDate(new Date(app.agreed_at))}` },
-                            ].map((r) => (
-                              <div key={r.k}>
-                                <dt className="text-ink-muted text-[13px] font-bold">{r.k}</dt>
-                                <dd className="m-0 whitespace-pre-line">{r.v || '—'}</dd>
-                              </div>
-                            ))}
-                          </dl>
-                          {refs.length ? (
-                            <div className="mt-3">
-                              <p className="text-ink-muted m-0 text-[13px] font-bold">References</p>
-                              <ul className="m-0 mt-1 flex list-none flex-col gap-1 p-0 text-[15px]">
-                                {refs.map((r, i) => (
-                                  <li key={i}>
-                                    <strong>{r.name}</strong>
-                                    {r.business ? ` · ${r.business}` : ''}
-                                    {r.business_name ? ` · ${r.business_name}` : ''}
-                                    {r.email ? (
-                                      <>
-                                        {' · '}
-                                        <a href={`mailto:${r.email}`}>{r.email}</a>
-                                      </>
-                                    ) : null}
-                                    {r.phone ? ` · ${r.phone}` : ''}
-                                    {r.website ? ` · ${r.website}` : ''}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ) : null}
-                        </details>
-                      ) : null}
-                    </div>
-                    <div className="flex gap-2">
-                      <form action={setMemberStatus}>
-                        <input type="hidden" name="id" value={p.id} />
-                        <input type="hidden" name="status" value="approved" />
-                        <button type="submit" className="btn btn-primary btn-sm">
-                          Approve
-                          <span className="sr-only">
-                            {' '}
-                            {p.first_name} {p.last_name}
-                          </span>
-                        </button>
-                      </form>
-                      <form action={setMemberStatus}>
-                        <input type="hidden" name="id" value={p.id} />
-                        <input type="hidden" name="status" value="declined" />
-                        <button type="submit" className="btn btn-outline btn-sm">
-                          Decline
-                          <span className="sr-only">
-                            {' '}
-                            {p.first_name} {p.last_name}
-                          </span>
-                        </button>
-                      </form>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-
-        <section className="card flex flex-col gap-3 p-[22px]" aria-labelledby="signin-h">
-          <h2 id="signin-h" className="font-display m-0 text-[22px] font-extrabold">
-            Visitor sign-in link
-          </h2>
-          <p className="text-ink-muted m-0 text-sm">
-            For visitors who join the Zoom without having asked for an invite. Copy this link and paste it in the Zoom chat during the meeting. Visitors fill in
-            their name, email, phone, business and who invited them, and appear in the list below, already marked as visited and “Signed in at the meeting”.
-          </p>
-          <CopySignInLink url={`${env.siteUrl}${visitorSignInPath}`} />
-        </section>
-
-        <section id="guests" className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="gr-h">
-          <h2 id="gr-h" className="font-display m-0 text-[22px] font-extrabold">
-            Guest invite requests
-          </h2>
-          <p className="text-ink-muted m-0 text-sm">
-            <strong>Send Zoom link</strong> emails the guest the Zoom link for their meeting. After they have visited and the Membership Committee agrees, use{' '}
-            <strong>Invite to apply</strong> to email them the membership application form, already filled in with their name and email. Mark their one-on-ones
-            with the Membership Committee as done, then <strong>Approved</strong> approves their application and emails them their welcome.
-          </p>
-          {guestsRes.data.length === 0 ? (
-            <EmptyState title="No guest requests yet" />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="data-table">
-                <caption className="sr-only">Guest invite requests</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Guest</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">Phone</th>
-                    <th scope="col">Invited by</th>
-                    <th scope="col">Requested</th>
-                    <th scope="col">Zoom link</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Application</th>
-                    <th scope="col">One-on-ones</th>
-                    <th scope="col">Application approval</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {guestsRes.data.map((g) => (
-                    <tr key={g.id}>
-                      <td>
-                        <strong>
-                          {g.first_name} {g.last_name}
-                        </strong>
-                        <div className="text-ink-muted text-sm">{g.business_name}</div>
-                        {g.business_description ? (
-                          <details className="text-sm">
-                            <summary className="cursor-pointer">About their business</summary>
-                            <p className="m-0 mt-1 max-w-[36ch] whitespace-pre-line">{g.business_description}</p>
-                          </details>
-                        ) : null}
-                        <SurveyAnswers survey={g.guest_surveys} />
-                        {g.website ? (
-                          <div className="text-sm">
-                            <a href={g.website} target="_blank" rel="noopener noreferrer">
-                              {g.website.replace(/^https?:\/\//i, '')}
-                            </a>
-                          </div>
-                        ) : null}
-                      </td>
-                      <td>
-                        <a href={`mailto:${g.email}`}>{g.email}</a>
-                      </td>
-                      <td className="whitespace-nowrap">{g.phone ?? '—'}</td>
-                      <td>{g.invited_by_text ?? '—'}</td>
-                      <td className="whitespace-nowrap">
-                        {formatShortDate(new Date(g.created_at))}
-                        {g.source === 'meeting_sign_in' ? (
-                          <div className="mt-1">
-                            <Pill tone="teal">Signed in at the meeting</Pill>
-                          </div>
-                        ) : null}
-                      </td>
-                      <td>
-                        {g.status === 'joined' ? (
-                          '—'
-                        ) : (
-                          <SendZoomLinkButton id={g.id} name={`${g.first_name} ${g.last_name}`} sentOn={zoomSentOn.get(g.id) ?? null} />
-                        )}
-                      </td>
-                      <td>
-                        {g.status === 'requested' ? (
-                          <form action={setGuestStatus}>
-                            <input type="hidden" name="id" value={g.id} />
-                            <input type="hidden" name="status" value="visited" />
-                            <button type="submit" className="btn btn-outline btn-sm">
-                              Mark visited
-                              <span className="sr-only">
-                                {' '}
-                                for {g.first_name} {g.last_name}
-                              </span>
-                            </button>
-                          </form>
-                        ) : (
-                          <Pill tone={g.status === 'joined' ? 'green' : 'teal'}>{guestStatusLabels[g.status]}</Pill>
-                        )}
-                      </td>
-                      <td>
-                        {g.status === 'requested' || g.status === 'visited' ? (
-                          <InviteToApplyButton id={g.id} name={`${g.first_name} ${g.last_name}`} sentOn={invitedOn.get(g.id) ?? null} />
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td>
-                        {g.one_on_ones_done_at ? (
-                          <div className="flex flex-col items-start gap-1">
-                            <Pill tone="green">Done</Pill>
-                            <form action={setGuestOneOnOnes}>
-                              <input type="hidden" name="id" value={g.id} />
-                              <input type="hidden" name="done" value="false" />
-                              <button type="submit" className="text-teal-text cursor-pointer border-0 bg-transparent p-0 text-sm underline">
-                                Undo
-                                <span className="sr-only">
-                                  {' '}
-                                  one-on-ones for {g.first_name} {g.last_name}
-                                </span>
-                              </button>
-                            </form>
-                          </div>
-                        ) : (
-                          <form action={setGuestOneOnOnes}>
-                            <input type="hidden" name="id" value={g.id} />
-                            <input type="hidden" name="done" value="true" />
-                            <button type="submit" className="btn btn-outline btn-sm">
-                              Done?
-                              <span className="sr-only">
-                                {' '}
-                                Mark one-on-ones done for {g.first_name} {g.last_name}
-                              </span>
-                            </button>
-                          </form>
-                        )}
-                      </td>
-                      <td>
-                        {(() => {
-                          if (g.status === 'joined') return <Pill tone="green">Approved</Pill>;
-                          const applicant = pendingByEmail.get(g.email.toLowerCase());
-                          if (!applicant) return <span className="text-ink-muted text-sm">Waiting for their application</span>;
-                          return (
-                            <div className="flex flex-col items-start gap-1.5">
-                              <a href={`#application-${applicant.id}`} className="text-sm font-bold">
-                                See application
-                                <span className="sr-only">
-                                  {' '}
-                                  of {g.first_name} {g.last_name}
-                                </span>
-                              </a>
-                              <form action={setMemberStatus}>
-                                <input type="hidden" name="id" value={applicant.id} />
-                                <input type="hidden" name="status" value="approved" />
-                                <button type="submit" className="btn btn-primary btn-sm">
-                                  Approved
-                                  <span className="sr-only">
-                                    {' '}
-                                    (approve the application of {g.first_name} {g.last_name})
-                                  </span>
-                                </button>
-                              </form>
-                            </div>
-                          );
-                        })()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+        <GuestSections back="/admin" />
 
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="co-h">
           <h2 id="co-h" className="font-display m-0 text-[22px] font-extrabold">
@@ -608,55 +293,5 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </section>
       </div>
     </div>
-  );
-}
-
-type Survey = {
-  answered_at: string | null;
-  coming_back: string | null;
-  interested_in_joining: string | null;
-  most_interesting: string | null;
-  one_on_one_with: string | null;
-  comments: string | null;
-};
-
-/** Guest follow-up survey answers (owner meeting 2026-10-30), under the guest's name. */
-function SurveyAnswers({ survey }: { survey: Survey | Survey[] | null }) {
-  const s = Array.isArray(survey) ? survey[0] : survey;
-  if (!s) return null;
-  if (!s.answered_at) return <div className="text-ink-muted text-sm">Survey sent, no answer yet</div>;
-  const yn = (v: string | null) => (v === 'yes' ? 'Yes' : v === 'maybe' ? 'Maybe' : v === 'no' ? 'No' : '—');
-  return (
-    <details className="text-sm">
-      <summary className="cursor-pointer font-semibold">Survey answers</summary>
-      <dl className="m-0 mt-1 flex max-w-[36ch] flex-col gap-1">
-        <div>
-          <dt className="inline font-semibold">Coming back: </dt>
-          <dd className="inline">{yn(s.coming_back)}</dd>
-        </div>
-        <div>
-          <dt className="inline font-semibold">Interested in joining: </dt>
-          <dd className="inline">{yn(s.interested_in_joining)}</dd>
-        </div>
-        {s.most_interesting ? (
-          <div>
-            <dt className="font-semibold">Most interesting</dt>
-            <dd className="m-0 whitespace-pre-line">{s.most_interesting}</dd>
-          </div>
-        ) : null}
-        {s.one_on_one_with ? (
-          <div>
-            <dt className="font-semibold">One-on-one with</dt>
-            <dd className="m-0">{s.one_on_one_with}</dd>
-          </div>
-        ) : null}
-        {s.comments ? (
-          <div>
-            <dt className="font-semibold">Anything else</dt>
-            <dd className="m-0 whitespace-pre-line">{s.comments}</dd>
-          </div>
-        ) : null}
-      </dl>
-    </details>
   );
 }

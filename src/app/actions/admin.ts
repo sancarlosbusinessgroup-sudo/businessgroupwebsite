@@ -32,12 +32,15 @@ export async function setMemberStatus(formData: FormData): Promise<void> {
   if (!id.success || !status.success) return;
   const supabase = await adminClient();
   if (!supabase) redirect('/dashboard');
+  // The admin page the form was on (Overview or Guest Invites & Applications), for the error message.
+  const back = formData.get('back') === '/admin/guests' ? '/admin/guests' : '/admin';
   const { data, error } = await supabase.from('profiles').update({ status: status.data }).eq('id', id.data).select('id');
   revalidatePath('/admin');
+  revalidatePath('/admin/guests');
   revalidatePath('/members');
   await bustPublic('directory', 'categories');
-  if (error && /category is full/.test(error.message)) redirect('/admin?error=category_full');
-  if (error || !data?.length) redirect('/admin?error=save');
+  if (error && /category is full/.test(error.message)) redirect(`${back}?error=category_full`);
+  if (error || !data?.length) redirect(`${back}?error=save`);
   const [pid, st] = [id.data, status.data];
   after(() => safely('member status', () => onMemberStatus(pid, st)));
 }
@@ -49,6 +52,7 @@ export async function setGuestStatus(formData: FormData): Promise<void> {
   const supabase = await createClient();
   await supabase.from('guest_requests').update({ status: status.data }).eq('id', id.data);
   revalidatePath('/admin');
+  revalidatePath('/admin/guests');
 }
 
 export async function resolveCorrection(formData: FormData): Promise<void> {
@@ -223,6 +227,7 @@ export async function inviteToApply(_prev: ActionState, formData: FormData): Pro
   if (!isAdmin) return { status: 'error', message: 'Admins only.' };
   const r = await sendApplyInvite(id.data, localDateKey(new Date()));
   revalidatePath('/admin');
+  revalidatePath('/admin/guests');
   if (r === 'sent') return { status: 'success', message: 'Invite sent.' };
   if (r === 'duplicate') return { status: 'success', message: 'Already sent today.' };
   if (r === 'skipped') return { status: 'error', message: 'Email is not set up yet.' };
@@ -238,6 +243,7 @@ export async function sendZoomLink(_prev: ActionState, formData: FormData): Prom
   if (!isAdmin) return { status: 'error', message: 'Admins only.' };
   const r = await sendGuestZoomLink(id.data, localDateKey(new Date()));
   revalidatePath('/admin');
+  revalidatePath('/admin/guests');
   switch (r) {
     case 'sent':
       return { status: 'success', message: 'Zoom link sent.' };
@@ -265,6 +271,7 @@ export async function setGuestOneOnOnes(formData: FormData): Promise<void> {
     .update({ one_on_ones_done_at: done ? new Date().toISOString() : null })
     .eq('id', id.data);
   revalidatePath('/admin');
+  revalidatePath('/admin/guests');
 }
 
 /** The saved "also send to" list on Admin → Member recap: commas, semicolons, spaces or new lines between addresses. */

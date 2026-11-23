@@ -58,6 +58,8 @@ export const memberNav: readonly NavItem[] = [
 export const adminLinks = [
   { href: '/admin', label: 'Overview' },
   { href: '/present/next', label: 'Meeting slides' },
+  // Owner 2026-11-23: applications, the visitor sign-in link and guest requests on their own tab (also still on Overview).
+  { href: '/admin/guests', label: 'Guest Invites & Applications' },
   { href: '/admin/members', label: 'Members' },
   { href: '/admin/meetings', label: 'Meetings' },
   { href: '/admin/attendance', label: 'Attendance' },

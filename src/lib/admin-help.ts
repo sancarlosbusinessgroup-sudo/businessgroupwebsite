@@ -4,6 +4,7 @@
 
 export type AdminTab =
   | '/admin'
+  | '/admin/guests'
   | '/admin/members'
   | '/admin/meetings'
   | '/admin/attendance'
@@ -32,6 +33,15 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
       'Category seats: how many members each profession may have (usually 1). Full categories show as taken on the Visit and Join pages.',
       'Onboarding & email: who has finished their new-member onboarding, the last 25 emails the site sent (resend any that failed), and “Sync newsletter list” to copy every approved member into the Brevo newsletter list.',
       'Directory downloads: who downloaded the member directory, and when.',
+    ],
+  },
+  '/admin/guests': {
+    summary:
+      'Everyone on the way to membership, in one place: applications waiting for a decision, the visitor sign-in link for the Zoom chat, and every guest invite request. The same sections are also on the Overview tab.',
+    steps: [
+      'Pending applications: people who filled in the membership application. Read their answers and references, then Approve (they get the welcome email) or Decline.',
+      'Visitor sign-in link: copy it and paste it in the Zoom chat during a meeting. Visitors who came without asking for an invite fill in their details, and they appear in Guest invite requests, already marked as visited and “Signed in at the meeting”.',
+      'Guest invite requests: every visitor, newest first. Send Zoom link → Mark visited (or the Zoom report does it) → Invite to apply → one-on-ones Done → Approved. The status moves by itself when they apply and when they are approved.',
     ],
   },
   '/admin/members': {

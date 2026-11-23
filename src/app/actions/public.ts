@@ -162,6 +162,7 @@ export async function submitVisitorSignIn(_prev: ActionState, formData: FormData
         })
         .eq('id', existing.id);
       revalidatePath('/admin');
+      revalidatePath('/admin/guests');
       return { status: 'success', message: d.firstName, values: { today: 'yes' } };
     }
   }
@@ -207,5 +208,6 @@ export async function submitVisitorSignIn(_prev: ActionState, formData: FormData
   }
   if (!meeting) after(() => safely('guest request', () => onGuestRequest(guestId)));
   revalidatePath('/admin');
+  revalidatePath('/admin/guests');
   return { status: 'success', message: d.firstName, values: { today: meeting ? 'yes' : 'no' } };
 }

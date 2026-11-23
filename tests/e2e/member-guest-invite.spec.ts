@@ -109,6 +109,8 @@ test.describe('members invite a guest', () => {
     await expect(menu.getByRole('link')).toHaveText([
       'Overview',
       'Meeting slides',
+      // Owner 2026-11-23.
+      'Guest Invites & Applications',
       'Members',
       'Meetings',
       'Attendance',
