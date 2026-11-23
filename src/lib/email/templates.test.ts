@@ -112,7 +112,7 @@ describe('email templates', () => {
       title: 'M',
       topic: 'Prep 101',
     });
-    expect(withTopic.subject).toBe('Your 10-Minute Presentation is in 5 days: Mon, Nov 9 at 8:15 AM PT');
+    expect(withTopic.subject).toBe('Your 10-Minute Presentation is in 7 days: Mon, Nov 9 at 8:15 AM PT');
     expect(withTopic.text).toContain('Prep 101');
     expect(withTopic.text).toContain('10 minutes');
     expect(withTopic.text).not.toContain('/profile?tab=edit#email');

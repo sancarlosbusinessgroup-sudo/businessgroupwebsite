@@ -880,6 +880,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
           });
         }
         // BARP Champion (owner, 2026-10-23/24): the chosen champion at every meeting (this month's, else last month's), otherwise the leaders so far.
+        // From 2026-11-23: this meeting's champion (points since the previous meeting), live until it is recorded.
         const c = d.champion;
         const award = c.award;
         if (award) {
@@ -899,8 +900,14 @@ export function buildSlides(d: DeckData): DeckSlide[] {
               <div className="flex flex-col items-center gap-[1.1cqw]">
                 {/* Owner meeting 2026-10-30: "Current", because the title moves live as members report. */}
                 <p className="font-display m-0 text-[1.8cqw] font-bold tracking-[0.18em] uppercase" style={{ color: BLUE }}>
-                  Current BARP Champion · {award.label}
+                  {award.kind === 'meeting' ? `BARP Champion · ${award.label}` : `Current BARP Champion · ${award.label}`}
                 </p>
+                {/* Owner 2026-11-23: per meeting, points since the previous meeting. */}
+                {c.since ? (
+                  <p className="m-0 text-[1.5cqw] font-semibold" style={{ color: MUTED }}>
+                    Points since {c.since}
+                  </p>
+                ) : null}
                 <div className="flex items-center gap-[2.4cqw]">
                   <span className="rounded-[1.6cqw] shadow-[0_0.6cqw_2cqw_rgba(245,158,11,0.45)] ring-[0.4cqw] ring-[#fbbf24]">
                     <Face name={award.name} path={award.avatar} size={11} square />

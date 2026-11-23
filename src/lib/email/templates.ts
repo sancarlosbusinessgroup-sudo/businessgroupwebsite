@@ -386,9 +386,12 @@ export function meetingReminderEmail(o: {
 }
 
 /**
- * Sent by the daily job to each presenter 5 days before their meeting (once per meeting and slot):
+ * Sent by the daily job to each presenter PRESENTER_REMINDER_DAYS before their meeting (once per meeting and slot):
  * a reminder to prepare, with the topic they saved (or a nudge to add one) and where to upload materials.
  */
+/** Days before the meeting that presenters get their reminder (owner 2026-11-23: 7, was 5). */
+export const PRESENTER_REMINDER_DAYS = 7;
+
 export function presentationReminderEmail(o: {
   siteUrl: string;
   firstName: string;
@@ -400,13 +403,15 @@ export function presentationReminderEmail(o: {
   const slotTitle = slotTitles[o.slot];
   const minutes = o.slot === 'education' ? '5 minutes' : '10 minutes';
   return {
-    subject: `Your ${slotTitle} is in 5 days: ${o.when}`,
+    subject: `Your ${slotTitle} is in ${PRESENTER_REMINDER_DAYS} days: ${o.when}`,
     ...layout({
       siteUrl: o.siteUrl,
       preheader: `Time to prepare your ${minutes} for ${o.title}.`,
       heading: `${o.firstName}, you're presenting on ${o.when}`,
       blocks: [
-        { p: `A friendly reminder: you have the ${slotTitle} at ${o.title}, in 5 days. Now is a good time to prepare your ${minutes}.` },
+        {
+          p: `A friendly reminder: you have the ${slotTitle} at ${o.title}, in ${PRESENTER_REMINDER_DAYS} days. Now is a good time to prepare your ${minutes}.`,
+        },
         {
           list: [
             ['Meeting', `${o.title}, ${o.when}`],
@@ -420,7 +425,7 @@ export function presentationReminderEmail(o: {
             : 'Please add your topic on the Meetings page so it can appear in the meeting reminder, on the slides and in the recap.',
         },
         {
-          p: 'If you want to show slides, a PDF, a PowerPoint, an image, a video or a website during your presentation, add it under your slot on the Meetings page before the meeting starts. It goes into the meeting slides right after your presentation slide.',
+          p: 'If you want to show slides, a PDF, a PowerPoint, an image, a video or a website during your presentation, add it under your slot on the Meetings page, or under My Presentations in your profile, before the meeting starts. It goes into the meeting slides right after your presentation slide.',
         },
       ],
       cta: { label: o.topic ? 'Open Meetings' : 'Add your topic', href: `${o.siteUrl}/meetings` },

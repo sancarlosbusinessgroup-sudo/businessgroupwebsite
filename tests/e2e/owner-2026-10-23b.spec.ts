@@ -31,35 +31,66 @@ test('the private note on a one-on-one report is shown only to the member who wr
   await rest(`one_on_ones?reporter_id=eq.${me}&partner_id=eq.${(await profileBy('Grace', 'Nakamura')).id}`, 'DELETE');
 });
 
-test('BARP Champion: ranking, override needs a reason, badge on profile and directory, slide with fireworks', async ({ page }) => {
+// Owner 2026-11-23 (requirement change): a BARP Champion at every meeting, from the points earned since the previous
+// meeting up to the end of this one, instead of one per month. The four tests below were rewritten for that rule.
+
+const iso = (ms: number) => new Date(Date.now() + ms).toISOString();
+const MIN = 60_000;
+
+/** Press → until the BARP Champion slide shows (presses before the deck hydrates are ignored). */
+async function toChampionSlide(page: import('@playwright/test').Page) {
+  const deck = page.getByRole('region', { name: 'Meeting slides' });
+  await expect(async () => {
+    if (!(await deck.getByRole('heading', { name: 'BARP Champion' }).isVisible())) {
+      await page.keyboard.press('ArrowRight');
+      throw new Error('not on the champion slide yet');
+    }
+  }).toPass({ timeout: 20000, intervals: [200] });
+  return deck.getByRole('group').filter({ visible: true });
+}
+
+test('BARP Champion: ranking since the last meeting with lifetime points, override needs a reason, badge on profile and directory', async ({ page }) => {
   const me = await idOf(users.member);
   const other = await idOf(users.member2);
-  const month = new Date().toLocaleString('en-CA', { year: 'numeric', month: '2-digit', timeZone: 'America/Los_Angeles' }).slice(0, 7);
-  // Other tests in a full run may already have given the member points this month (referrals, one-on-ones, visitors
-  // brought since 2026-10-30), so measure the score first and check the two new referrals add exactly 2.
-  await login(page, users.admin, undefined, `/admin/champion?m=${month}`);
-  const pointsCell = () =>
+  // The page opens on the meeting in progress: points since the previous meeting up to its end. Points made now count there.
+  const page1 = '/admin/champion';
+  // Other tests in a full run may already have given the member points, so measure first and check two referrals add 2.
+  await login(page, users.admin, undefined, page1);
+  const cells = () =>
     page
       .getByRole('table', { name: /Points per member/ })
       .getByRole('row')
       .filter({ hasText: 'Morgan Member' })
-      .getByRole('cell')
-      .nth(1);
-  const before = (await pointsCell().count()) ? Number(await pointsCell().textContent()) : 0;
-  // Give the test member points this month: two referral slips (2 points: 1 per referral since 2026-10-30; was 10).
+      .getByRole('cell');
+  await expect(page.getByRole('heading', { level: 2, name: /^Ranking: / })).toBeVisible();
+  const before = (await cells().count()) ? Number(await cells().nth(1).textContent()) : 0;
+  await page.goto('/admin/champion?p=lifetime');
+  await expect(page.getByRole('heading', { level: 2, name: 'Ranking: Lifetime points' })).toBeVisible();
+  const lifetimeBefore = (await cells().count()) ? Number(await cells().nth(1).textContent()) : 0;
   const made = [
     ...(await rest('referrals', 'POST', { from_id: me, to_id: other, contact_name: 'Champion Prospect A' })),
     ...(await rest('referrals', 'POST', { from_id: me, to_id: other, contact_name: 'Champion Prospect B' })),
   ];
+  let meetingId = '';
   try {
-    await page.goto(`/admin/champion?m=${month}`);
+    await page.goto(page1);
     await expect(page.getByRole('heading', { level: 1, name: 'BARP Champion' })).toBeVisible();
-    const ranking = page.getByRole('table', { name: /Points per member/ });
-    // Cells: rank, Points, Referrals… (the member's name is the row header).
-    await expect(ranking.getByRole('row').filter({ hasText: 'Morgan Member' }).getByRole('cell').nth(1)).toHaveText(String(before + 2));
+    await expect(page.getByLabel('Meeting', { exact: true }).locator('option:checked')).toHaveText(/\(in progress\)/);
+    meetingId = await page.getByLabel('Meeting', { exact: true }).inputValue();
+    await expect(page.getByText(/^Points from the end of the .* meeting to the end of this meeting \(so far\)\.$/)).toBeVisible();
+    // Cells: rank, Points, Lifetime points, Referrals… (the member's name is the row header).
+    await expect(cells().nth(1)).toHaveText(String(before + 2));
+    await expect(cells().nth(2)).toHaveText(String(lifetimeBefore + 2));
     await expectAccessible(page);
 
+    // Lifetime view: everything ever earned.
+    await page.getByLabel('Meeting', { exact: true }).selectOption('lifetime');
+    await page.getByRole('button', { name: 'Show' }).click();
+    await expect(page.getByRole('heading', { level: 2, name: 'Ranking: Lifetime points' })).toBeVisible();
+    await expect(cells().nth(1)).toHaveText(String(lifetimeBefore + 2));
+
     // Choosing someone other than the automatic pick needs a reason.
+    await page.goto(page1);
     const form = page.getByRole('form', { name: 'Choose the champion' });
     await form.getByLabel('Champion').selectOption(other);
     await form.getByRole('button', { name: 'Save champion' }).click();
@@ -73,47 +104,53 @@ test('BARP Champion: ranking, override needs a reason, badge on profile and dire
     // Badge on the profile and the directory card.
     const riley = await rest(`profiles?id=eq.${other}&select=slug`);
     await page.goto(`/members/${riley[0]?.slug}`);
-    await expect(page.getByText(/^Current BARP Champion · /)).toBeVisible();
+    await expect(page.getByText(/^Current BARP Champion · .* meeting$/)).toBeVisible();
     await page.goto(`/members?q=Second+Test+Bakery`);
     await expect(page.getByRole('article').filter({ hasText: 'Riley Second' }).getByText('BARP Champion')).toBeVisible();
   } finally {
     for (const r of made) await rest(`referrals?id=eq.${r.id}`, 'DELETE');
-    await rest(`champion_awards?month=eq.${month}-01`, 'DELETE');
+    if (meetingId) await rest(`meeting_champions?meeting_id=eq.${meetingId}`, 'DELETE');
   }
 });
 
-test('champion slide: without a chosen champion it shows only the top scorer so far (owner, 2026-10-25)', async ({ page }) => {
+test('champion slide: the leader since the last meeting, live; points reported during the meeting count after Refresh', async ({ page }) => {
   const me = await idOf(users.member);
   const other = await idOf(users.member2);
-  // Several members score this month (Riley only 5 points); only the top scorer may appear.
-  const made = [
-    ...(await rest('referrals', 'POST', { from_id: me, to_id: other, contact_name: 'Top Scorer Prospect A' })),
-    ...(await rest('referrals', 'POST', { from_id: me, to_id: other, contact_name: 'Top Scorer Prospect B' })),
-    ...(await rest('referrals', 'POST', { from_id: other, to_id: me, contact_name: 'Top Scorer Prospect C' })),
-  ];
-  const month = new Date().toLocaleString('en-CA', { year: 'numeric', month: '2-digit', timeZone: 'America/Los_Angeles' }).slice(0, 7);
+  // A meeting in progress (started 10 minutes ago).
   const [m] = await rest('meetings', 'POST', {
-    slug: `champion-top-${Date.now()}`,
-    title: 'Champion top scorer meeting',
+    slug: `champion-live-${Date.now()}`,
+    title: 'Champion live meeting',
     category: 'Networking',
-    starts_at: `${month}-28T16:15:00Z`,
-    ends_at: `${month}-28T17:30:00Z`,
+    starts_at: iso(-10 * MIN),
+    ends_at: iso(65 * MIN),
   });
+  const made: Record<string, unknown>[] = [];
   try {
-    await login(page, users.member, undefined, `/present/${m?.slug}`);
-    const deck = page.getByRole('region', { name: 'Meeting slides' });
-    // Keep pressing → until the champion slide shows (presses before the deck hydrates are ignored).
-    await expect(async () => {
-      if (!(await deck.getByRole('heading', { name: 'BARP Champion' }).isVisible())) {
-        await page.keyboard.press('ArrowRight');
-        throw new Error('not on the champion slide yet');
-      }
-    }).toPass({ timeout: 20000, intervals: [200] });
-    const slide = deck.getByRole('group').filter({ visible: true });
-    await expect(slide.getByText(/^Leading .* so far$/)).toBeVisible();
-    // Exactly one person (the seed data decides who leads); Riley, with fewer points, is not shown.
-    await expect(slide.getByText(/^\d+ points$/)).toHaveCount(1);
-    await expect(slide.getByText('Riley Second')).toHaveCount(0);
+    // Riley's and the leader's points for this meeting, from the admin ranking.
+    await login(page, users.admin, undefined, `/admin/champion?p=${m?.id}`);
+    await expect(page.getByRole('heading', { level: 2, name: /^Ranking: / })).toBeVisible();
+    const table = page.getByRole('table', { name: /Points per member/ });
+    const pointsOf = async (name: string) => {
+      const row = table.getByRole('row').filter({ hasText: name });
+      return (await row.count()) ? Number(await row.getByRole('cell').nth(1).textContent()) : 0;
+    };
+    const top = (await table.count()) ? Number(await table.getByRole('row').nth(1).getByRole('cell').nth(1).textContent()) : 0;
+    const riley = await pointsOf('Riley Second');
+
+    await page.goto(`/present/${m?.slug}`);
+    let slide = await toChampionSlide(page);
+    await expect(slide.getByText(/^BARP Champion · .* meeting$/)).toBeVisible();
+    await expect(slide.getByText(/^Points since the .* meeting$/)).toBeVisible();
+    // Exactly one person: the leader.
+    await expect(slide.getByText(/^\d+ points?$/)).toHaveCount(top ? 1 : 0);
+
+    // During the meeting Riley reports enough referrals to take the lead; Refresh (R) shows it.
+    for (let i = 0; i <= top - riley; i++) made.push(...(await rest('referrals', 'POST', { from_id: other, to_id: me, contact_name: `Live Prospect ${i}` })));
+    await page.keyboard.press('r');
+    slide = await toChampionSlide(page);
+    await expect(slide.getByText('Riley Second')).toBeVisible();
+    await expect(slide.getByText(`${top + 1} points`)).toBeVisible();
+    await expect(slide.getByTestId('fireworks')).toBeAttached();
     await expectAccessible(page);
   } finally {
     for (const r of made) await rest(`referrals?id=eq.${r.id}`, 'DELETE');
@@ -121,7 +158,7 @@ test('champion slide: without a chosen champion it shows only the top scorer so 
   }
 });
 
-test('champion slide: at the first meeting of a month it shows last month’s champion, the reason and fireworks', async ({ page }) => {
+test('champion slide: a champion recorded for the meeting shows with the reason and fireworks', async ({ page }) => {
   const other = await idOf(users.member2);
   const [m] = await rest('meetings', 'POST', {
     slug: `champion-slide-${Date.now()}`,
@@ -132,77 +169,69 @@ test('champion slide: at the first meeting of a month it shows last month’s ch
     is_online: true,
     location: 'Zoom',
   });
-  await rest('champion_awards', 'POST', {
-    month: '2028-01-01',
+  await rest('meeting_champions', 'POST', {
+    meeting_id: m?.id,
     profile_id: other,
     reason: 'Brought three visitors who joined',
     points: { points: 42, referrals: 3 },
+    period_to: '2028-02-07T17:30:00Z',
   });
   try {
     await login(page, users.member, undefined, `/present/${m?.slug}`);
-    const deck = page.getByRole('region', { name: 'Meeting slides' });
-    for (let i = 0; i < 20; i++) {
-      if (await deck.getByRole('heading', { name: 'BARP Champion' }).isVisible()) break;
-      await page.keyboard.press('ArrowRight');
-    }
-    const slide = deck.getByRole('group').filter({ visible: true });
-    await expect(slide.getByText('January 2028')).toBeVisible();
+    const slide = await toChampionSlide(page);
+    await expect(slide.getByText('BARP Champion · Feb 7, 2028 meeting')).toBeVisible();
     await expect(slide.getByText('Riley Second')).toBeVisible();
     await expect(slide.getByText('“Brought three visitors who joined”')).toBeVisible();
     await expect(slide.getByText('3 referrals')).toBeVisible();
     await expect(slide.getByTestId('fireworks')).toBeAttached();
   } finally {
-    await rest(`champion_awards?month=eq.2028-01-01`, 'DELETE');
     await rest(`meetings?id=eq.${m?.id}`, 'DELETE');
   }
 });
 
-test('champion slide: a champion chosen by an admin shows at every meeting of the month, not the automatic leaders (owner, 2026-10-24)', async ({ page }) => {
-  const riley = await idOf(users.member2);
-  const morgan = await idOf(users.member);
-  // Two meetings in March 2028; the second is not the month's first meeting.
-  const made = [
-    ...(await rest('meetings', 'POST', {
-      slug: `champion-first-${Date.now()}`,
-      title: 'Champion first meeting',
-      category: 'Networking',
-      starts_at: '2028-03-06T16:15:00Z',
-      ends_at: '2028-03-06T17:30:00Z',
-    })),
-    ...(await rest('meetings', 'POST', {
-      slug: `champion-later-${Date.now()}`,
-      title: 'Champion later meeting',
-      category: 'Networking',
-      starts_at: '2028-03-20T15:15:00Z',
-      ends_at: '2028-03-20T16:30:00Z',
-    })),
-  ];
-  await rest('champion_awards', 'POST', { month: '2028-02-01', profile_id: riley, reason: 'Chosen for February', points: { points: 12 } });
-  const champion = async () => {
-    await page.goto(`/present/${made[1]?.slug}`);
-    const deck = page.getByRole('region', { name: 'Meeting slides' });
-    for (let i = 0; i < 20; i++) {
-      if (await deck.getByRole('heading', { name: 'BARP Champion' }).isVisible()) break;
-      await page.keyboard.press('ArrowRight');
-    }
-    return deck.getByRole('group').filter({ visible: true });
-  };
+test('after a meeting its automatic champion is recorded and stays; later points go to the next meeting', async ({ page }) => {
+  const me = await idOf(users.member);
+  const other = await idOf(users.member2);
+  // A meeting that ended over a day ago (no attendance taken): it is recorded a day after it ended.
+  const [m] = await rest('meetings', 'POST', {
+    slug: `champion-done-${Date.now()}`,
+    title: 'Champion finished meeting',
+    category: 'Networking',
+    starts_at: iso(-27 * 60 * MIN),
+    ends_at: iso(-26 * 60 * MIN),
+  });
+  const made: Record<string, unknown>[] = [];
   try {
-    await login(page, users.member, undefined, '/dashboard');
-    // Later in March: February's chosen champion, not "Leading March so far".
-    let slide = await champion();
-    await expect(slide.getByText('February 2028')).toBeVisible();
-    await expect(slide.getByText('Riley Second')).toBeVisible();
-    await expect(slide.getByText(/Leading .* so far/)).toHaveCount(0);
-    await expect(slide.getByTestId('fireworks')).toBeAttached();
-    // A champion chosen for March itself takes over.
-    await rest('champion_awards', 'POST', { month: '2028-03-01', profile_id: morgan, reason: 'Chosen for March', points: { points: 20 } });
-    slide = await champion();
-    await expect(slide.getByText('March 2028')).toBeVisible();
-    await expect(slide.getByText('Morgan Member')).toBeVisible();
+    await login(page, users.admin, undefined, `/admin/champion?p=${m?.id}`);
+    await expect(page.getByRole('heading', { level: 2, name: /^Ranking: / })).toBeVisible();
+    const [rec] = await rest(`meeting_champions?meeting_id=eq.${m?.id}&select=profile_id,auto_profile_id,chosen_by,points`);
+    if (!rec) {
+      // Nobody had points in its period: nothing to record.
+      await expect(page.getByText(/nobody has points yet/)).toBeVisible();
+      return;
+    }
+    expect(rec.profile_id).toBe(rec.auto_profile_id);
+    expect(rec.chosen_by).toBeNull();
+    const winner = (await rest(`profiles?id=eq.${rec.profile_id}&select=first_name,last_name`))[0] as { first_name: string; last_name: string };
+    await expect(page.getByText(new RegExp(`${winner.first_name} ${winner.last_name}.*is the champion`))).toBeVisible();
+    await expect(
+      page
+        .getByRole('listitem')
+        .filter({ hasText: new RegExp(`meeting: ${winner.first_name} ${winner.last_name}`) })
+        .first(),
+    ).toBeVisible();
+
+    // Points reported now belong to the next meeting: the recorded champion does not change.
+    for (let i = 0; i < 5; i++)
+      made.push(
+        ...(await rest('referrals', 'POST', { from_id: rec.profile_id === me ? other : me, to_id: rec.profile_id, contact_name: `Later Prospect ${i}` })),
+      );
+    await page.reload();
+    const [again] = await rest(`meeting_champions?meeting_id=eq.${m?.id}&select=profile_id`);
+    expect(again?.profile_id).toBe(rec.profile_id);
   } finally {
-    await rest('champion_awards?month=in.(2028-02-01,2028-03-01)', 'DELETE');
-    for (const m of made) await rest(`meetings?id=eq.${m.id}`, 'DELETE');
+    for (const r of made) await rest(`referrals?id=eq.${r.id}`, 'DELETE');
+    await rest(`meetings?id=eq.${m?.id}`, 'DELETE');
   }
 });
 

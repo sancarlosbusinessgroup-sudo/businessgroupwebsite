@@ -6,13 +6,13 @@ import { idle } from '@/lib/validation';
 import { saveChampion } from '../../actions/champion';
 
 export function ChampionForm({
-  month,
+  meetingId,
   members,
   current,
   autoId,
   reason,
 }: {
-  month: string;
+  meetingId: string;
   members: { id: string; name: string; points: number }[];
   current: string | null;
   autoId: string | null;
@@ -22,7 +22,7 @@ export function ChampionForm({
   const errors = state.errors ?? {};
   return (
     <form action={action} className="flex flex-col gap-4" aria-label="Choose the champion" noValidate>
-      <input type="hidden" name="month" value={month} />
+      <input type="hidden" name="meetingId" value={meetingId} />
       <div>
         <label className="label" htmlFor="champ-who">
           Champion

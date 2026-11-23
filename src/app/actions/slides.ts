@@ -6,6 +6,14 @@ import { createClient } from '@/lib/supabase/server';
 import { PDF_MAX_PAGES, TIMER_KEYS, isSlideKey, parseWebsite, parseYouTube } from '@/lib/slides';
 import { type ActionState, fieldErrors, formToObject, slideNotesSchema, slideSettingsSchema } from '@/lib/validation';
 
+/** The slides, and the pages that show presentation materials (Admin → Meetings, Meetings, My Presentations). */
+function refreshMaterials() {
+  revalidatePath('/present', 'layout');
+  revalidatePath('/admin/meetings', 'layout');
+  revalidatePath('/meetings');
+  revalidatePath('/profile');
+}
+
 // Per-meeting slide order and extra slide text. Admins only (RLS).
 
 export async function saveSlideSettings(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -21,7 +29,7 @@ export async function saveSlideSettings(_prev: ActionState, formData: FormData):
   const supabase = await createClient();
   const { error } = await supabase.from('meeting_slide_settings').upsert({ meeting_id: meeting.data, slides: slides.data, notes: notes.data, timers });
   if (error) return { status: 'error', message: 'Only admins can change the slides.', values };
-  revalidatePath('/present', 'layout');
+  refreshMaterials();
   return { status: 'success', message: 'Slides saved.' };
 }
 
@@ -31,7 +39,7 @@ export async function resetSlideSettings(_prev: ActionState, formData: FormData)
   const supabase = await createClient();
   const { error } = await supabase.from('meeting_slide_settings').delete().eq('meeting_id', meeting.data);
   if (error) return { status: 'error', message: 'Only admins can change the slides.' };
-  revalidatePath('/present', 'layout');
+  refreshMaterials();
   return { status: 'success', message: 'Back to the standard agenda.' };
 }
 
@@ -71,7 +79,7 @@ export async function addSlideFile(input: z.input<typeof fileInput>): Promise<Ac
     sort: Math.floor(Date.now() / 1000) % 30000,
   });
   if (error) return { status: 'error', message: 'Only admins can change the slides.' };
-  revalidatePath('/present', 'layout');
+  refreshMaterials();
   return {
     status: 'success',
     message:
@@ -108,7 +116,7 @@ export async function addVideoOrLink(_prev: ActionState, formData: FormData): Pr
       })
     : await supabase.from('meeting_slide_links').insert({ meeting_id: meeting.data, url: site!, title: title.data, after_slide: after.data, sort });
   if (error) return { status: 'error', message: 'Only admins can change the slides.', values };
-  revalidatePath('/present', 'layout');
+  refreshMaterials();
   return { status: 'success', message: video ? 'Video added.' : 'Website added.' };
 }
 
@@ -123,7 +131,7 @@ export async function moveSlideMedia(formData: FormData): Promise<void> {
     .from(table(formData.get('kind')))
     .update({ after_slide: after.data })
     .eq('id', id.data);
-  revalidatePath('/present', 'layout');
+  refreshMaterials();
 }
 
 export async function removeSlideMedia(formData: FormData): Promise<void> {
@@ -132,11 +140,11 @@ export async function removeSlideMedia(formData: FormData): Promise<void> {
   const supabase = await createClient();
   if (formData.get('kind') === 'link') {
     await supabase.from('meeting_slide_links').delete().eq('id', id.data);
-    revalidatePath('/present', 'layout');
+    refreshMaterials();
     return;
   }
   const { data } = await supabase.from('meeting_slide_media').delete().eq('id', id.data).select('storage_path');
   const path = data?.[0]?.storage_path;
   if (path) await supabase.storage.from('slide-media').remove([path]);
-  revalidatePath('/present', 'layout');
+  refreshMaterials();
 }

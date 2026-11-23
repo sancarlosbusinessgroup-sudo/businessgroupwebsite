@@ -13,21 +13,25 @@ import { adminDeleteMeeting, adminRevokeSlot, adminSetRsvp } from '../../../acti
 import { MeetingCancelForm } from '../../MeetingCancelForm';
 import { MeetingHideForm } from '../../MeetingHideForm';
 import { AssignSlotForm, MeetingForm, SlotTopicForm } from '../MeetingForms';
+import { SlotMaterials } from '@/app/present/[slug]/setup/SlideMediaManager';
+import { getPresentationMaterials } from '@/lib/data/presentation-materials';
 
 export const metadata: Metadata = { title: 'Edit meeting' };
 
 const slots = ['education', 'presentation'] as const;
+const afterOf = { education: 'five_minute', presentation: 'ten_minute' } as const;
 
 /** Admin → Meetings → one meeting: details, Zoom link, presentation slots and RSVPs (owner, 2026-10-27). */
 export default async function AdminMeetingPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ added?: string }> }) {
   const [{ id }, { added }] = await Promise.all([params, searchParams]);
   await requireAdmin();
   const supabase = await createClient();
-  const [mRes, linkRes, membersRes, rsvpRes] = await Promise.all([
+  const [mRes, linkRes, membersRes, rsvpRes, materials] = await Promise.all([
     supabase.from('meetings').select('*, meeting_speakers(slot, display_name, business, profile_id, topic, topic_description)').eq('id', id).maybeSingle(),
     supabase.from('meeting_links').select('join_url, passcode').eq('meeting_id', id).maybeSingle(),
     supabase.from('profiles').select('id, first_name, last_name, business_name').eq('status', 'approved').order('first_name').order('last_name'),
     supabase.from('rsvps').select('profile_id, attending, profile:profiles(first_name, last_name)').eq('meeting_id', id).order('created_at'),
+    getPresentationMaterials(supabase, [id]),
   ]);
   const m = mRes.data;
   if (!m) notFound();
@@ -171,6 +175,10 @@ export default async function AdminMeetingPage({ params, searchParams }: { param
                     </p>
                   )}
                   <AssignSlotForm meetingId={m.id} slot={slot} members={members} current={s?.display_name ?? null} />
+                  {/* Owner 2026-11-23: the presenter's slides (PDF, PowerPoint, image, video, website) can be added here too. */}
+                  {m.category === 'Networking' && !m.cancelled_reason ? (
+                    <SlotMaterials meetingId={m.id} slot={afterOf[slot]} options={[]} media={materials.map((x) => ({ ...x, url: x.url }))} compact />
+                  ) : null}
                 </section>
               );
             })}

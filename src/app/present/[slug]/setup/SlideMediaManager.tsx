@@ -239,28 +239,62 @@ function MediaList({ media, label, name }: { media: MediaRow[]; label: (k: strin
 
 /** Upload or link the presenter's materials for the 5- and 10-minute presentations. */
 export function PresentationMaterials({ meetingId, options, media }: { meetingId: string; options: Option[]; media: MediaRow[] }) {
-  const label = (k: string) => options.find((o) => o.key === k)?.label ?? k;
   return (
     <>
       {presentations.map((p) => (
-        <section key={p.slot} className="card flex flex-col gap-5 p-5" aria-labelledby={`${p.slot}-h`}>
-          <div>
-            <h2 id={`${p.slot}-h`} className="h2 m-0 text-2xl">
-              Materials for the {p.title}
-            </h2>
-            <p className="text-ink-muted m-0 mt-1">
-              Image, PDF, PowerPoint, YouTube video or website from the presenter. Presenters can also add their own on the Meetings page until the meeting
-              starts. {p.help} The presentation’s timer shows on top of these slides.
-            </p>
-          </div>
-          <MediaList media={media.filter((m) => m.afterSlide === p.slot)} label={label} name={`Materials for the ${p.title}`} />
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-            <UploadForm meetingId={meetingId} options={options} fixedAfter={p.slot} name={`Upload for the ${p.title}`} />
-            <LinkForm meetingId={meetingId} options={options} fixedAfter={p.slot} name={`Video or website for the ${p.title}`} />
-          </div>
-        </section>
+        <SlotMaterials key={p.slot} meetingId={meetingId} slot={p.slot} options={options} media={media} />
       ))}
     </>
+  );
+}
+
+/**
+ * One presentation's materials (list, upload, link), as an admin. Used by Customize slides and by Admin → Meetings →
+ * a meeting (owner, 2026-11-23). `compact`: a smaller heading, inside another card.
+ */
+export function SlotMaterials({
+  meetingId,
+  slot,
+  options,
+  media,
+  compact = false,
+}: {
+  meetingId: string;
+  slot: 'five_minute' | 'ten_minute';
+  options: Option[];
+  media: MediaRow[];
+  compact?: boolean;
+}) {
+  const p = presentations.find((x) => x.slot === slot)!;
+  const label = (k: string) => options.find((o) => o.key === k)?.label ?? presentations.find((x) => x.slot === k)?.title ?? k;
+  const Wrap = compact ? 'div' : 'section';
+  return (
+    <Wrap
+      className={compact ? 'border-line-soft flex flex-col gap-4 border-t pt-4' : 'card flex flex-col gap-5 p-5'}
+      aria-labelledby={`${meetingId}-${p.slot}-h`}
+      {...(compact ? { role: 'group' } : {})}
+    >
+      <div>
+        {compact ? (
+          <h3 id={`${meetingId}-${p.slot}-h`} className="font-display m-0 text-base font-bold">
+            Materials for the {p.title}
+          </h3>
+        ) : (
+          <h2 id={`${meetingId}-${p.slot}-h`} className="h2 m-0 text-2xl">
+            Materials for the {p.title}
+          </h2>
+        )}
+        <p className={`text-ink-muted m-0 mt-1 ${compact ? 'text-sm' : ''}`}>
+          Image, PDF, PowerPoint, YouTube video or website from the presenter. Presenters can also add their own on the Meetings page or under My Presentations
+          in their profile until the meeting starts. {p.help} The presentation’s timer shows on top of these slides.
+        </p>
+      </div>
+      <MediaList media={media.filter((m) => m.afterSlide === p.slot)} label={label} name={`Materials for the ${p.title}`} />
+      <div className={`grid grid-cols-1 gap-8 ${compact ? '' : 'lg:grid-cols-2'}`}>
+        <UploadForm meetingId={meetingId} options={options} fixedAfter={p.slot} name={`Upload for the ${p.title}`} />
+        <LinkForm meetingId={meetingId} options={options} fixedAfter={p.slot} name={`Video or website for the ${p.title}`} />
+      </div>
+    </Wrap>
   );
 }
 

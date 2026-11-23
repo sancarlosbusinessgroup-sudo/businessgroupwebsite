@@ -143,7 +143,8 @@ test.describe('meeting slides follow the new agenda', () => {
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('heading', { name: 'Statistics' })).toBeVisible();
 
-    // After the leaderboards: "BARP Champion", coming soon (owner, 2026-10-23).
+    // After the leaderboards: "BARP Champion", coming soon (owner, 2026-10-23); from 2026-11-23 the meeting's champion
+    // (the leader since the previous meeting) when anyone has points.
     await goToSlide(deck, page, 'Leaderboards');
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('heading', { name: 'BARP Champion' })).toBeVisible();
@@ -151,7 +152,7 @@ test.describe('meeting slides follow the new agenda', () => {
       deck
         .getByRole('group')
         .filter({ visible: true })
-        .getByText(/^(Coming soon|Leading .* so far)$/),
+        .getByText(/^(Coming soon|Leading .* so far|BARP Champion · .* meeting)$/),
     ).toBeAttached();
     // The owner's champion artwork is the slide's background (owner, 2026-10-24).
     await expect(deck.getByRole('group').filter({ visible: true }).getByTestId('champion-background')).toHaveAttribute('src', /champion-/);

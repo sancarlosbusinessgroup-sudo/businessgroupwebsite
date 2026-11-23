@@ -33,6 +33,8 @@ async function session() {
 
 function refresh() {
   revalidatePath('/meetings');
+  revalidatePath('/profile');
+  revalidatePath('/admin/meetings', 'layout');
   revalidatePath('/present', 'layout');
 }
 
