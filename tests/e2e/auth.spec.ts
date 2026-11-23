@@ -101,7 +101,7 @@ test.describe('sign up → admin approval → member access', () => {
     await expect(page).toHaveURL(/\/login/);
 
     // Admin approves
-    await login(page, users.admin, PASSWORD, '/admin');
+    await login(page, users.admin, PASSWORD, '/admin/guests');
     await expect(page.getByRole('heading', { name: /Pending applications/ })).toBeVisible();
     await expectAccessible(page);
     const pending = page.getByRole('listitem').filter({ hasText: 'Jamie Applicant' });

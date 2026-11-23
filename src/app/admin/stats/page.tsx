@@ -9,7 +9,7 @@ import { PERIODS, describeRange, periodLabel } from '@/lib/periods';
 import { sortStatRows } from '@/lib/stats';
 import { matchesMember, parseStatsSearch, statsQuery, statValue, visibleStatColumns, type StatKey, type StatsSearch } from './params';
 
-export const metadata: Metadata = { title: 'Member stats' };
+export const metadata: Metadata = { title: 'Member Stats' };
 
 export default async function AdminStatsPage({ searchParams }: { searchParams: Promise<StatsSearch> }) {
   await requireAdmin();
@@ -30,7 +30,7 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
-        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Member stats</h1>
+        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Member Stats</h1>
         <AdminNav current="/admin/stats" />
         <HowThisWorks tab="/admin/stats">
           Per-member counts are visible to admins only. Members see the leaderboard and group totals. One-on-ones count for both members once confirmed;

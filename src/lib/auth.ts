@@ -23,6 +23,11 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
 
 export const isApproved = (v: Viewer | null) => v?.profile?.status === 'approved';
 export const isAdmin = (v: Viewer | null) => isApproved(v) && v?.profile?.role === 'admin';
+/**
+ * Super Admins (owner, 2026-11-24): Viv, Cedrick, Rachanee and Shermaine, the admins with `profiles.is_owner`. They have
+ * every admin page; other admins have everything except the Gallery tab. The title is never shown on the site.
+ */
+export const isSuperAdmin = (v: Viewer | null) => isAdmin(v) && !!v?.profile?.is_owner;
 
 /** For member pages: signed in AND approved, otherwise redirect. */
 export async function requireMember(next: string): Promise<Viewer & { profile: Tables<'profiles'> }> {
@@ -37,6 +42,13 @@ export async function requireMember(next: string): Promise<Viewer & { profile: T
 export async function requireAdmin(): Promise<Viewer & { profile: Tables<'profiles'> }> {
   const viewer = await requireMember('/admin');
   if (viewer.profile.role !== 'admin') redirect('/dashboard');
+  return viewer;
+}
+
+/** Super Admin pages (Admin → Gallery): other admins go back to the admin Overview. */
+export async function requireSuperAdmin(): Promise<Viewer & { profile: Tables<'profiles'> }> {
+  const viewer = await requireAdmin();
+  if (!viewer.profile.is_owner) redirect('/admin');
   return viewer;
 }
 

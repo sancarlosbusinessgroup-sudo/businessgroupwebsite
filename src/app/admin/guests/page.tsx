@@ -4,17 +4,18 @@ import { HowThisWorks } from '@/components/HowThisWorks';
 import { Notice } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { GuestSections } from '../GuestSections';
+import { CategorySeats, Onboarding } from '../MovedSections';
 
 export const metadata: Metadata = { title: 'Guest Invites & Applications' };
 
 const errors: Record<string, string> = {
-  category_full: 'That category is full. Raise its seats under “Category seats” on the Overview tab, or ask the applicant to pick another category.',
+  category_full: 'That category is full. Raise its seats under “Category seats” below, or ask the applicant to pick another category.',
   save: 'Something went wrong. Please try again.',
 };
 
 /**
  * Admin → Guest Invites & Applications (owner, 2026-11-23): Pending applications, Visitor sign-in link and Guest invite
- * requests on their own tab. The same sections stay on Overview; both pages render GuestSections.
+ * requests; since 2026-11-24 also Onboarding and Category seats, and no longer duplicated on the Overview.
  */
 export default async function AdminGuestsPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
@@ -28,6 +29,9 @@ export default async function AdminGuestsPage({ searchParams }: { searchParams: 
         <HowThisWorks tab="/admin/guests" />
         {error && errors[error] ? <Notice tone="error">{errors[error]}</Notice> : null}
         <GuestSections back="/admin/guests" />
+        {/* Moved here from the Overview (owner, 2026-11-24): Onboarding (was "Onboarding & email") and Category seats. */}
+        <Onboarding />
+        <CategorySeats />
       </div>
     </div>
   );

@@ -50,7 +50,7 @@ test('guest row: phone, Send Zoom link, one-on-ones Done?, See application, then
   const key = await serviceKey();
   let userId: string | undefined;
   try {
-    await login(page, users.admin, undefined, '/admin');
+    await login(page, users.admin, undefined, '/admin/guests');
     const table = page.getByRole('table', { name: 'Guest invite requests' });
     for (const h of ['Guest', 'Email', 'Phone', 'Invited by', 'Requested', 'Zoom link', 'Status', 'Application', 'One-on-ones', 'Application approval'])
       await expect(table.getByRole('columnheader', { name: h, exact: true })).toBeVisible();

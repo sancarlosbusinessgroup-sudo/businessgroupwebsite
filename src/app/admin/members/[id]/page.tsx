@@ -84,7 +84,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
           </Link>
           <h1 className="font-display m-0 mt-3 flex flex-wrap items-center gap-3 text-[clamp(28px,3.4vw,40px)] font-extrabold">
             {name(p)}
-            {p.role === 'admin' ? <Pill tone="teal">{p.is_owner ? 'Owner' : 'Admin'}</Pill> : null}
+            {p.role === 'admin' ? <Pill tone="teal">Admin</Pill> : null}
           </h1>
           <p className="text-ink-muted m-0 mt-1">
             {p.business_name} · {contact?.email ?? 'no email on file'} ·{' '}
@@ -315,12 +315,15 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={mediaUrl('gallery', ph.thumb_path) ?? ''} alt={ph.caption} className="aspect-[4/3] w-full rounded-xl object-cover" />
                       <span className="text-sm">{ph.caption}</span>
-                      <span className="flex flex-wrap gap-2">
-                        <Link href={`/admin/gallery#photo-${ph.id}`} className="btn btn-outline btn-sm">
-                          Edit caption
-                        </Link>
-                        <ConfirmDelete action={adminDeleteGalleryPhoto} id={ph.id} what={`photo ${ph.caption}`} />
-                      </span>
+                      {/* Gallery editing is for Super Admins only (owner, 2026-11-24). */}
+                      {viewer.profile.is_owner ? (
+                        <span className="flex flex-wrap gap-2">
+                          <Link href={`/admin/gallery#photo-${ph.id}`} className="btn btn-outline btn-sm">
+                            Edit caption
+                          </Link>
+                          <ConfirmDelete action={adminDeleteGalleryPhoto} id={ph.id} what={`photo ${ph.caption}`} />
+                        </span>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

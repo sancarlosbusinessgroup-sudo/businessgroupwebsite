@@ -55,25 +55,53 @@ export const memberNav: readonly NavItem[] = [
  * Admin sections: the tabs on every admin page and the header's Admin dropdown (owner, 2026-10-30: Meeting slides
  * right after Overview).
  */
+/**
+ * The admin tabs, in the owner's order (2026-11-24), with the one-line description shown on the Overview's tab cards.
+ * `superAdmin` tabs are only listed for, and only open to, the Super Admins (`profiles.is_owner`). "Guest Invites &
+ * Applications" (owner, 2026-11-23) wasn't in the new list; it sits with the member tabs, just before Members.
+ */
 export const adminLinks = [
-  { href: '/admin', label: 'Overview' },
-  { href: '/present/next', label: 'Meeting slides' },
-  // Owner 2026-11-23: applications, the visitor sign-in link and guest requests on their own tab (also still on Overview).
-  { href: '/admin/guests', label: 'Guest Invites & Applications' },
-  { href: '/admin/members', label: 'Members' },
-  { href: '/admin/meetings', label: 'Meetings' },
-  { href: '/admin/attendance', label: 'Attendance' },
-  // Owner meeting 2026-10-30: Member activity and Member stats side by side.
-  { href: '/admin/activity', label: 'Member activity' },
-  { href: '/admin/stats', label: 'Member stats' },
-  { href: '/admin/champion', label: 'BARP Champion' },
-  { href: '/admin/leadership', label: 'Management' },
-  { href: '/admin/recap', label: 'Member recap' },
-  { href: '/admin/management-recap', label: 'Management recap' },
-  { href: '/admin/materials', label: 'Presentation materials' },
-  { href: '/admin/gallery', label: 'Gallery' },
-  { href: '/admin/history', label: 'Change history' },
-] as const;
+  { href: '/admin', label: 'Overview', blurb: 'What needs attention now, and where everything is.' },
+  {
+    href: '/admin/meetings',
+    label: 'Meetings',
+    blurb: 'Change dates, times and Zoom links, cancel or hide meetings, and manage the 5- and 10-minute presentation slots.',
+  },
+  { href: '/present/next', label: 'Meeting Slides', blurb: 'Open the next meeting’s slides, or customize them: order, timers and the presenters’ files.' },
+  { href: '/admin/materials', label: 'Presentation Materials', blurb: 'Every file, video and website link presenters added, and how much storage they use.' },
+  {
+    href: '/admin/attendance',
+    label: 'Attendance',
+    blurb: 'Who came to each meeting, from Zoom or by hand, attendance correction requests and the absence limit.',
+  },
+  { href: '/admin/recap', label: 'Member Recap', blurb: 'Preview and send the after-meeting email to members and the day’s visitors.' },
+  {
+    href: '/admin/management-recap',
+    label: 'Management Recap',
+    blurb: 'Preview the attendance email the Management Team gets after each meeting, and switch it on or off.',
+  },
+  {
+    href: '/admin/guests',
+    label: 'Guest Invites & Applications',
+    blurb: 'Applications, the visitor sign-in link, every guest from Zoom link to approval, onboarding and category seats.',
+  },
+  { href: '/admin/members', label: 'Members', blurb: 'Edit any member’s profile, phone, category, status, photo and logo, and what they filed.' },
+  {
+    href: '/admin/activity',
+    label: 'Member Activity',
+    blurb: 'Referral slips, one-on-ones, member events and directory downloads. Delete duplicates or mistakes.',
+  },
+  { href: '/admin/stats', label: 'Member Stats', blurb: 'Per-member counts for any period: one-on-ones, referrals, closed business and visitors.' },
+  { href: '/admin/champion', label: 'BARP Champion', blurb: 'The points ranking for each meeting’s champion. Confirm the pick or choose someone else.' },
+  { href: '/admin/leadership', label: 'Management', blurb: 'Who is listed in the Management section of the About page and on the Management Team slide.' },
+  { href: '/admin/gallery', label: 'Gallery', blurb: 'Reorder, recaption or remove the photos members upload.', superAdmin: true },
+  { href: '/admin/history', label: 'Change History', blurb: 'Every change an admin made to someone else’s data, and the log of every email the site sent.' },
+] as const satisfies readonly { href: string; label: string; blurb: string; superAdmin?: boolean }[];
+
+export type AdminLink = (typeof adminLinks)[number];
+
+/** The admin tabs this admin may open: Super Admins see every tab, other admins all but the Super Admin ones. */
+export const adminLinksFor = (superAdmin: boolean): readonly AdminLink[] => adminLinks.filter((l) => superAdmin || !('superAdmin' in l && l.superAdmin));
 
 /** Owner meeting 2026-10-30: the four membership steps, reworded by the group. */
 export const howItWorks = [

@@ -1,69 +1,42 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { AdminNav } from '@/components/AdminNav';
 import { HowThisWorks } from '@/components/HowThisWorks';
-import { EmptyState, Notice, Pill } from '@/components/ui';
-import { requireAdmin } from '@/lib/auth';
-import { getCategorySeats, getNextMeeting } from '@/lib/data/public';
-import { formatMeetingDate, formatMeetingTime, formatShortDate } from '@/lib/dates';
+import { Notice, Pill } from '@/components/ui';
+import type { ActionTone } from '@/lib/admin-action-items';
+import { isSuperAdmin, requireAdmin } from '@/lib/auth';
+import { adminLinksFor } from '@/lib/content';
+import { loadActionItems } from '@/lib/data/admin-action-items';
+import { getNextMeeting } from '@/lib/data/public';
+import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
-import { absencesFor, memberSince } from '@/lib/data/attendance';
-import { ABSENCE_LIMIT, parseZoomMeetingId } from '@/lib/zoom';
+import { parseZoomMeetingId } from '@/lib/zoom';
 import { zoomConfigured } from '@/lib/zoom-api';
-import Link from 'next/link';
-import { resolveCorrection } from '../actions/admin';
-import { GuestSections } from './GuestSections';
-import { ResendEmailButton } from './ResendEmailButton';
-import { resendTarget } from '@/lib/email/resend-target';
-import { NewsletterSyncForm } from './NewsletterSyncForm';
-import { SeatForm } from './SeatForm';
 
 export const metadata: Metadata = { title: 'Admin' };
 
 const errors: Record<string, string> = {
-  category_full: 'That category is full. Raise its seats under “Category seats” below, or ask the applicant to pick another category.',
+  category_full:
+    'That category is full. Raise its seats under “Category seats” on the Guest Invites & Applications tab, or ask the applicant to pick another category.',
   save: 'Something went wrong. Please try again.',
 };
 
+const toneLabel: Record<ActionTone, string> = { red: 'Urgent', amber: 'To do', teal: 'Follow up' };
+const toneBar: Record<ActionTone, string> = { red: 'border-l-red', amber: 'border-l-amber', teal: 'border-l-teal' };
+
+/**
+ * Admin → Overview (owner, 2026-11-24): "Items that Need Immediate Action" pulled from the other tabs, the Zoom host
+ * button, and a card for every admin tab with a short description and a button to it. The sections that used to be
+ * here moved to their tabs (see MovedSections.tsx).
+ */
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ error?: string; zoomError?: string }> }) {
   const { error, zoomError } = await searchParams;
-  await requireAdmin();
+  const viewer = await requireAdmin();
   const supabase = await createClient();
-  const [corrRes, seats, downloadsRes, onboardRes, mailRes] = await Promise.all([
-    supabase
-      .from('attendance_corrections')
-      .select('id, note, created_at, profile:profiles!attendance_corrections_profile_id_fkey(first_name, last_name), meeting:meetings(starts_at)')
-      .eq('resolved', false)
-      .order('created_at'),
-    getCategorySeats(),
-    supabase
-      .from('directory_downloads')
-      .select('id, format, created_at, profile:profiles(first_name, last_name)')
-      .order('created_at', { ascending: false })
-      .limit(20),
-    supabase
-      .from('member_onboarding')
-      .select('profile_id, invited_at, reminded_at, completed_at, profile:profiles(first_name, last_name)')
-      .order('invited_at', { ascending: false })
-      .limit(30),
-    supabase
-      .from('email_log')
-      .select('id, kind, dedupe_key, recipient, subject, status, error, created_at')
-      .order('created_at', { ascending: false })
-      .limit(25),
-  ]);
-  const next = await getNextMeeting();
+  const [items, next] = await Promise.all([loadActionItems(supabase), getNextMeeting()]);
   const { data: nextLink } = next ? await supabase.from('meeting_links').select('join_url').eq('meeting_id', next.id).maybeSingle() : { data: null };
   const nextZoomId = parseZoomMeetingId(nextLink?.join_url);
-  const { data: approved } = await supabase
-    .from('profiles')
-    .select('id, first_name, last_name, approved_at, member_since, created_at')
-    .eq('status', 'approved');
-  const absences = await absencesFor(
-    supabase,
-    (approved ?? []).map((p) => ({ id: p.id, since: memberSince(p) })),
-  );
-  const atLimit = (approved ?? []).filter((p) => absences.get(p.id)?.atLimit);
-  if (corrRes.error || downloadsRes.error) throw new Error('Could not load admin data');
+  const tabs = adminLinksFor(isSuperAdmin(viewer)).filter((l) => l.href !== '/admin');
 
   return (
     <div className="bg-canvas">
@@ -71,13 +44,39 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Admin</h1>
         <AdminNav current="/admin" />
         <HowThisWorks tab="/admin" />
-        {atLimit.length ? (
-          <Notice tone="error">
-            {atLimit.length === 1 ? '1 member has' : `${atLimit.length} members have`} reached the absence limit ({ABSENCE_LIMIT} missed meetings in 6 months):{' '}
-            {atLimit.map((p) => `${p.first_name} ${p.last_name}`).join(', ')}. <Link href="/admin/attendance">Open attendance</Link>
-          </Notice>
-        ) : null}
         {error && errors[error] ? <Notice tone="error">{errors[error]}</Notice> : null}
+
+        <section id="action-items" className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="todo-h">
+          <h2 id="todo-h" className="font-display m-0 text-[22px] font-extrabold">
+            Items that Need Immediate Action{items.length ? ` (${items.length})` : ''}
+          </h2>
+          {items.length === 0 ? (
+            <p className="text-ink-muted m-0">Nothing needs your attention right now.</p>
+          ) : (
+            <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+              {items.map((it) => (
+                <li
+                  key={it.key}
+                  className={`border-line flex flex-wrap items-center justify-between gap-3 rounded-xl border border-l-4 p-4 ${toneBar[it.tone]}`}
+                >
+                  <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <Pill tone={it.tone === 'red' ? 'red' : it.tone === 'amber' ? 'amber' : 'teal'}>{toneLabel[it.tone]}</Pill>
+                      <span className="text-ink-muted text-sm font-semibold">{it.tab}</span>
+                    </span>
+                    <strong className="text-heading">{it.title}</strong>
+                    <span className="text-ink-soft text-[15px]">{it.detail}</span>
+                  </div>
+                  <Link href={it.href} className="btn btn-outline btn-sm">
+                    Open {it.tab}
+                    <span aria-hidden="true"> →</span>
+                    <span className="sr-only">: {it.title}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <section id="zoom" className="card flex flex-col gap-3 p-[22px]" aria-labelledby="zoom-h">
           <h2 id="zoom-h" className="font-display m-0 text-[22px] font-extrabold">
@@ -110,186 +109,29 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </p>
         </section>
 
-        <GuestSections back="/admin" />
-
-        <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="co-h">
-          <h2 id="co-h" className="font-display m-0 text-[22px] font-extrabold">
-            Attendance correction requests
+        <section className="flex flex-col gap-3.5" aria-labelledby="tabs-h">
+          <h2 id="tabs-h" className="font-display m-0 text-[22px] font-extrabold">
+            Admin tabs
           </h2>
-          {corrRes.data.length === 0 ? (
-            <EmptyState title="No open requests" />
-          ) : (
-            <ul className="m-0 flex list-none flex-col gap-3 p-0">
-              {corrRes.data.map((c) => (
-                <li key={c.id} className="border-line flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
-                  <div>
-                    <strong>
-                      {c.profile?.first_name} {c.profile?.last_name}
-                    </strong>
-                    {c.meeting ? ` · meeting ${formatShortDate(new Date(c.meeting.starts_at))}` : ''}
-                    <p className="text-ink-soft m-0 text-[15px]">{c.note}</p>
+          <ul className="m-0 grid list-none grid-cols-1 gap-3.5 p-0 lg:grid-cols-2">
+            {tabs.map((t) => {
+              const id = `tab-${t.href.replace(/\W+/g, '-')}`;
+              return (
+                <li key={t.href} className="card flex flex-wrap items-center justify-between gap-3 p-[22px]">
+                  <div className="min-w-0 flex-[1_1_260px]">
+                    <h3 id={id} className="font-display m-0 text-[20px] font-extrabold">
+                      {t.label}
+                    </h3>
+                    <p className="text-ink-muted m-0 text-[15px]">{t.blurb}</p>
                   </div>
-                  <form action={resolveCorrection}>
-                    <input type="hidden" name="id" value={c.id} />
-                    <button type="submit" className="btn btn-outline btn-sm">
-                      Mark resolved
-                    </button>
-                  </form>
+                  <Link href={t.href} className="btn btn-outline">
+                    Open {t.label}
+                    <span aria-hidden="true"> →</span>
+                  </Link>
                 </li>
-              ))}
-            </ul>
-          )}
-          <p className="text-ink-muted m-0 text-sm">To change an attendance record, edit the attendance table in the Supabase dashboard (see README).</p>
-        </section>
-        <section className="card flex flex-wrap items-center justify-between gap-3 p-[22px]" aria-labelledby="sched-h">
-          <div>
-            <h2 id="sched-h" className="font-display m-0 text-[22px] font-extrabold">
-              Meeting schedule
-            </h2>
-            <p className="text-ink-muted m-0 text-[15px]">Cancel, hide, edit or add meetings, and manage presentation slots, on the Meetings page.</p>
-          </div>
-          <Link href="/admin/meetings" className="btn btn-outline">
-            Manage meetings →
-          </Link>
-        </section>
-
-        <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="seats-h">
-          <h2 id="seats-h" className="font-display m-0 text-[22px] font-extrabold">
-            Category seats
-          </h2>
-          <p className="text-ink-muted m-0 text-[15px]">
-            How many approved members each profession can have (usually 1). Full categories are shown as closed on the Visit and Join pages.
-          </p>
-          <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-x-6 gap-y-1 p-0">
-            {seats.map((c) => (
-              <li key={c.id} className="border-line-soft flex flex-wrap items-center justify-between gap-2 border-t py-2">
-                <span className="font-semibold">
-                  {c.name}
-                  {!c.open ? <span className="text-ink-muted text-sm font-normal"> · full</span> : null}
-                </span>
-                <SeatForm id={c.id} name={c.name} seatLimit={c.seat_limit} taken={c.taken} />
-              </li>
-            ))}
+              );
+            })}
           </ul>
-        </section>
-
-        <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="ob-h">
-          <h2 id="ob-h" className="font-display m-0 text-[22px] font-extrabold">
-            Onboarding &amp; email
-          </h2>
-          <p className="text-ink-muted m-0 text-sm">
-            Approved members get a welcome email with the onboarding form, and a reminder after 3 days if they haven&apos;t finished it. The newsletter list in
-            Brevo is updated on approval; use the button to re-sync everyone.
-          </p>
-          <NewsletterSyncForm />
-          <h3 className="h3 mt-2 mb-0">Onboarding</h3>
-          {(onboardRes.data ?? []).length === 0 ? (
-            <EmptyState title="No one is onboarding yet" />
-          ) : (
-            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Onboarding table">
-              <table className="data-table">
-                <caption className="sr-only">Members approved since email was set up, and whether they finished onboarding</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Member</th>
-                    <th scope="col">Approved</th>
-                    <th scope="col">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(onboardRes.data ?? []).map((o) => (
-                    <tr key={o.profile_id}>
-                      <td>
-                        {o.profile?.first_name} {o.profile?.last_name}
-                      </td>
-                      <td>{formatShortDate(new Date(o.invited_at))}</td>
-                      <td>
-                        {o.completed_at ? (
-                          <Pill tone="green">Done {formatShortDate(new Date(o.completed_at))}</Pill>
-                        ) : o.reminded_at ? (
-                          <Pill tone="amber">Reminded</Pill>
-                        ) : (
-                          <Pill tone="gray">Not yet</Pill>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <h3 className="h3 mt-2 mb-0">Recent emails</h3>
-          {(mailRes.data ?? []).length === 0 ? (
-            <EmptyState title="No emails sent yet" />
-          ) : (
-            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Recent emails table">
-              <table className="data-table">
-                <caption className="sr-only">The last 25 emails the site sent</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">When</th>
-                    <th scope="col">To</th>
-                    <th scope="col">Subject</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">
-                      <span className="sr-only">Resend</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(mailRes.data ?? []).map((m) => (
-                    <tr key={m.id}>
-                      <td>{formatShortDate(new Date(m.created_at))}</td>
-                      <td>{m.recipient}</td>
-                      <td>{m.subject}</td>
-                      <td title={m.error ?? undefined}>
-                        <Pill tone={m.status === 'sent' ? 'green' : m.status === 'failed' ? 'red' : 'gray'}>
-                          {m.status === 'sent' ? 'Sent' : m.status === 'failed' ? 'Failed' : 'Not sent'}
-                        </Pill>
-                      </td>
-                      <td>{resendTarget(m.kind, m.dedupe_key) ? <ResendEmailButton id={m.id} to={m.recipient} failed={m.status === 'failed'} /> : null}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="dl-h">
-          <h2 id="dl-h" className="font-display m-0 text-[22px] font-extrabold">
-            Directory downloads
-          </h2>
-          {downloadsRes.data.length === 0 ? (
-            <EmptyState title="No downloads yet" />
-          ) : (
-            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Directory downloads table">
-              <table className="data-table">
-                <caption className="sr-only">Latest member directory downloads</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Member</th>
-                    <th scope="col">Format</th>
-                    <th scope="col">When</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {downloadsRes.data.map((d) => (
-                    <tr key={d.id}>
-                      <td>
-                        {d.profile?.first_name} {d.profile?.last_name}
-                      </td>
-                      <td>{d.format === 'vcf' ? 'vCard' : 'CSV'}</td>
-                      <td>
-                        {formatShortDate(new Date(d.created_at))},{' '}
-                        {new Date(d.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' })} PT
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </section>
       </div>
     </div>

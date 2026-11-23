@@ -109,9 +109,9 @@ test.describe('members and admins', () => {
   test('Member stats: find a member, closed business hidden until ticked; menu has Member activity next to Member stats', async ({ page }) => {
     await login(page, users.admin, undefined, '/admin/stats?period=all');
     const nav = page.getByRole('navigation', { name: 'Admin sections' });
-    await expect(nav.getByRole('link', { name: 'Member stats' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Member Stats' })).toBeVisible();
     const labels = (await nav.getByRole('link').allTextContents()).map((l) => l.trim());
-    expect(labels[labels.indexOf('Member activity') + 1]).toBe('Member stats');
+    expect(labels[labels.indexOf('Member Activity') + 1]).toBe('Member Stats');
 
     const table = page.getByRole('table');
     await expect(table.getByRole('columnheader', { name: /Closed business/ })).toHaveCount(0);

@@ -30,7 +30,11 @@ export default async function globalSetup() {
     return id;
   };
 
-  await make(users.admin, 'Ada', 'Admin', 'Test Admin Co', 'approved', 'admin');
+  const adminId = await make(users.admin, 'Ada', 'Admin', 'Test Admin Co', 'approved', 'admin');
+  // The test admin is a Super Admin (`is_owner`, owner 2026-11-24) so every tab, Gallery included, can be tested;
+  // tests that need a regular admin switch it off and back on.
+  const owner = await fetch(`${STACK}/rest/v1/profiles?id=eq.${adminId}`, { method: 'PATCH', headers, body: JSON.stringify({ is_owner: true }) });
+  if (!owner.ok) throw new Error(`owner flag: ${await owner.text()}`);
   await make(users.member, 'Morgan', 'Member', 'Test Member Studio', 'approved');
   await make(users.member2, 'Riley', 'Second', 'Second Test Bakery', 'approved');
   await make(users.pending, 'Pat', 'Pending', 'Pending Test Shop', 'pending');

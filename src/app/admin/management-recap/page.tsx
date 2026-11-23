@@ -11,7 +11,7 @@ import { managementRecapEmail } from '@/lib/email/templates';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { ManagementRecapSwitchForm } from './ManagementRecapSwitchForm';
 
-export const metadata: Metadata = { title: 'Management recap' };
+export const metadata: Metadata = { title: 'Management Recap' };
 
 /**
  * The Management recap (owner, 2026-10-30) as admins receive it after a meeting, built from the live data of the most
@@ -37,7 +37,7 @@ export default async function AdminManagementRecapPage() {
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
-        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Management recap</h1>
+        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Management Recap</h1>
         <AdminNav current="/admin/management-recap" />
         <HowThisWorks tab="/admin/management-recap" />
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="mrecap-h">

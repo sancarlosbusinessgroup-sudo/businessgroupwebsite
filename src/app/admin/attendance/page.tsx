@@ -12,6 +12,7 @@ import { zoomConfigured } from '@/lib/zoom-api';
 import { isLiveWindow } from '@/lib/zoom-live';
 import { AttendanceTable, FetchZoomButton, ReviewRow, VisitorInviterRow, type AttendanceRow } from './AttendanceForms';
 import { LiveAttendance } from './LiveAttendance';
+import { CorrectionRequests } from '../MovedSections';
 
 export const metadata: Metadata = { title: 'Attendance' };
 
@@ -220,6 +221,9 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
             </ul>
           </section>
         ) : null}
+
+        {/* Moved here from the Overview (owner, 2026-11-24). */}
+        <CorrectionRequests />
 
         <form action="/admin/attendance" className="card flex flex-wrap items-end gap-3 p-5" aria-label="Choose a meeting">
           <div className="min-w-0 flex-[1_1_260px]">

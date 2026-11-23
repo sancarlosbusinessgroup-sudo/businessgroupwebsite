@@ -66,7 +66,8 @@ export default async function SupportPage() {
             </li>
           ))}
         </ul>
-        <div className="flex max-w-[72ch] flex-col gap-3">
+        {/* Full width of the section on desktop, under all three photos (owner, 2026-11-24; was 72ch, which looked half-width). */}
+        <div className="flex flex-col gap-3">
           {supportIntro.map((p) => (
             <p key={p.slice(0, 24)} className="text-ink-soft m-0 text-[17px] leading-relaxed">
               {p}

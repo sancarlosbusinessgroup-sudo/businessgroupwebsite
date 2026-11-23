@@ -195,7 +195,7 @@ test.describe('admin', () => {
   });
 
   test('admin can mark a guest as visited', async ({ page }) => {
-    await login(page, users.admin, undefined, '/admin');
+    await login(page, users.admin, undefined, '/admin/guests');
     const btn = page.getByRole('button', { name: /^Mark visited/ }).first();
     await btn.click();
     await expect(page.getByText('Visiting').first()).toBeVisible();

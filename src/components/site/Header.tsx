@@ -36,7 +36,7 @@ export async function Header() {
           <Avatar name={name} size={38} photo={mediaUrl('profile-media', profile?.avatar_path)} />
           {name}
         </Link>
-        {profile?.role === 'admin' ? <AdminMenu /> : null}
+        {profile?.role === 'admin' ? <AdminMenu superAdmin={!!profile.is_owner} /> : null}
         {divider}
         <Link
           href="/profile"

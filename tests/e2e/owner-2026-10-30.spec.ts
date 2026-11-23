@@ -138,7 +138,7 @@ test('visitor sign-in link: a walk-in visitor signs in and shows on Guest invite
     ends_at: new Date(stamp + 60 * 60_000).toISOString(),
   });
   try {
-    await login(page, users.admin, undefined, '/admin');
+    await login(page, users.admin, undefined, '/admin/guests');
     const card = page.getByRole('region', { name: 'Visitor sign-in link' });
     await expect(card.locator('output')).toHaveText(/\/visitor-sign-in$/);
     await page.context().clearCookies();
@@ -170,7 +170,7 @@ test('visitor sign-in link: a walk-in visitor signs in and shows on Guest invite
     await expect(page.getByRole('status').getByText(/Thank you, Wally!/)).toBeVisible();
     expect(await rest(`guest_requests?email=eq.${encodeURIComponent(email)}&select=id`)).toHaveLength(1);
 
-    await login(page, users.admin, undefined, '/admin');
+    await login(page, users.admin, undefined, '/admin/guests');
     const row = page.getByRole('row').filter({ hasText: 'Wally Walkin' });
     await expect(row.getByText('Signed in at the meeting')).toBeVisible();
     await expect(row.getByText('Visiting')).toBeVisible();

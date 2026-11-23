@@ -108,7 +108,7 @@ export function RoleForm({ id, role, isSelf, isOwner }: { id: string; role: 'mem
       {state.status === 'error' && state.message ? <Notice tone="error">{state.message}</Notice> : null}
       <p className="m-0 text-[15px]">
         {role === 'admin' ? 'This member is an admin.' : 'This member is not an admin.'}
-        {isOwner ? ' Owners stay admins.' : null}
+        {isOwner ? ' Viv, Cedrick, Rachanee and Shermaine always stay admins.' : null}
       </p>
       {isSelf ? (
         <p className="text-ink-muted m-0 text-sm">You can’t change your own role.</p>

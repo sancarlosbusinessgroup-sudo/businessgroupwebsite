@@ -23,25 +23,23 @@ export type AdminHelp = { summary: string; steps: string[] };
 export const adminHelp: Record<AdminTab, AdminHelp> = {
   '/admin': {
     summary:
-      "Everything that needs an admin's attention, in one place: the next Zoom meeting, the visitor sign-in link, applications and guest requests waiting on you, and the site's email activity.",
+      'What needs an admin now, pulled from every tab: attendance to take, recaps to send, guests to move along, applications to approve, open presentation slots and failed emails. Below it: the Zoom host button and a card for every admin tab.',
     steps: [
+      'Items that Need Immediate Action: each line says what to do, where things stand (for guests, the stage they are at) and has a button to the tab that does it. Urgent items come first. A line disappears by itself once it is done.',
+      'It checks: attendance and Zoom names for the last meeting, the Member recap (never sent automatically) and the Management recap, the absence limit, attendance correction requests, every guest from Zoom link to approval, applications, onboarding, the next meeting’s Zoom link and presentation slots, and emails that failed this week.',
       'Zoom: shows the next meeting and its Zoom number. “Start meeting as host” opens Zoom as the host; the first manager in makes the others co-hosts.',
-      'Visitor sign-in link: copy it and paste it in the Zoom chat during a meeting. Visitors who came without asking for an invite fill in their details, and they appear in Guest invite requests, already marked as visited and “Signed in at the meeting”.',
-      'Pending applications: people who filled in the membership application. Read their answers and references, then Approve (they get the welcome email) or Decline.',
-      'Guest invite requests: every visitor, newest first. Send Zoom link → Mark visited (or the Zoom report does it) → Invite to apply → one-on-ones Done → Approved. The status moves by itself when they apply and when they are approved.',
-      'Attendance correction requests: members asking to fix their attendance. Fix it on the Attendance tab, then mark the request resolved.',
-      'Category seats: how many members each profession may have (usually 1). Full categories show as taken on the Visit and Join pages.',
-      'Onboarding & email: who has finished their new-member onboarding, the last 25 emails the site sent (resend any that failed), and “Sync newsletter list” to copy every approved member into the Brevo newsletter list.',
-      'Directory downloads: who downloaded the member directory, and when.',
+      'Admin tabs: a short description of every tab, with a button to open it.',
     ],
   },
   '/admin/guests': {
     summary:
-      'Everyone on the way to membership, in one place: applications waiting for a decision, the visitor sign-in link for the Zoom chat, and every guest invite request. The same sections are also on the Overview tab.',
+      'Everyone on the way to membership, in one place: applications waiting for a decision, the visitor sign-in link for the Zoom chat, every guest invite request, new members’ onboarding and the category seats.',
     steps: [
       'Pending applications: people who filled in the membership application. Read their answers and references, then Approve (they get the welcome email) or Decline.',
       'Visitor sign-in link: copy it and paste it in the Zoom chat during a meeting. Visitors who came without asking for an invite fill in their details, and they appear in Guest invite requests, already marked as visited and “Signed in at the meeting”.',
       'Guest invite requests: every visitor, newest first. Send Zoom link → Mark visited (or the Zoom report does it) → Invite to apply → one-on-ones Done → Approved. The status moves by itself when they apply and when they are approved.',
+      'Onboarding: who has finished their new-member onboarding, and “Sync newsletter list” to copy every approved member into the Brevo newsletter list.',
+      'Category seats: how many members each profession may have (usually 1). Full categories show as taken on the Visit and Join pages.',
     ],
   },
   '/admin/members': {
@@ -50,7 +48,7 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
     steps: [
       'Lists every member account. Open a member to change their profile, phone, category, status, photo and logo.',
       'From a member’s page you can also fix or delete the referrals, one-on-ones, events and gallery photos they filed.',
-      'Owners (Viv, Ced, Rachanee and Shermaine) can make someone an admin or remove the admin role. Nobody can change their own role.',
+      'Only Viv, Ced, Rachanee and Shermaine can make someone an admin or remove the admin role. Nobody can change their own role.',
       'Admins can’t change a member’s sign-in email; members change it themselves in My profile.',
       'Every change you make to someone else’s record is saved in Change history.',
     ],
@@ -75,6 +73,7 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
       'You can change anyone’s attendance by hand and save. “Sent a substitute” counts as present; “Excused” still counts as missed.',
       'Late = joined after 8:30 AM. Left early = left before 9:30 AM.',
       'The absence limit is 2 missed meetings in 6 months. Members at the limit are listed at the top and on the Overview.',
+      'Attendance correction requests: members asking to fix their attendance. Fix it in the table, then mark the request resolved.',
       'If Zoom isn’t connected, take attendance by hand; it counts the same.',
     ],
   },
@@ -85,6 +84,7 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
       'Every referral slip, one-on-one and member event, newest first.',
       'Delete a duplicate or a mistake here. It is removed for everyone and from the stats, leaderboard and BARP Champion points.',
       'To edit (rather than delete) something a member filed, open that member on the Members tab.',
+      'Directory downloads: who downloaded the member directory, and when.',
     ],
   },
   '/admin/champion': {
@@ -152,16 +152,18 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
   '/admin/gallery': {
     summary: 'Every photo members have uploaded, newest first. Fix a caption, move a photo to another album, or remove it.',
     steps: [
-      'Every photo members uploaded, newest first.',
+      'Every photo members uploaded, newest first. Only Viv, Ced, Rachanee and Shermaine see this tab.',
       'Fix a caption or date, move a photo to another album, or remove it.',
       'Members upload photos on the Gallery page. Changes you make are saved in Change history.',
     ],
   },
   '/admin/history': {
-    summary: "Every change an admin makes to another member's profile, slots, events, photos or activity records: who, what, before and after.",
+    summary:
+      "Every change an admin makes to another member's profile, slots, events, photos or activity records: who, what, before and after. Below it, the Email Logs.",
     steps: [
       'Every change an admin made to another member’s profile, slots, events, photos or activity records: who made it, when, and what it was before and after.',
       'Only admins can see this list. Changes members make to their own data are not listed.',
+      'Email Logs: the last 25 emails the site sent and whether they went out. Resend any that failed.',
     ],
   },
 };

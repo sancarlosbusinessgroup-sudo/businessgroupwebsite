@@ -42,6 +42,13 @@ async function admin() {
   return { supabase, user, isAdmin: !!isAdmin && !!user };
 }
 
+/** Admin → Gallery is for Super Admins only (owner, 2026-11-24): the `is_owner` admins. */
+async function superAdmin() {
+  const supabase = await createClient();
+  const { data: isOwner } = await supabase.rpc('is_owner');
+  return { supabase, isSuperAdmin: !!isOwner };
+}
+
 const memberPaths = (id: string) => ['/admin', '/admin/members', `/admin/members/${id}`, '/members', '/dashboard', '/admin/activity', '/admin/stats'];
 const meetingPaths = ['/admin', '/admin/meetings', '/meetings', '/events', '/group-meetings', '/dashboard', '/', '/present/next'];
 
@@ -376,8 +383,8 @@ export async function adminUpdateGalleryPhoto(_prev: ActionState, formData: Form
   const parsed = galleryMetaSchema.safeParse(values);
   if (!id.success) return { status: 'error', message: GENERIC };
   if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values };
-  const { supabase, isAdmin } = await admin();
-  if (!isAdmin) return { status: 'error', message: 'Admins only.' };
+  const { supabase, isSuperAdmin } = await superAdmin();
+  if (!isSuperAdmin) return { status: 'error', message: 'Not allowed.' };
   const { data, error } = await supabase
     .from('gallery_photos')
     .update({ caption: parsed.data.caption, album: parsed.data.album, taken_on: parsed.data.takenOn ?? null })
@@ -397,8 +404,8 @@ export async function adminMoveGalleryPhoto(formData: FormData): Promise<void> {
   const position = z.coerce.number().int().min(1).max(10000).safeParse(formData.get('position'));
   const to: MoveTo | null = ['top', 'up', 'down', 'bottom'].includes(raw) ? (raw as MoveTo) : raw === 'position' && position.success ? position.data : null;
   if (!id.success || to === null) return;
-  const { supabase, isAdmin } = await admin();
-  if (!isAdmin) return;
+  const { supabase, isSuperAdmin } = await superAdmin();
+  if (!isSuperAdmin) return;
   const { data: rows, error } = await supabase
     .from('gallery_photos')
     .select('id')
@@ -423,8 +430,8 @@ export async function adminMoveGalleryPhoto(formData: FormData): Promise<void> {
 export async function adminDeleteGalleryPhoto(formData: FormData): Promise<void> {
   const id = uuid.safeParse(formData.get('id'));
   if (!id.success) return;
-  const { supabase, isAdmin } = await admin();
-  if (!isAdmin) return;
+  const { supabase, isSuperAdmin } = await superAdmin();
+  if (!isSuperAdmin) return;
   const { data: gone } = await supabase.from('gallery_photos').delete().eq('id', id.data).select('image_path, thumb_path').maybeSingle();
   if (gone) await supabase.storage.from('gallery').remove([gone.image_path, gone.thumb_path].filter(Boolean));
   revalidatePath('/gallery');

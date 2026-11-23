@@ -12,7 +12,7 @@ import { loadOptOuts, loadRecipients } from '@/lib/email/notify';
 import { recapVisitorRecipients } from '@/lib/email/cron';
 import { SendRecapForm } from './SendRecapForm';
 
-export const metadata: Metadata = { title: 'Member recap' };
+export const metadata: Metadata = { title: 'Member Recap' };
 // Sending goes through every recipient one by one.
 export const maxDuration = 60;
 
@@ -59,7 +59,7 @@ export default async function AdminRecapPage() {
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
-        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Member recap</h1>
+        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Member Recap</h1>
         <AdminNav current="/admin/recap" />
         <HowThisWorks tab="/admin/recap" />
         <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="recap-h">

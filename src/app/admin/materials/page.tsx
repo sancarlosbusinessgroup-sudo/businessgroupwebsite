@@ -8,7 +8,7 @@ import { formatShortDate } from '@/lib/dates';
 import { loadMaterials, type Material } from '@/lib/data/materials';
 import { STORAGE_PLAN_BYTES, formatBytes, slideLabel, toSlideKey } from '@/lib/slides';
 
-export const metadata: Metadata = { title: 'Presentation materials' };
+export const metadata: Metadata = { title: 'Presentation Materials' };
 export const dynamic = 'force-dynamic';
 
 const kindLabel: Record<Material['kind'], string> = {
@@ -33,7 +33,7 @@ export default async function AdminMaterialsPage() {
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
-        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Presentation materials</h1>
+        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Presentation Materials</h1>
         <AdminNav current="/admin/materials" />
         <HowThisWorks tab="/admin/materials" />
 

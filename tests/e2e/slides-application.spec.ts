@@ -392,7 +392,7 @@ test.describe('membership application', () => {
     await page.getByRole('button', { name: 'Send my invite request' }).click();
     await expect(page.getByText("You're on the list, Ivy!")).toBeVisible();
 
-    await login(page, users.admin, undefined, '/admin');
+    await login(page, users.admin, undefined, '/admin/guests');
     await page.getByRole('button', { name: 'Invite to apply (Ivy Applicant)' }).click();
     await expect(page.getByText('Invite sent.')).toBeVisible();
     let mail: { subject: string; htmlContent: string; textContent: string } | undefined;

@@ -99,7 +99,7 @@ export default async function AdminMembersPage({ searchParams }: { searchParams:
                         </span>
                         {m.role === 'admin' ? (
                           <span className="ml-2">
-                            <Pill tone="teal">{m.is_owner ? 'Owner' : 'Admin'}</Pill>
+                            <Pill tone="teal">Admin</Pill>
                           </span>
                         ) : null}
                       </td>

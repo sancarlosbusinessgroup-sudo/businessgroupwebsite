@@ -61,6 +61,7 @@ export async function resolveCorrection(formData: FormData): Promise<void> {
   const supabase = await createClient();
   await supabase.from('attendance_corrections').update({ resolved: true }).eq('id', id.data);
   revalidatePath('/admin');
+  revalidatePath('/admin/attendance');
 }
 
 // --- Category seats (A1) -----------------------------------------------------
@@ -73,6 +74,7 @@ export async function setSeatLimit(_prev: ActionState, formData: FormData): Prom
   const { data, error } = await supabase.from('categories').update({ seat_limit: parsed.data.seatLimit }).eq('id', parsed.data.id).select('id');
   if (error || !data?.length) return { status: 'error', message: GENERIC, values };
   revalidatePath('/admin');
+  revalidatePath('/admin/guests');
   revalidatePath('/visit');
   revalidatePath('/join');
   await bustPublic('categories');
@@ -189,7 +191,7 @@ export async function syncNewsletter(): Promise<ActionState> {
   }
 }
 
-/** Admin "Resend" on a failed email in the Recent emails list. */
+/** Admin "Resend" on a failed email in the Email Logs (Change History tab). */
 export async function resendEmail(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const id = z.coerce.number().int().positive().safeParse(formData.get('id'));
   if (!id.success) return { status: 'error', message: GENERIC };
@@ -199,6 +201,7 @@ export async function resendEmail(_prev: ActionState, formData: FormData): Promi
   try {
     const r = await resendFailedEmail(id.data);
     revalidatePath('/admin');
+    revalidatePath('/admin/history');
     switch (r.outcome) {
       case 'sent':
         return { status: 'success', message: 'Sent.' };

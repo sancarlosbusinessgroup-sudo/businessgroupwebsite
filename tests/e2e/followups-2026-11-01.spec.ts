@@ -120,7 +120,7 @@ test('guest survey: the emailed link opens a short form; answers reach the admin
     expect(toAdmin?.textContent).toContain('The 10-minute presentation');
     expect(await emailsTo(users.member, new RegExp(`^Survey answers from Sue ${last}`))).toHaveLength(1);
 
-    await login(page, users.admin, undefined, '/admin');
+    await login(page, users.admin, undefined, '/admin/guests');
     const row = page.getByRole('row').filter({ hasText: `Sue ${last}` });
     await row.locator('summary', { hasText: 'Survey answers' }).first().click();
     await expect(row.getByText('The 10-minute presentation')).toBeVisible();

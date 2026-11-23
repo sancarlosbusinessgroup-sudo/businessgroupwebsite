@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { EmailLogs } from '../MovedSections';
 import { AdminNav } from '@/components/AdminNav';
 import { HowThisWorks } from '@/components/HowThisWorks';
 import { EmptyState, Pill } from '@/components/ui';
@@ -7,7 +8,7 @@ import { requireAdmin } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import type { Json } from '@/lib/database.types';
 
-export const metadata: Metadata = { title: 'Change history' };
+export const metadata: Metadata = { title: 'Change History' };
 
 const tableLabels: Record<string, string> = {
   profiles: 'Profile',
@@ -84,11 +85,11 @@ export default async function AdminHistoryPage({ searchParams }: { searchParams:
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
-        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Change history</h1>
+        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Change History</h1>
         <AdminNav current="/admin/history" />
         <HowThisWorks tab="/admin/history">
           Every change an admin makes to another member&apos;s profile, slots, events, photos or activity records: who, what, before and after. Members
-          can&apos;t see this. Changes members make to their own data are not listed.
+          can&apos;t see this. Changes members make to their own data are not listed. The Email Logs below list the last 25 emails the site sent.
           {member ? (
             <>
               {' '}
@@ -147,6 +148,9 @@ export default async function AdminHistoryPage({ searchParams }: { searchParams:
             </table>
           </div>
         )}
+
+        {/* "Recent emails", renamed and moved here from the Overview (owner, 2026-11-24). */}
+        <EmailLogs />
       </div>
     </div>
   );

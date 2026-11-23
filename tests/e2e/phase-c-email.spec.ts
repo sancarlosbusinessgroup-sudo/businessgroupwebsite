@@ -52,7 +52,7 @@ test.describe('email notifications', () => {
     });
     expect(res.ok).toBe(true);
 
-    await login(page, users.admin, undefined, '/admin');
+    await login(page, users.admin, undefined, '/admin/guests');
     await page.getByRole('button', { name: 'Approve Olive Onboard' }).click();
     await expect(page.getByRole('button', { name: 'Approve Olive Onboard' })).toHaveCount(0);
 
@@ -62,10 +62,12 @@ test.describe('email notifications', () => {
     const contacts = (await (await fetch(`${BREVO}/contacts`)).json()) as { path: string; body: { email: string; listIds: number[] } }[];
     expect(contacts.some((c) => c.path === '/v3/contacts' && c.body?.email === email && c.body.listIds.includes(1))).toBe(true);
 
-    await page.goto('/admin');
+    // Owner 2026-11-24: Onboarding is on Guest Invites & Applications, the Email Logs on Change History.
+    await page.goto('/admin/guests');
     const ob = page.getByRole('region', { name: 'Onboarding table' });
     await expect(ob.getByRole('row').filter({ hasText: 'Olive Onboard' })).toContainText('Not yet');
-    await expect(page.getByRole('region', { name: 'Recent emails table' })).toContainText(email);
+    await page.goto('/admin/history');
+    await expect(page.getByRole('region', { name: 'Email logs table' })).toContainText(email);
 
     await page.getByRole('button', { name: 'Log out' }).click();
     await login(page, email, PASSWORD, '/dashboard');

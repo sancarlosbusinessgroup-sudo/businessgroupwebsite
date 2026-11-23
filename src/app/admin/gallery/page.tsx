@@ -4,7 +4,7 @@ import { AdminNav } from '@/components/AdminNav';
 import { HowThisWorks } from '@/components/HowThisWorks';
 import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { EmptyState } from '@/components/ui';
-import { requireAdmin } from '@/lib/auth';
+import { requireSuperAdmin } from '@/lib/auth';
 import { formatShortDate } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
 import { createClient } from '@/lib/supabase/server';
@@ -13,9 +13,12 @@ import { PhotoForm } from './PhotoForm';
 
 export const metadata: Metadata = { title: 'Gallery' };
 
-/** Admin → Gallery: change any caption, album or date, or remove a photo (owner, 2026-10-27). */
+/**
+ * Admin → Gallery: change any caption, album or date, or remove a photo (owner, 2026-10-27). Super Admins only
+ * (owner, 2026-11-24); other admins are sent back to the Overview.
+ */
 export default async function AdminGalleryPage() {
-  await requireAdmin();
+  await requireSuperAdmin();
   const supabase = await createClient();
   const { data: photos, error } = await supabase
     .from('gallery_photos')

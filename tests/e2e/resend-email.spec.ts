@@ -43,8 +43,9 @@ test('a failed notice can be resent from Admin, once, to the original recipient 
   expect(failed?.error).toContain('Key not found');
   expect(await emailsTo(users.member, new RegExp(prospect), 500)).toHaveLength(0);
 
-  await page.goto('/admin');
-  const row = page.getByRole('region', { name: 'Recent emails table' }).getByRole('row').filter({ hasText: prospect });
+  // Owner 2026-11-24: "Recent emails" is now "Email Logs" on Change History.
+  await page.goto('/admin/history');
+  const row = page.getByRole('region', { name: 'Email logs table' }).getByRole('row').filter({ hasText: prospect });
   await expect(row).toContainText('Failed');
   await expectAccessible(page);
   await row.getByRole('button', { name: `Resend email to ${users.member}` }).click();
@@ -55,7 +56,7 @@ test('a failed notice can be resent from Admin, once, to the original recipient 
   expect(after).toEqual({ status: 'sent', error: null });
 
   await page.reload();
-  const fresh = page.getByRole('region', { name: 'Recent emails table' }).getByRole('row').filter({ hasText: prospect });
+  const fresh = page.getByRole('region', { name: 'Email logs table' }).getByRole('row').filter({ hasText: prospect });
   await expect(fresh).toContainText('Sent');
   await expect(fresh.getByRole('button', { name: /Resend/ })).toHaveCount(0);
   // Nobody else got a copy.
@@ -89,8 +90,8 @@ test('resending one email of a guest request reaches only that person, not the a
   expect(rows.every((r) => r.status === 'failed')).toBe(true);
   await fetch(`${BREVO}/fail`, { method: 'POST', body: JSON.stringify({ count: 0 }) });
 
-  await login(page, users.admin, undefined, '/admin');
-  const row = page.getByRole('region', { name: 'Recent emails table' }).getByRole('row').filter({ hasText: email });
+  await login(page, users.admin, undefined, '/admin/history');
+  const row = page.getByRole('region', { name: 'Email logs table' }).getByRole('row').filter({ hasText: email });
   await row.getByRole('button', { name: `Resend email to ${email}` }).click();
   await expect(row.getByRole('status')).toHaveText('Sent.');
 

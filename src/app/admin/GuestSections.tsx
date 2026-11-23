@@ -13,9 +13,8 @@ import { CopySignInLink } from './CopySignInLink';
 export type GuestSectionsPage = '/admin' | '/admin/guests';
 
 /**
- * Pending applications, Visitor sign-in link and Guest invite requests. Shown on Admin → Overview and on
- * Admin → Guest Invites & Applications (owner, 2026-11-23), from this one component so the two stay the same.
- * Callers must have checked requireAdmin().
+ * Pending applications, Visitor sign-in link and Guest invite requests on Admin → Guest Invites & Applications
+ * (owner, 2026-11-23). They were also on the Overview until 2026-11-24. Callers must have checked requireAdmin().
  */
 export async function GuestSections({ back }: { back: GuestSectionsPage }) {
   const supabase = await createClient();

@@ -1,8 +1,11 @@
 import Link from 'next/link';
 
-import { adminLinks as links } from '@/lib/content';
+import { getViewer, isSuperAdmin } from '@/lib/auth';
+import { adminLinks, adminLinksFor } from '@/lib/content';
 
-export function AdminNav({ current }: { current: (typeof links)[number]['href'] }) {
+export async function AdminNav({ current }: { current: (typeof adminLinks)[number]['href'] }) {
+  // Gallery is for Super Admins only (owner, 2026-11-24); other admins don't see the tab.
+  const links = adminLinksFor(isSuperAdmin(await getViewer()));
   return (
     // Even rows of tabs: two columns on phones, four on tablets and laptops, one pill-shaped row on wide screens where
     // all of them fit (a pill that wrapped onto several rows looked like a blob on phones; owner, 2026-10-24).

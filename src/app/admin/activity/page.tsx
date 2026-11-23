@@ -10,8 +10,9 @@ import { formatMoney, formatShortDate } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { deleteMemberEvent } from '../../actions/events';
 import { deleteOneOnOne, deleteReferral } from '../../actions/member';
+import { DirectoryDownloads } from '../MovedSections';
 
-export const metadata: Metadata = { title: 'Member activity' };
+export const metadata: Metadata = { title: 'Member Activity' };
 
 const day = (d: string) => formatShortDate(new Date(d + 'T12:00:00Z'));
 type Person = { first_name: string; last_name: string } | null;
@@ -50,10 +51,11 @@ export default async function AdminActivityPage() {
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
-        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Member activity</h1>
+        <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Member Activity</h1>
         <AdminNav current="/admin/activity" />
         <HowThisWorks tab="/admin/activity">
           Referral slips, one-on-ones and member events, newest first. Delete a duplicate or a mistake here; it is removed for everyone and from the stats.
+          Directory downloads are at the bottom.
         </HowThisWorks>
 
         <section className="card flex flex-col gap-3 p-5" aria-labelledby="refs-h">
@@ -129,6 +131,9 @@ export default async function AdminActivityPage() {
             </ul>
           )}
         </section>
+
+        {/* Moved here from the Overview (owner, 2026-11-24). */}
+        <DirectoryDownloads />
       </div>
     </div>
   );

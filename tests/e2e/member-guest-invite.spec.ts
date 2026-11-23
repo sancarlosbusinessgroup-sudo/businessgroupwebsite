@@ -97,7 +97,7 @@ test.describe('members invite a guest', () => {
     await expect(page).toHaveURL(/\/profile$/);
   });
 
-  test('admins: the header Admin dropdown lists every admin section, Meeting slides right after Overview (owner, 2026-10-30)', async ({ page }) => {
+  test('admins: the header Admin dropdown lists every admin section in the owner’s order (2026-11-24)', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await login(page, users.admin);
     const header = page.locator('header');
@@ -106,24 +106,24 @@ test.describe('members invite a guest', () => {
     await toggle.click();
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
     const menu = header.getByRole('list', { name: 'Admin sections' });
+    // Owner 2026-11-24: new order and Title Case labels. Guest Invites & Applications (2026-11-23) sits before Members.
+    // The test admin is a Super Admin (global setup), so Gallery is listed.
     await expect(menu.getByRole('link')).toHaveText([
       'Overview',
-      'Meeting slides',
-      // Owner 2026-11-23.
+      'Meetings',
+      'Meeting Slides',
+      'Presentation Materials',
+      'Attendance',
+      'Member Recap',
+      'Management Recap',
       'Guest Invites & Applications',
       'Members',
-      'Meetings',
-      'Attendance',
-      // Owner meeting 2026-10-30: Member activity and Member stats side by side.
-      'Member activity',
-      'Member stats',
+      'Member Activity',
+      'Member Stats',
       'BARP Champion',
       'Management',
-      'Member recap',
-      'Management recap',
-      'Presentation materials',
       'Gallery',
-      'Change history',
+      'Change History',
     ]);
     await expectAccessible(page);
     await page.keyboard.press('Escape');
@@ -135,7 +135,8 @@ test.describe('members invite a guest', () => {
     // The admin tabs on the page use the same order.
     const tabs = page.getByRole('navigation', { name: 'Admin sections' }).getByRole('link');
     await expect(tabs.nth(0)).toHaveText('Overview');
-    await expect(tabs.nth(1)).toHaveText('Meeting slides');
+    await expect(tabs.nth(1)).toHaveText('Meetings');
+    await expect(tabs.nth(2)).toHaveText('Meeting Slides');
   });
 
   test('members who are not admins have no Admin menu', async ({ page }) => {

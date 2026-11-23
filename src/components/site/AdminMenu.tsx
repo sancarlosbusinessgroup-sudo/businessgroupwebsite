@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { adminLinks } from '@/lib/content';
+import { adminLinksFor } from '@/lib/content';
 import { useDropdown } from './useDropdown';
 
 /**
  * Header "Admin" dropdown (owner, 2026-10-30): every admin section, in the same order as the admin tabs.
  * Disclosure pattern like "Report Activity": a button that opens a list of links; Escape or a click outside closes it.
  */
-export function AdminMenu() {
+export function AdminMenu({ superAdmin }: { superAdmin: boolean }) {
   const pathname = usePathname();
   const { open, close, wrapProps, buttonProps, panelClass } = useDropdown();
   const active = pathname === '/admin' || pathname.startsWith('/admin/') || pathname.startsWith('/present/');
@@ -40,7 +40,7 @@ export function AdminMenu() {
         aria-label="Admin sections"
         className={`border-line bg-surface m-0 mt-1 list-none flex-col gap-0.5 rounded-2xl p-1.5 md:absolute md:top-full md:right-0 md:z-40 md:max-h-[75vh] md:min-w-[230px] md:overflow-y-auto md:border md:shadow-lg ${panelClass}`}
       >
-        {adminLinks.map((l) => (
+        {adminLinksFor(superAdmin).map((l) => (
           <li key={l.href}>
             <Link
               href={l.href}

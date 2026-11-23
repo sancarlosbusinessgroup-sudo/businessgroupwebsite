@@ -202,7 +202,8 @@ test.describe('admins', () => {
   });
 
   test('category seats: raising a limit opens the profession on the application form', async ({ page }) => {
-    await page.goto('/admin');
+    // Owner 2026-11-24: Category seats moved from Overview to Guest Invites & Applications.
+    await page.goto('/admin/guests');
     const form = page.getByRole('form', { name: 'Seats for Real Estate' });
     await form.getByLabel('Seats').fill('2');
     await form.getByRole('button', { name: 'Save' }).click();
@@ -210,14 +211,15 @@ test.describe('admins', () => {
     await page.goto('/join');
     await expect(page.getByLabel('Category').locator('option', { hasText: /^Real Estate$/ })).toHaveCount(1);
 
-    await page.goto('/admin');
+    await page.goto('/admin/guests');
     await form.getByLabel('Seats').fill('1');
     await form.getByRole('button', { name: 'Save' }).click();
     await expect(form.getByText('Saved')).toBeVisible();
   });
 
   test('admin sees the directory download log', async ({ page }) => {
-    await page.goto('/admin');
+    // Owner 2026-11-24: moved from Overview to Member Activity.
+    await page.goto('/admin/activity');
     await expect(page.getByRole('heading', { name: 'Directory downloads' })).toBeVisible();
   });
 });
