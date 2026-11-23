@@ -19,14 +19,17 @@ export function PresenterMaterials({
   userId,
   when,
   items,
+  defaultOpen = false,
 }: {
   meetingId: string;
   slot: 'education' | 'presentation';
   userId: string;
   when: string;
   items: MyMaterial[];
+  /** My Presentations (profile) shows the upload forms straight away. */
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const name = `my ${slotShort[slot]} presentation on ${when}`;
   const presenter = { userId, slot };
   return (

@@ -88,14 +88,16 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
     ],
   },
   '/admin/champion': {
-    summary: "The month's ranking by points, the automatic pick, and where you confirm the champion or choose someone else with a reason.",
+    summary:
+      'A BARP Champion at every meeting: the ranking of points earned since the previous meeting, the automatic pick, and where you confirm it or choose someone else with a reason. Lifetime points are shown too.',
     steps: [
-      'Points per month: 1 for each referral given, 1 for each one-on-one done (once per pair of members), 1 for each meeting attended and 1 for each visitor brought who attended.',
-      'From January 2027 also: 1 point for a 5-minute presentation, 2 for a 10-minute presentation, and 1 for attending every meeting of the month (perfect attendance).',
-      'To qualify, a member must attend at least 75% of the month’s meetings that had attendance taken.',
-      'The top qualifying member is the automatic pick. Ties go to more closed business, then more referrals.',
-      'You can confirm the automatic pick or choose someone else with a reason. The champion gets a badge on their profile and directory card, and appears on the BARP Champion slide.',
-      'If nobody is chosen, the slide shows the member leading the month so far.',
+      'Each meeting has its own champion (owner, 2026-11-23): points earned from the end of the previous meeting to the end of this one. Points reported during the meeting count.',
+      'Points: 1 for each referral given, 1 for each one-on-one done (once per pair of members), 1 for attending the meeting and 1 for each visitor brought who attended. From January 2027 also 1 for a 5-minute presentation and 2 for a 10-minute presentation.',
+      'To qualify, a member must attend the meeting (a substitute counts) once its attendance is taken. Ties go to more closed business, then more referrals.',
+      'The slide shows the leader live: press Refresh (or R) on the slides to include points reported during the meeting.',
+      'After the meeting the top qualifying member is recorded automatically, once the attendance is in (or a day later). You can confirm the pick earlier or choose someone else with a reason.',
+      'The champion gets a badge on their profile and directory card until the next meeting’s champion is recorded.',
+      'Lifetime points keep adding up and never reset: see the Lifetime column, or choose “Lifetime points” in the meeting list.',
     ],
   },
   '/admin/stats': {

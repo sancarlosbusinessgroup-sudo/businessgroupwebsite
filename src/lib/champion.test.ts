@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { autoChampion, monthOf, monthRange, previousMonth, scoreChampion, type ChampionInput } from './champion';
+import {
+  autoChampion,
+  championPeriods,
+  meetingDateLabel,
+  monthOf,
+  monthRange,
+  oneOnOneDays,
+  previousMonth,
+  scoreChampion,
+  type ChampionInput,
+} from './champion';
 
 const base: ChampionInput = {
   members: [
@@ -136,5 +146,45 @@ describe('months', () => {
     expect(previousMonth('2026-01')).toBe('2025-12');
     expect(previousMonth('2026-10')).toBe('2026-09');
     expect(monthOf(new Date('2026-11-01T05:00:00Z'))).toBe('2026-10');
+  });
+});
+
+describe('per-meeting champion (owner, 2026-11-23)', () => {
+  const nov9 = { id: 'm1', starts_at: '2026-11-09T16:15:00Z', ends_at: '2026-11-09T17:30:00Z' };
+  const dec7 = { id: 'm2', starts_at: '2026-12-07T16:15:00Z', ends_at: '2026-12-07T17:30:00Z' };
+  const jan4 = { id: 'm3', starts_at: '2027-01-04T16:15:00Z', ends_at: null };
+
+  it('each meeting scores from the end of the previous held meeting to its own end (so reports during it count)', () => {
+    // The database may return times with an offset (+08:00 locally): everything comes back as UTC ISO.
+    const dec7Offset = { ...dec7, starts_at: '2026-12-08T00:15:00+08:00', ends_at: '2026-12-08T01:30:00+08:00' };
+    const periods = championPeriods([jan4, nov9, dec7Offset]);
+    expect(periods.map((p) => p.meetingId)).toEqual(['m1', 'm2', 'm3']);
+    expect(periods[0]).toMatchObject({ from: null, to: '2026-11-09T17:30:00.000Z', previousStart: null });
+    expect(periods[1]).toMatchObject({ from: '2026-11-09T17:30:00.000Z', to: '2026-12-07T17:30:00.000Z', previousStart: '2026-11-09T16:15:00.000Z' });
+    // No end saved: 75 minutes after the start.
+    expect(periods[2]).toMatchObject({ from: '2026-12-07T17:30:00.000Z', to: '2027-01-04T17:30:00.000Z', startsAt: '2027-01-04T16:15:00.000Z' });
+  });
+
+  it('one-on-ones count from the day after the previous meeting to the meeting day itself', () => {
+    expect(oneOnOneDays({ from: '2026-11-09T17:30:00Z', to: '2026-12-07T17:30:00Z' })).toEqual({ gte: '2026-11-10', lt: '2026-12-08' });
+    expect(oneOnOneDays({ from: null, to: '2026-12-07T17:30:00Z' })).toEqual({ gte: null, lt: '2026-12-08' });
+    expect(meetingDateLabel('2026-12-07T16:15:00Z')).toBe('Dec 7, 2026');
+  });
+
+  it('no perfect-attendance point per meeting or lifetime; presentations score by their own month', () => {
+    const rows = scoreChampion({
+      ...base,
+      meetingsTaken: 1,
+      attendance: [{ profile_id: 'a', status: 'present', substitute: false }],
+      presentations: [
+        { profile_id: 'a', slot: 'presentation', month: '2027-01' },
+        { profile_id: 'b', slot: 'presentation', month: '2026-12' },
+      ],
+      month: '2027-01',
+      perfectAttendanceBonus: false,
+    });
+    // Ana: meeting 1 + 10-minute presentation 2 = 3 (no perfect-attendance point). Bob's December talk earns nothing.
+    expect(rows.find((r) => r.id === 'a')).toMatchObject({ points: 3, perfectAttendance: true, eligible: true });
+    expect(rows.find((r) => r.id === 'b')).toBeUndefined();
   });
 });

@@ -16,6 +16,7 @@ import { ChangePasswordForm } from './ChangePasswordForm';
 import { DeleteAccountForm } from './DeleteAccountForm';
 import { EmailPrefsForm } from './EmailPrefsForm';
 import { MediaUpload } from './MediaUpload';
+import { MyPresentations } from './MyPresentations';
 import { ProfileForm } from './ProfileForm';
 
 export const metadata: Metadata = { title: 'My profile' };
@@ -28,6 +29,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   if (!p || p.status !== 'approved') redirect('/login?notice=pending');
   const approved = p.status === 'approved';
   const editing = tab === 'edit' || !approved;
+  // Owner 2026-11-23: "My Presentations" tab beside Edit profile.
+  const presenting = approved && tab === 'presentations';
 
   const supabase = await createClient();
   const [categories, contactRes, catRes, prefsRes] = await Promise.all([
@@ -45,7 +48,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   const champion = { current: currentChampion?.profileId === p.id ? currentChampion.label : null, past: wins.map((w) => w.label) };
   const prefs = Object.fromEntries(prefKeys.map((k) => [k, prefOn(prefsRes.data?.prefs, k)])) as Record<(typeof prefKeys)[number], boolean>;
   const tabCls = (on: boolean) =>
-    `flex min-h-11 items-center rounded-full px-5 font-display text-sm font-bold no-underline ${on ? 'bg-surface text-heading' : 'text-ink-muted'}`;
+    `flex min-h-11 items-center rounded-full px-4 sm:px-5 font-display text-sm font-bold no-underline ${on ? 'bg-surface text-heading' : 'text-ink-muted'}`;
 
   return (
     <div className="bg-canvas">
@@ -53,12 +56,15 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="sr-only">My profile</h1>
           {approved ? (
-            <nav aria-label="Profile mode" className="bg-line-soft flex gap-1.5 rounded-full p-1">
-              <Link href="/profile" className={tabCls(!editing)} aria-current={!editing ? 'page' : undefined}>
+            <nav aria-label="Profile mode" className="bg-line-soft flex flex-wrap gap-1.5 rounded-[22px] p-1">
+              <Link href="/profile" className={tabCls(!editing && !presenting)} aria-current={!editing && !presenting ? 'page' : undefined}>
                 Public view
               </Link>
               <Link href="/profile?tab=edit" className={tabCls(editing)} aria-current={editing ? 'page' : undefined}>
                 Edit profile
+              </Link>
+              <Link href="/profile?tab=presentations" className={tabCls(presenting)} aria-current={presenting ? 'page' : undefined}>
+                My Presentations
               </Link>
             </nav>
           ) : (
@@ -66,7 +72,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           )}
           {approved ? (
             <span className="text-ink-muted flex flex-wrap items-center gap-3 text-sm">
-              {!editing ? 'This is how visitors see your listing in the directory.' : null}
+              {!editing && !presenting ? 'This is how visitors see your listing in the directory.' : null}
               <Link href="/profile?tab=edit#email" className="font-bold">
                 Change email
               </Link>
@@ -77,7 +83,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           ) : null}
         </div>
 
-        {editing ? (
+        {presenting ? (
+          <MyPresentations userId={p.id} />
+        ) : editing ? (
           <>
             {approved ? (
               <div className="card flex flex-wrap items-center gap-4 p-5">

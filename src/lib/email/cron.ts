@@ -90,18 +90,18 @@ export async function runDaily(now: Date = new Date()): Promise<DailyReport> {
     }
   }
 
-  // 1b. Presenter reminder, 5 days before each regular meeting: to the member booked in the 5-minute and
-  // 10-minute slots, once per meeting and slot. The job runs once a day, so a 24-hour window centred on
-  // "5 days from now" catches each meeting exactly once.
-  const { data: inFiveDays } = await db
+  // 1b. Presenter reminder, PRESENTER_REMINDER_DAYS (7, owner 2026-11-23; was 5) before each regular meeting: to the
+  // member booked in the 5-minute and 10-minute slots, once per meeting and slot. The job runs once a day, so a 24-hour
+  // window centred on "7 days from now" catches each meeting exactly once.
+  const { data: presenterMeetings } = await db
     .from('meetings')
     .select('id, title, starts_at, meeting_speakers(slot, profile_id, topic)')
     .eq('category', 'Networking')
     .is('cancelled_reason', null)
     .eq('hidden', false)
-    .gte('starts_at', new Date(now.getTime() + 4.5 * DAY).toISOString())
-    .lt('starts_at', new Date(now.getTime() + 5.5 * DAY).toISOString());
-  const presenters = (inFiveDays ?? []).flatMap((m) =>
+    .gte('starts_at', new Date(now.getTime() + (T.PRESENTER_REMINDER_DAYS - 0.5) * DAY).toISOString())
+    .lt('starts_at', new Date(now.getTime() + (T.PRESENTER_REMINDER_DAYS + 0.5) * DAY).toISOString());
+  const presenters = (presenterMeetings ?? []).flatMap((m) =>
     ((m.meeting_speakers ?? []) as { slot: string; profile_id: string | null; topic: string | null }[])
       .filter(
         (s): s is { slot: 'education' | 'presentation'; profile_id: string; topic: string | null } =>

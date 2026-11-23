@@ -4,8 +4,8 @@ import { localDateKey } from '../dates';
 import { periodRange } from '../periods';
 import { resolveNotes, resolveSlides, resolveTimers, type SlideKey, type SlideNotes, type TimerSettings } from '../slides';
 import { getUpcomingMemberEvents, type CalendarItem, fromMeeting } from './events';
-import { getChampionAwards, getChampionRanking, type ChampionAward } from './champion';
-import { monthOf, monthRange, previousMonth } from '../champion';
+import { finalizeMeetingChampions, getChampionAwards, getChampionPeriods, getChampionRanking, getMeetingChampionRanking, type ChampionAward } from './champion';
+import { MEETING_CHAMPION_FROM, meetingDateLabel, monthOf, monthRange, previousMonth } from '../champion';
 import { getGroupTotals, getLeaderboard, type GroupTotals, type LeaderRow } from './member';
 import { getCategorySeats, getLeadership, getMeetingBySlug, getUpcomingMeetings, type MeetingWithSpeakers, type Speaker } from './public';
 
@@ -44,8 +44,17 @@ export type DeckData = {
   leaders: LeaderRow[];
   events: CalendarItem[];
   next: (MeetingWithSpeakers & { five: SpeakerCard | null; ten: SpeakerCard | null }) | null;
-  /** BARP Champion slide: the chosen champion (this month's, else last month's) at every meeting; otherwise this month's leaders so far. */
-  champion: { award: ChampionAward | null; monthLabel: string; leaders: { id: string; name: string; points: number; avatar: string | null }[] };
+  /**
+   * BARP Champion slide. From MEETING_CHAMPION_FROM (owner, 2026-11-23): this meeting's champion, the member with the most
+   * points since the previous meeting, live until it is recorded (`since`: "the Nov 9 meeting"). Before: the monthly champion,
+   * else that month's leader so far.
+   */
+  champion: {
+    award: ChampionAward | null;
+    monthLabel: string;
+    leaders: { id: string; name: string; points: number; avatar: string | null }[];
+    since?: string | null;
+  };
   /** Members whose birthday is in the meeting's month (owner meeting 2026-10-30): a slide before the BARP Champion. */
   birthdays: { id: string; name: string; day: number; avatar: string | null }[];
 };
@@ -220,16 +229,48 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
   };
 }
 
-/** Data for the BARP Champion slide (owner, 2026-10-23). Only loaded when the slide is in the deck. */
+/** Data for the BARP Champion slide (owner, 2026-10-23; per meeting from 2026-11-23). Only loaded when the slide is in the deck. */
 async function loadChampionSlide(startsAt: string, meetingId: string, saved: readonly string[] | null | undefined): Promise<DeckData['champion']> {
   const month = monthOf(new Date(startsAt));
   const empty = { award: null, monthLabel: monthRange(month).label, leaders: [] };
   if (!resolveSlides(saved).includes('champion')) return empty;
   try {
     const supabase = await createClient();
-    // A champion chosen by an admin always wins: this month's if one is already chosen, otherwise last month's
-    // (the reigning champion). Only when neither exists does the slide show this month's automatic leaders.
-    const awards = await getChampionAwards(3);
+    const period = (await getChampionPeriods()).find((p) => p.meetingId === meetingId);
+    if (period && period.to >= MEETING_CHAMPION_FROM) {
+      // Per meeting: the recorded (or admin-chosen) champion of this meeting, else the live leader since the last meeting.
+      // "Refresh" on the deck reloads this, so points reported during the meeting count.
+      await finalizeMeetingChampions().catch(() => 0);
+      const since = period.previousStart ? `the ${meetingDateLabel(period.previousStart)} meeting` : null;
+      const label = `${meetingDateLabel(period.startsAt)} meeting`;
+      const recorded = (await getChampionAwards(10)).find((a) => a.kind === 'meeting' && a.key === meetingId) ?? null;
+      if (recorded) return { ...empty, award: recorded, since };
+      const { auto } = await getMeetingChampionRanking(period);
+      if (!auto) return { ...empty, since };
+      const { data: p } = await supabase.from('profiles').select('business_name, slug, avatar_path').eq('id', auto.id).maybeSingle();
+      return {
+        ...empty,
+        since,
+        award: {
+          key: meetingId,
+          kind: 'meeting',
+          endsAt: period.to,
+          month: '',
+          label,
+          profileId: auto.id,
+          name: auto.name,
+          business: p?.business_name ?? null,
+          slug: p?.slug ?? null,
+          avatar: p?.avatar_path ?? null,
+          reason: null,
+          points: { ...auto },
+          overridden: false,
+        },
+      };
+    }
+    // Before per-meeting champions: a champion chosen by an admin always wins: this month's if one is already chosen,
+    // otherwise last month's (the reigning champion). Only when neither exists does the slide show this month's leader.
+    const awards = (await getChampionAwards(6)).filter((a) => a.kind === 'month');
     const award = awards.find((a) => a.month === monthRange(month).key) ?? awards.find((a) => a.month === monthRange(previousMonth(month)).key) ?? null;
     if (award) return { ...empty, award };
     const { rows } = await getChampionRanking(month);

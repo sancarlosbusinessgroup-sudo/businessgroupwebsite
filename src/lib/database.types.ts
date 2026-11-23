@@ -179,6 +179,70 @@ export type Database = {
           },
         ];
       };
+      meeting_champions: {
+        Row: {
+          meeting_id: string;
+          profile_id: string;
+          auto_profile_id: string | null;
+          reason: string | null;
+          points: Json;
+          period_from: string | null;
+          period_to: string;
+          chosen_by: string | null;
+          chosen_at: string;
+        };
+        Insert: {
+          meeting_id: string;
+          profile_id: string;
+          auto_profile_id?: string | null;
+          reason?: string | null;
+          points?: Json;
+          period_from?: string | null;
+          period_to: string;
+          chosen_by?: string | null;
+          chosen_at?: string;
+        };
+        Update: {
+          profile_id?: string;
+          auto_profile_id?: string | null;
+          reason?: string | null;
+          points?: Json;
+          period_from?: string | null;
+          period_to?: string;
+          chosen_by?: string | null;
+          chosen_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'meeting_champions_meeting_id_fkey';
+            columns: ['meeting_id'];
+            isOneToOne: true;
+            referencedRelation: 'meetings';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'meeting_champions_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'meeting_champions_auto_profile_id_fkey';
+            columns: ['auto_profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'meeting_champions_chosen_by_fkey';
+            columns: ['chosen_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       champion_awards: {
         Row: {
           month: string;

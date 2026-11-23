@@ -121,6 +121,7 @@ export async function updateSpeakerTopic(_prev: ActionState, formData: FormData)
   revalidatePath('/events');
   revalidatePath('/group-meetings');
   revalidatePath('/dashboard');
+  revalidatePath('/profile');
   await bustPublic('meetings');
   return { status: 'success', values };
 }

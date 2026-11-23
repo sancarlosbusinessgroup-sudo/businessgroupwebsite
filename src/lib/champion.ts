@@ -37,10 +37,18 @@ export type ChampionInput = {
   meetingsTaken: number;
   /** Attendance rows for those meetings. */
   attendance: { profile_id: string; status: string; substitute: boolean }[];
-  /** Presentations (5- or 10-minute) given at meetings in the month. `slot`: 'education' = 5-minute, 'presentation' = 10-minute. */
-  presentations: { profile_id: string | null; slot?: string | null }[];
+  /**
+   * Presentations (5- or 10-minute) given at meetings in the period. `slot`: 'education' = 5-minute, 'presentation' = 10-minute.
+   * `month` ("2027-01"): the meeting's month, so lifetime totals only give presentation points from CHAMPION_2027_FROM.
+   */
+  presentations: { profile_id: string | null; slot?: string | null; month?: string }[];
   /** "2026-10": the month being scored. Presentation and perfect-attendance points apply from CHAMPION_2027_FROM. */
   month?: string;
+  /**
+   * The perfect-attendance point (from 2027) is for a whole month. Per-meeting periods and lifetime totals leave it out
+   * (owner 2026-11-23: the champion is now chosen at every meeting). Default: on.
+   */
+  perfectAttendanceBonus?: boolean;
 };
 
 export type ChampionRow = {
@@ -133,8 +141,10 @@ export function scoreChampion(input: ChampionInput): ChampionRow[] {
     const row = get(p.profile_id);
     if (!row) continue;
     row.presentations++;
-    if (newRules) row.presentationPoints += p.slot === 'presentation' ? P27.tenMinute : P27.fiveMinute;
+    const scored = p.month ? p.month >= CHAMPION_2027_FROM : newRules;
+    if (scored) row.presentationPoints += p.slot === 'presentation' ? P27.tenMinute : P27.fiveMinute;
   }
+  const bonus = newRules && input.perfectAttendanceBonus !== false;
 
   const P = CHAMPION_POINTS;
   for (const row of rows.values()) {
@@ -144,7 +154,8 @@ export function scoreChampion(input: ChampionInput): ChampionRow[] {
       row.oneOnOnes * P.oneOnOne +
       row.meetings * P.meeting +
       row.visitors * P.visitor +
-      (newRules ? row.presentationPoints + (row.perfectAttendance ? P27.perfectAttendance : 0) : 0);
+      row.presentationPoints +
+      (bonus && row.perfectAttendance ? P27.perfectAttendance : 0);
     if (input.meetingsTaken > 0) {
       row.attendanceShare = (row.meetings + row.substitutes) / input.meetingsTaken;
       row.eligible = row.attendanceShare >= CHAMPION_MIN_ATTENDANCE;
@@ -181,3 +192,64 @@ export function previousMonth(month: string): string {
   const [y, m] = month.split('-').map(Number) as [number, number];
   return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
 }
+
+// --- Per-meeting periods (owner, 2026-11-23) ------------------------------------------------------------------------
+
+/**
+ * Meetings that end after this choose a champion each; earlier months keep their monthly champion. On the live site the
+ * first is Dec 7, 2026 (the Nov 9 meeting ended before this, and Nov 23 was cancelled).
+ */
+export const MEETING_CHAMPION_FROM = '2026-11-10T00:00:00Z';
+
+export type HeldMeeting = { id: string; starts_at: string; ends_at: string | null };
+
+/** "2026-11-09T17:30:00.000Z" for any timestamp the database returns (it may carry a +08:00 style offset). */
+export const utc = (t: string) => new Date(t).toISOString();
+
+/** A meeting's end (UTC ISO), or 75 minutes after it starts when no end is saved. */
+export const meetingEnd = (m: HeldMeeting) => (m.ends_at ? utc(m.ends_at) : new Date(new Date(m.starts_at).getTime() + 75 * 60_000).toISOString());
+
+/** "2026-11-09" in Pacific time. */
+export const pacificDate = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+
+/** "2026-11-09" + n days. */
+export function addDays(date: string, n: number): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+export type ChampionPeriod = {
+  meetingId: string;
+  /** When the previous held meeting ended (null for the first meeting). Points after this count. */
+  from: string | null;
+  /** When this meeting ends. Points up to here count, so reports made during the meeting count. */
+  to: string;
+  /** The previous held meeting's start, for "since the Nov 9 meeting". */
+  previousStart: string | null;
+  startsAt: string;
+};
+
+/**
+ * The scoring period of each meeting: from the end of the previous held meeting to the end of this one.
+ * `held`: regular meetings that were not cancelled, in any order.
+ */
+export function championPeriods(held: HeldMeeting[]): ChampionPeriod[] {
+  const sorted = held.map((m) => ({ ...m, starts_at: utc(m.starts_at) })).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  return sorted.map((m, i) => {
+    const prev = i > 0 ? sorted[i - 1]! : null;
+    return { meetingId: m.id, from: prev ? meetingEnd(prev) : null, to: meetingEnd(m), previousStart: prev?.starts_at ?? null, startsAt: m.starts_at };
+  });
+}
+
+/**
+ * One-on-ones only have a date (met_on). A period counts the days after the previous meeting's day, up to and including
+ * this meeting's day: [gte, lt).
+ */
+export function oneOnOneDays(period: { from: string | null; to: string }): { gte: string | null; lt: string } {
+  return { gte: period.from ? addDays(pacificDate(period.from), 1) : null, lt: addDays(pacificDate(period.to), 1) };
+}
+
+/** "Dec 7, 2026" */
+export const meetingDateLabel = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' });
