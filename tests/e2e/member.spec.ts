@@ -17,6 +17,7 @@ test.describe('member area', () => {
       ['/profile', 'Morgan Member'],
       ['/profile?tab=edit', 'My profile'],
       ['/gallery', 'Gallery'],
+      ['/video-guides', 'Video Guides'],
     ] as const) {
       await page.goto(path);
       await expect(page.getByRole('heading', { level: 1, name: heading })).toBeAttached();

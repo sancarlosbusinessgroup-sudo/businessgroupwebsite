@@ -16,7 +16,7 @@ test.describe('member events (2026-10-31)', () => {
     const menu = page.getByRole('button', { name: 'Menu', exact: true });
     if (await menu.isVisible()) await menu.click();
     const nav = page.getByRole('navigation', { name: 'Main' });
-    await expect(nav.getByRole('link', { name: 'Support' })).toBeVisible();
+    await expect(nav.getByRole('button', { name: 'Support' })).toBeVisible();
     const labels = (await nav.getByRole('link').allTextContents()).map((t) => t.trim());
     expect(labels.indexOf('Events')).toBe(labels.indexOf('Gallery') + 1);
     await nav.getByRole('link', { name: 'Events', exact: true }).click();

@@ -48,8 +48,42 @@ export const memberNav: readonly NavItem[] = [
   // "My profile" sits top right with Admin and Log out (owner, 2026-10-30).
   // Owner 2026-10-30: "Invite A Guest" sits right next to Support, even when the menu wraps.
   { href: '/invite-guest', label: 'Invite A Guest', keepWith: 'help' },
-  { href: '/support', label: 'Support', keepWith: 'help' },
+  // Owner 2026-11-24: Support is a dropdown: "Video Guides" (new) and "Contact Us" (the original Support page).
+  {
+    href: '/support',
+    label: 'Support',
+    keepWith: 'help',
+    children: [
+      { href: '/video-guides', label: 'Video Guides' },
+      { href: '/support', label: 'Contact Us' },
+    ],
+  },
 ] as const;
+
+/**
+ * Member's Guide video chapters on /video-guides (owner, 2026-11-24). Recorded on a private copy of the site with
+ * made-up sample members; files in public/videos/members-guide/ (H.264 MP4, 1920×1080, no sound, captions burned in),
+ * poster frames beside them as .webp.
+ */
+export const memberGuideVideos = {
+  full: { file: 'members-guide-full', title: "Member's Guide: the full tour", duration: '13:43' },
+  chapters: [
+    { file: '01-logging-in', title: 'Logging in for the first time', duration: '1:03', text: 'Log in, use your temporary password and choose your own.' },
+    { file: '02-onboarding', title: 'Finishing your onboarding', duration: '1:01', text: 'Headshot and logo, your details, and the two agreements.' },
+    { file: '03-dashboard', title: 'Your Dashboard', duration: '1:09', text: 'Next meeting, leaderboard, your weekly ask and your invite link.' },
+    { file: '04-meetings', title: 'Meetings and attendance', duration: '1:47', text: 'RSVP, join on Zoom, sign up to speak, upload slides, attendance.' },
+    { file: '05-referrals', title: 'Giving a referral', duration: '1:03', text: 'Send a referral slip and update the ones you received.' },
+    { file: '06-one-on-ones', title: 'One-on-ones', duration: '1:06', text: 'Accept requests, report a one-on-one and request one.' },
+    { file: '07-closed-business', title: 'Closed business', duration: '0:39', text: 'Mark a referral you received as closed business.' },
+    { file: '08-visitors-brought', title: 'Visitors you brought', duration: '0:41', text: 'Log a guest you brought to a meeting.' },
+    { file: '09-invite-guest', title: 'Inviting a guest', duration: '0:49', text: 'Invite someone to an upcoming meeting.' },
+    { file: '10-directory', title: 'Member Directory', duration: '0:45', text: 'Search members, download contacts, open a profile.' },
+    { file: '11-events', title: 'Events', duration: '0:58', text: 'Post your own workshop, mixer or open house.' },
+    { file: '12-gallery', title: 'Gallery', duration: '0:55', text: 'Browse photos and upload your own.' },
+    { file: '13-my-profile', title: 'My profile', duration: '0:56', text: 'Edit your profile, email settings and My Presentations.' },
+    { file: '14-support', title: 'Getting help', duration: '0:39', text: 'Who to contact and where to find quick answers.' },
+  ],
+} as const;
 
 /**
  * Admin sections: the tabs on every admin page and the header's Admin dropdown (owner, 2026-10-30: Meeting slides
