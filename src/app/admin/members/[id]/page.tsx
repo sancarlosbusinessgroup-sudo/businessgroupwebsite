@@ -87,7 +87,7 @@ export default async function AdminMemberPage({ params }: { params: Promise<{ id
             {p.role === 'admin' ? <Pill tone="teal">{p.is_owner ? 'Owner' : 'Admin'}</Pill> : null}
           </h1>
           <p className="text-ink-muted m-0 mt-1">
-            {p.business_name} · {contact?.email ?? 'no email on file'} · member since {p.member_since ? day(p.member_since) : '—'} ·{' '}
+            {p.business_name} · {contact?.email ?? 'no email on file'} ·{' '}
             {p.status === 'approved' ? <Link href={`/members/${p.slug}`}>public profile</Link> : <span>not listed ({p.status})</span>}
           </p>
         </div>
