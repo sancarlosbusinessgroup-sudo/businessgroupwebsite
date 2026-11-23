@@ -14,6 +14,8 @@ import { joinMeeting, releaseSpeakerSlot } from '../actions/member';
 import { ClaimSlotForm } from './ClaimSlotForm';
 import { SpeakerTopicForm } from './SpeakerTopicForm';
 import { PresenterMaterials, type MyMaterial } from './PresenterMaterials';
+import { UploadPresentationDialog } from './UploadPresentationDialog';
+import { getPresentationMaterials } from '@/lib/data/presentation-materials';
 import { slotDescriptions, slotShort, slotTitles } from '@/lib/content';
 import { CorrectionForm } from './CorrectionForm';
 import { RsvpSelect } from './RsvpSelect';
@@ -87,6 +89,17 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
       .filter((x) => x.meeting_id === meetingId && x.after_slide === afterOf[slot])
       .map((x) => ({ id: x.id, kind: x.kind, title: x.title, afterSlide: x.after_slide, pageCount: x.page_count, url: x.url, mine: x.created_by === me.id }));
 
+  // Admins can upload for any presenter from the "Upload presentation" pop-up (owner, 2026-11-24).
+  const isAdmin = me.role === 'admin';
+  const withPresenters = isAdmin
+    ? upcoming
+        .filter((m) => !m.cancelled_reason && m.category === 'Networking' && (['education', 'presentation'] as const).some((slot) => speakerFor(m, slot)))
+        .map((m) => m.id)
+    : [];
+  const allMaterials = await getPresentationMaterials(supabase, withPresenters);
+  const adminMaterialsFor = (meetingId: string, slot: 'education' | 'presentation') =>
+    allMaterials.filter((x) => x.meetingId === meetingId && x.afterSlide === afterOf[slot]);
+
   /** One upcoming meeting with its RSVP, Zoom and presentation-slot controls. */
   const row = (m: (typeof upcoming)[number]) => {
     const start = new Date(m.starts_at);
@@ -107,14 +120,45 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           {m.category === 'Networking' && !cancelled ? (
             <ul className="text-ink-soft m-0 mt-1 list-none p-0 text-sm">
               {[
-                { k: '5-minute', s: edu },
-                { k: '10-minute', s: main },
-              ].map(({ k, s }) => (
-                <li key={k}>
-                  {k}: {s ? s.display_name : 'open'}
-                  {s?.topic ? <em> · “{s.topic}”</em> : null}
-                </li>
-              ))}
+                { k: '5-minute', slot: 'education' as const, s: edu },
+                { k: '10-minute', slot: 'presentation' as const, s: main },
+              ].map(({ k, slot, s }) => {
+                // "Upload presentation" pop-up beside the presenter (owner, 2026-11-24): their own slot, or any slot for admins.
+                const mine = !!s && s.profile_id === me.id;
+                const upcomingSlot = start.getTime() > now.getTime();
+                const when = formatMeetingDate(start);
+                return (
+                  <li key={k}>
+                    {k}: {s ? s.display_name : 'open'}
+                    {s?.topic ? <em> · “{s.topic}”</em> : null}
+                    {s && upcomingSlot && (mine || isAdmin) ? (
+                      <>
+                        {' · '}
+                        {mine ? (
+                          <UploadPresentationDialog
+                            mode="presenter"
+                            meetingId={m.id}
+                            slot={slot}
+                            when={when}
+                            presenter={s.display_name}
+                            userId={me.id}
+                            items={materialsFor(m.id, slot)}
+                          />
+                        ) : (
+                          <UploadPresentationDialog
+                            mode="admin"
+                            meetingId={m.id}
+                            slot={slot}
+                            when={when}
+                            presenter={s.display_name}
+                            items={adminMaterialsFor(m.id, slot)}
+                          />
+                        )}
+                      </>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
         </div>

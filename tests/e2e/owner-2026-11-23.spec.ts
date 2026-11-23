@@ -118,3 +118,60 @@ test('My Presentations with nothing booked points to the Meetings page', async (
   // Riley may hold a slot from other tests; either a list or the empty state with a link to Meetings.
   await expect(page.getByRole('link', { name: 'Meetings page' }).first()).toHaveAttribute('href', '/meetings');
 });
+
+// Owner 2026-11-24: "Upload presentation" beside the 5- and 10-minute presenter on the Meetings page opens a pop-up.
+test('Meetings page: "Upload presentation" pop-up for the presenter and for admins, not for other members', async ({ page }) => {
+  // Leftovers from an interrupted earlier run.
+  await rest(`meeting_speakers?topic=eq.${encodeURIComponent('Pop-up upload test')}`, 'DELETE');
+  await login(page, users.member, undefined, '/meetings');
+  const claim = page.getByRole('form', { name: /^Claim the 10-minute slot/ }).first();
+  const when = ((await claim.getAttribute('aria-label')) ?? '').replace('Claim the 10-minute slot on ', '');
+  await claim.getByLabel('Topic').fill('Pop-up upload test');
+  await claim.getByRole('button', { name: 'Claim' }).click();
+  try {
+    const link = page.getByRole('button', { name: `Upload presentation for the 10-Minute Presentation on ${when}` });
+    await expect(link).toBeVisible();
+    await link.click();
+    const dialog = page.getByRole('dialog', { name: 'Upload presentation' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(`10-Minute Presentation · ${when} · Morgan Member`)).toBeVisible();
+    const form = dialog.getByRole('form', { name: /^Video or website for my 10-minute presentation/ });
+    await form.getByLabel('YouTube or website link').fill('https://example.com/popup-test');
+    await form.getByLabel('Title (optional)').fill('Pop-up site');
+    await form.getByRole('button', { name: 'Add link' }).click();
+    await expect(dialog.getByText('Website added.')).toBeVisible();
+    await expect(dialog.getByRole('list', { name: /^Added for my 10-minute presentation/ })).toContainText('Pop-up site');
+    await expectAccessible(page);
+    await dialog.getByRole('button', { name: 'Close' }).first().click();
+    await expect(dialog).toBeHidden();
+    await expect(link).toContainText('(1 added)');
+
+    // Other members see the presenter but no upload link.
+    await page.context().clearCookies();
+    await login(page, users.member2, undefined, '/meetings');
+    await expect(page.getByText('“Pop-up upload test”')).toBeVisible();
+    await expect(page.getByRole('button', { name: `Upload presentation for the 10-Minute Presentation on ${when}` })).toHaveCount(0);
+
+    // Admins can open it for the presenter and add to it.
+    await page.context().clearCookies();
+    await login(page, users.admin, undefined, '/meetings');
+    await page.getByRole('button', { name: `Upload presentation for the 10-Minute Presentation on ${when}` }).click();
+    const adminDialog = page.getByRole('dialog', { name: 'Upload presentation' });
+    const list = adminDialog.getByRole('list', { name: 'Materials for the 10-minute presentation' });
+    await expect(list).toContainText('Pop-up site');
+    await expect(list).toContainText('added by Morgan Member');
+    const adminForm = adminDialog.getByRole('form', { name: 'Video or website for the 10-minute presentation' });
+    await adminForm.getByLabel('YouTube or website link').fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    await adminForm.getByLabel('Title (optional)').fill('Admin video');
+    await adminForm.getByRole('button', { name: 'Add link' }).click();
+    await expect(list).toContainText('Admin video');
+    await expectAccessible(page);
+  } finally {
+    // Release the slot (removes the presenter's own slides) and the admin's video.
+    await page.context().clearCookies();
+    await login(page, users.member, undefined, '/meetings');
+    await page.getByRole('button', { name: 'Release my 10-minute slot' }).first().click();
+    const vids = await db<{ id: string }>(`meeting_slide_media?title=eq.Admin%20video&select=id`);
+    for (const v of vids) await rest(`meeting_slide_media?id=eq.${v.id}`, 'DELETE');
+  }
+});

@@ -20,6 +20,7 @@ export function PresenterMaterials({
   when,
   items,
   defaultOpen = false,
+  embedded = false,
 }: {
   meetingId: string;
   slot: 'education' | 'presentation';
@@ -28,13 +29,16 @@ export function PresenterMaterials({
   items: MyMaterial[];
   /** My Presentations (profile) shows the upload forms straight away. */
   defaultOpen?: boolean;
+  /** Inside the "Upload presentation" pop-up: no heading or open/close button, the forms always show. */
+  embedded?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [toggled, setOpen] = useState(defaultOpen);
+  const open = embedded || toggled;
   const name = `my ${slotShort[slot]} presentation on ${when}`;
   const presenter = { userId, slot };
   return (
     <section className="bg-canvas flex basis-full flex-col gap-3 rounded-xl p-3" aria-label={`Slides for ${name}`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className={`flex flex-wrap items-center justify-between gap-2 ${embedded ? 'hidden' : ''}`}>
         <div>
           <h4 className="font-display m-0 text-base font-bold">My slides</h4>
           <p className="text-ink-muted m-0 text-sm">
