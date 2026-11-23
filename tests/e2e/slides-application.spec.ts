@@ -473,13 +473,11 @@ test.describe('membership application', () => {
     const five = page.getByRole('form', { name: 'Upload for the 5-minute presentation' });
     await expect(five.getByLabel('File')).toHaveAttribute('accept', /\.pptx/);
     // Over Microsoft's 10 MB limit: refused before uploading.
-    await five
-      .getByLabel('File')
-      .setInputFiles({
-        name: 'huge.pptx',
-        mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        buffer: Buffer.alloc(11 * 1024 * 1024),
-      });
+    await five.getByLabel('File').setInputFiles({
+      name: 'huge.pptx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      buffer: Buffer.alloc(11 * 1024 * 1024),
+    });
     await five.getByRole('button', { name: 'Add to slides' }).click();
     await expect(five.getByText(/over 10 MB/)).toBeVisible();
 
