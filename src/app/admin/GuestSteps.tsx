@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useRef, useState, useTransition, 
 import { inviteToApply, sendZoomLink } from '@/app/actions/admin';
 import {
   acceptGuest,
+  approveApplicant,
   approveMembership,
   confirmPanelSlot,
   declineGuest,
@@ -19,6 +20,7 @@ import {
   reopenGuest,
   schedulePanel,
   sendPanelEmails,
+  sendMemberWelcome,
   sendWelcomeEmail,
   setPanelDone,
   undoGuestStep,
@@ -51,14 +53,16 @@ export type GuestCardData = GuestFlow & {
 export type PanelistOption = { id: string; name: string; role: string };
 
 type Ask =
-  | { kind: 'zoom' | 'form' | 'welcome'; g: GuestCardData }
-  | { kind: 'panel_email'; g: GuestCardData; interviewId: string }
+  | { kind: 'zoom' | 'form'; g: GuestCardData }
+  /** `profileId`: approved from Pending applications (no guest card). */
+  | { kind: 'welcome'; g: { id: string; name: string }; profileId?: string }
+  | { kind: 'panel_email'; g: { id: string; name: string }; interviewId: string }
   | { kind: 'reject' | 'membership_reject' | 'schedule' | 'undo'; g: GuestCardData };
 
 type Ctx = {
   ask: (a: Ask) => void;
   /** Runs an action that returns a message; the result is shown at the bottom of the screen. */
-  run: (g: GuestCardData, fn: (p: ActionState, fd: FormData) => Promise<ActionState>, fd: FormData) => Promise<ActionState>;
+  run: (g: { id: string; name: string }, fn: (p: ActionState, fd: FormData) => Promise<ActionState>, fd: FormData) => Promise<ActionState>;
   pending: boolean;
 };
 
@@ -91,7 +95,8 @@ export function GuestStepsProvider({ panelists, nextMeeting, children }: { panel
         router.refresh();
         // A step that has an email after it asks about the email next (never sends it by itself).
         const next = r.status === 'success' ? r.values?.ask : undefined;
-        if (next === 'zoom' || next === 'welcome') setAsking({ kind: next, g });
+        if (next === 'welcome') setAsking({ kind: 'welcome', g, profileId: r.values?.profileId });
+        else if (next === 'zoom' && 'stage' in g) setAsking({ kind: 'zoom', g: g as GuestCardData });
         else if (next === 'panel_email' && r.values?.interviewId) setAsking({ kind: 'panel_email', g, interviewId: r.values.interviewId });
         else setAsking(null);
         resolve(r);
@@ -229,7 +234,16 @@ function AskDialog({
           {reminder('Membership Approved')}
           {actions(
             <>
-              <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(g, sendWelcomeEmail, form({ id: g.id })).then(close)}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={pending}
+                onClick={() =>
+                  (asking.profileId ? run(g, sendMemberWelcome, form({ profileId: asking.profileId })) : run(g, sendWelcomeEmail, form({ id: g.id }))).then(
+                    close,
+                  )
+                }
+              >
                 {pending ? 'Sending…' : 'Send email'}
               </button>
               {later}
@@ -267,7 +281,8 @@ function AskDialog({
       return (
         <Modal open close={close} title={membership ? `Not approve ${first}’s membership?` : `Reject ${first}?`}>
           <p className="m-0">
-            <strong>No email is sent.</strong> {g.phone ? `Their phone number (${g.phone}) stays here` : 'A reminder stays here'} with a reminder to call them.
+            <strong>No email is sent.</strong> {asking.g.phone ? `Their phone number (${asking.g.phone}) stays here` : 'A reminder stays here'} with a reminder
+            to call them.
           </p>
           <div>
             <label className="label" htmlFor="reject-note">
@@ -301,7 +316,7 @@ function AskDialog({
       );
     }
     case 'undo': {
-      const back = previousStage(g.stage);
+      const back = previousStage(asking.g.stage);
       return (
         <Modal open close={close} title={`Undo: take back ${first}’s membership approval?`}>
           <p className="m-0">
@@ -324,7 +339,7 @@ function AskDialog({
     case 'schedule':
       return (
         <Modal open close={close} title={`Schedule ${first}’s panel interview`}>
-          <ScheduleForm g={g} panelists={panelists} close={close} />
+          <ScheduleForm g={asking.g} panelists={panelists} close={close} />
         </Modal>
       );
   }
@@ -907,6 +922,21 @@ export function EmailTimeButton({ g, interviewId }: { g: GuestCardData; intervie
   return (
     <button type="button" className="btn btn-primary btn-sm" onClick={() => ask({ kind: 'panel_email', g, interviewId })}>
       Email {g.name.split(' ')[0]} the time
+    </button>
+  );
+}
+
+/** "Approve" under Pending applications (owner, 2026-11-25): approves, then the pop-up asks about the welcome email. */
+export function ApproveApplicantButton({ profileId, name }: { profileId: string; name: string }) {
+  const { run, pending } = useSteps();
+  return (
+    <button
+      type="button"
+      className="btn btn-primary btn-sm"
+      disabled={pending}
+      onClick={() => run({ id: profileId, name }, approveApplicant, form({ profileId }))}
+    >
+      Approve<span className="sr-only"> {name}</span>
     </button>
   );
 }

@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { setMemberStatus } from '../actions/admin';
 import { GUEST_STEPS, guestStepLabels, isGuestStage, rankSlots, stepState, type PanelSummary } from '@/lib/guest-pipeline';
 import { GuestBoard, type BoardGuest } from './GuestBoard';
-import { GuestProgress, GuestStepsProvider, StepCell, UndoStep, type PanelistOption } from './GuestSteps';
+import { ApproveApplicantButton, GuestProgress, GuestStepsProvider, StepCell, UndoStep, type PanelistOption } from './GuestSteps';
 import { AddGuestForm } from './AddGuestForm';
 import { OpenApplicationOnHash } from './OpenApplicationOnHash';
 import { CopySignInLink } from './CopySignInLink';
@@ -281,18 +281,7 @@ export async function GuestSections({ back }: { back: GuestSectionsPage }) {
                     ) : null}
                   </div>
                   <div className="flex gap-2">
-                    <form action={setMemberStatus}>
-                      <input type="hidden" name="back" value={back} />
-                      <input type="hidden" name="id" value={p.id} />
-                      <input type="hidden" name="status" value="approved" />
-                      <button type="submit" className="btn btn-primary btn-sm">
-                        Approve
-                        <span className="sr-only">
-                          {' '}
-                          {p.first_name} {p.last_name}
-                        </span>
-                      </button>
-                    </form>
+                    <ApproveApplicantButton profileId={p.id} name={`${p.first_name} ${p.last_name}`} />
                     <form action={setMemberStatus}>
                       <input type="hidden" name="back" value={back} />
                       <input type="hidden" name="id" value={p.id} />

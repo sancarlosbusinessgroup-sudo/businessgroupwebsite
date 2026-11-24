@@ -54,6 +54,12 @@ test.describe('email notifications', () => {
 
     await login(page, users.admin, undefined, '/admin/guests');
     await page.getByRole('button', { name: 'Approve Olive Onboard' }).click();
+    // Owner, 2026-11-25: approving asks before the welcome email goes out; nothing is sent until "Send email".
+    const ask = page.getByRole('dialog', { name: 'Send the welcome email to Olive?' });
+    await expect(ask).toBeVisible();
+    expect(await emailsTo(email, /^Welcome to Bay Area Referral Partners/, 1500)).toHaveLength(0);
+    await ask.getByRole('button', { name: 'Send email' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Welcome email sent.' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Approve Olive Onboard' })).toHaveCount(0);
 
     const [welcome] = await emailsTo(email, /^Welcome to Bay Area Referral Partners/);

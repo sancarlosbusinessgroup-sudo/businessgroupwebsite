@@ -109,6 +109,8 @@ test.describe('sign up → admin approval → member access', () => {
     await expect(pending.getByText('Brand strategy and design for local businesses.')).toBeVisible();
     await expect(pending.getByText('Sam Partner')).toBeVisible();
     await page.getByRole('button', { name: 'Approve Jamie Applicant' }).click();
+    // Owner, 2026-11-25: approving asks before the welcome email goes out.
+    await page.getByRole('dialog', { name: 'Send the welcome email to Jamie?' }).getByRole('button', { name: 'Not now' }).click();
     await expect(page.getByRole('button', { name: 'Approve Jamie Applicant' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Log out' }).click();
 

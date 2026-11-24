@@ -736,3 +736,43 @@ export async function markMembershipCalled(formData: FormData): Promise<void> {
   if (!undo) await log(db, id, viewer.userId, 'note', 'Called them about the membership decision');
   refresh();
 }
+
+// --- Pending applications (owner, 2026-11-25: "Approve" asks before the welcome email too) ---------------------------
+
+/** Approve an application from the Pending applications list. No email: the pop-up then asks about the welcome email. */
+export async function approveApplicant(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const id = idOf(formData, 'profileId');
+  if (!id) return { status: 'error', message: GENERIC };
+  const db = await createClient();
+  const { data, error } = await db.from('profiles').update({ status: 'approved' }).eq('id', id).eq('status', 'pending').select('id');
+  if (error && /category is full/.test(error.message))
+    return { status: 'error', message: 'Their category is full. Raise its seats under “Category seats”, or ask them to pick another category.' };
+  if (error || !data?.length) return { status: 'error', message: GENERIC };
+  const admin = createAdminClient();
+  if (admin) await admin.from('member_onboarding').upsert({ profile_id: id }, { onConflict: 'profile_id', ignoreDuplicates: true });
+  revalidatePath('/members');
+  refresh();
+  return { status: 'success', message: 'Membership approved.', values: { ask: 'welcome', profileId: id } };
+}
+
+/** Send the welcome email to an approved member (after the admin confirms); also adds them to the newsletter list. */
+export async function sendMemberWelcome(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const id = idOf(formData, 'profileId');
+  if (!id) return { status: 'error', message: GENERIC };
+  const people = await loadRecipients([id]);
+  const r = people.get(id);
+  if (!r || r.status !== 'approved') return { status: 'error', message: 'Approve their membership first.' };
+  const sent = await deliver({
+    kind: 'welcome',
+    dedupeKey: id,
+    to: { email: r.email, name: `${r.firstName} ${r.lastName}`, profileId: r.id },
+    email: T.welcomeEmail({ siteUrl: siteUrl(), firstName: r.firstName }),
+  });
+  if (sent === 'skipped') return { status: 'error', message: 'Email is not set up yet.' };
+  if (sent === 'failed') return { status: 'error', message: 'Could not send. Try again.' };
+  after(() => safely('member status', () => onMemberStatus(id, 'approved')));
+  refresh();
+  return { status: 'success', message: sent === 'duplicate' ? 'The welcome email was already sent.' : 'Welcome email sent.' };
+}
