@@ -170,7 +170,7 @@ export function buildActionItems(d: ActionInput): ActionItem[] {
   for (const g of d.guests) {
     if (g.status === 'joined') continue;
     const app = pendingByEmail.get(g.email.toLowerCase());
-    const base = { tab: 'Guest Invites & Applications', href: '/admin/guests#board' };
+    const base = { tab: 'Guest Invites & Applications', href: '/admin/guests#guests' };
     if (app) {
       handled.add(app.id);
       items.push(

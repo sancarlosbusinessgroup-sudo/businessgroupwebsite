@@ -196,12 +196,12 @@ export async function submitVisitorSignIn(_prev: ActionState, formData: FormData
     };
   }
   // The insert trigger always stores "requested" and no referrer; the server sets the rest.
-  if (admin) {
+  if (admin && (meeting || inviter.data)) {
     await admin
       .from('guest_requests')
       .update({
-        source: 'meeting_sign_in',
-        ...(meeting ? { status: 'visited' as const } : {}),
+        // Only on a meeting day (owner, 2026-11-25): on other days it is an ordinary invite request, not a sign-in.
+        ...(meeting ? { source: 'meeting_sign_in', status: 'visited' as const } : {}),
         ...(inviter.data ? { referrer_id: inviter.data.id } : {}),
       })
       .eq('id', guestId);

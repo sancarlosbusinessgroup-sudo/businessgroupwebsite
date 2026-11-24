@@ -1,4 +1,4 @@
-// The guest board on Admin → Guest Invites & Applications (owner, 2026-11-24): one column per step, from the invite
+// The guest steps on Admin → Guest Invites & Applications (owner, 2026-11-24; board removed 2026-11-25): from the invite
 // request to an approved member. Cards move forward by themselves when a step is done on the website (the database
 // moves them when a guest's status changes; the site when a Zoom link is sent or the interview is marked done), and
 // admins can move any card by hand. Moving a card by hand never sends an email or approves anyone.
@@ -88,6 +88,18 @@ export function guestProgress(stage: GuestStage): { step: number; done: number }
   const step = stepOfStage[stage];
   return { step, done: stage === 'approved' ? 5 : stage === 'application_done' ? step + 0.5 : step };
 }
+
+/** What each step is for (shown above the guest list; owner's wording for the first, 2026-11-25). */
+export const guestStepHints: Record<GuestStep, string> = {
+  accept: guestStageHints.review,
+  zoom: 'Send the Zoom link if it hasn’t gone out, then press First Zoom Done once they have joined a meeting.',
+  form: 'Send the application form when the Membership Committee agrees. It shows when the form comes back.',
+  panel: 'Schedule the panel interview with three members of Management, then mark it done.',
+  membership: 'Approve or reject. Approving then offers the welcome email; rejecting sends no email (call them).',
+};
+
+/** The step (column of the guest list) a stage belongs to, by name: "Undo: back to Zoom Link". */
+export const stageStepLabel = (stage: GuestStage) => guestStepLabels[GUEST_STEPS[stepOfStage[stage]]!];
 
 /** "done", "current" or "todo" for one step of a guest. */
 export function stepState(stage: GuestStage, step: GuestStep): 'done' | 'current' | 'todo' {

@@ -96,7 +96,7 @@ export default async function PanelInterviewPage({ params }: { params: Promise<{
       <div className="bg-canvas">
         <div className="container-site flex flex-col gap-5 pt-8 pb-16">
           <nav aria-label="Breadcrumb" className="text-ink-muted text-sm">
-            <Link href="/admin">Admin</Link> / <Link href="/admin/guests#board">Guest Invites &amp; Applications</Link> /{' '}
+            <Link href="/admin">Admin</Link> / <Link href="/admin/guests#guests">Guest Invites &amp; Applications</Link> /{' '}
             <span aria-current="page">Panel interview</span>
           </nav>
           <div className="flex flex-col gap-1">

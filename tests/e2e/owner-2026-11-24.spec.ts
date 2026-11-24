@@ -46,7 +46,7 @@ test('Overview: action items, Zoom and a card per tab; the old sections are gone
     const todo = page.getByRole('region', { name: /^Items that Need Immediate Action/ });
     const item = todo.getByRole('listitem').filter({ hasText: 'Accept or reject Ivan Invitee' });
     await expect(item).toContainText('Stage: asked for an invite');
-    await expect(item.getByRole('link', { name: /Open Guest Invites & Applications/ })).toHaveAttribute('href', '/admin/guests#board');
+    await expect(item.getByRole('link', { name: /Open Guest Invites & Applications/ })).toHaveAttribute('href', '/admin/guests#guests');
 
     await expect(page.getByRole('heading', { level: 2, name: 'Zoom' })).toBeVisible();
     const tabs = page.getByRole('region', { name: 'Admin tabs' });

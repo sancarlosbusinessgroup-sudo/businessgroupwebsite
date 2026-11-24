@@ -34,18 +34,17 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
   },
   '/admin/guests': {
     summary:
-      'Everyone on the way to membership, in one place: the guest board, applications waiting for a decision, the visitor sign-in link for the Zoom chat, every guest invite request, new members’ onboarding and the category seats.',
+      'Everyone on the way to membership, in one place: the guest invite requests with their steps, applications waiting for a decision, the visitor sign-in link for the Zoom chat, every guest invite request, new members’ onboarding and the category seats.',
     steps: [
-      'Guest board: one column per step — Accept or Reject, Zoom Link, Send Application Form, Application Form Accomplished, Panel Interview, Membership Approved. No email is ever sent by itself: each one asks you first in a pop-up, and an email you don’t send leaves a reminder (⏰) in its step. “Undo” moves a guest back one column. Drag a card (or use “Move to” under “Contact & move”) to move it by hand.',
-      '+ Add a guest: for someone who joined the Zoom with a friend’s link. Choose the step they are at (usually Send Application Form). No email is sent.',
+      'Guest invite requests: every guest, newest first, one column per step (Accept or Reject, Zoom Link, Application Form, Panel Interview, Membership Approved) with a progress bar. No email is ever sent by itself: each one asks you first in a pop-up, and an email you don’t send leaves a reminder (⏰) in its step. “Undo” moves a guest back one step. Email, phone, who invited them and the request date are under “Details” below the name.',
+      '+ Add a guest (top of Guest invite requests): for someone who joined the Zoom with a friend’s link. Choose the step they are at (usually Send Application Form). No email is sent.',
       'Accept or Reject: check the membership rules and for a category conflict first. Accept then asks whether to email the Zoom link for the next meeting. Reject sends no email: their phone number shows with a reminder to call them, and “Undo reject” puts them back.',
       'Zoom Link: send the link (or “Not needed” if a friend sent it), then press First Zoom Done once they have joined a meeting.',
       'Application Form: Send Form (after a confirm). It shows when the form was sent and when it came back.',
       'Panel Interview: Schedule Panel Interview, choose three people from Management and a few times. Each panelist marks the times they can make on the interview page; the time that works for all three is confirmed there, and you are then asked whether to email the guest. Mark the interview done afterwards.',
       'Membership Approved: Approve (then the welcome email is offered) or Reject (no email; a reminder to call them).',
       'Pending applications: people who filled in the membership application. Read their answers and references, then Approve (they get the welcome email) or Decline.',
-      'Visitor sign-in link: copy it and paste it in the Zoom chat during a meeting. Visitors who came without asking for an invite fill in their details, and they appear in Guest invite requests, already marked as visited and “Signed in at the meeting”.',
-      'Guest invite requests: every guest, newest first, with the same five steps as columns and a progress bar each. Email, phone, who invited them and the request date are under “Details” below the name.',
+      'Visitor sign-in link: copy it and paste it in the Zoom chat during a meeting. Visitors who came without asking for an invite fill in their details, and they appear in Guest invite requests with First Zoom Done and “Signed in at the meeting”.',
       'Onboarding: who has finished their new-member onboarding, and “Sync newsletter list” to copy every approved member into the Brevo newsletter list.',
       'Category seats: how many members each profession may have (usually 1). Full categories show as taken on the Visit and Join pages.',
     ],

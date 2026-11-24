@@ -30,7 +30,7 @@ import {
   GUEST_STEPS,
   guestProgress,
   guestReminders,
-  guestStageLabels,
+  stageStepLabel,
   guestStepLabels,
   previousStage,
   stageRank,
@@ -40,7 +40,7 @@ import {
 } from '@/lib/guest-pipeline';
 import { idle, type ActionState } from '@/lib/validation';
 
-// Guest steps (owner, 2026-11-25), shared by the guest board cards and the guest list: one cell per step with its
+// Guest steps (owner, 2026-11-25) on the guest invite requests list: one cell per step with its
 // buttons, state and reminders. No email is sent without a confirm in a pop-up, and every step can be undone.
 
 export type GuestCardData = GuestFlow & {
@@ -51,6 +51,18 @@ export type GuestCardData = GuestFlow & {
 };
 
 export type PanelistOption = { id: string; name: string; role: string };
+
+/** One row of the guest invite requests list. */
+export type GuestRow = GuestCardData & {
+  business: string | null;
+  website: string | null;
+  about: string | null;
+  invitedBy: string | null;
+  requestedOn: string;
+  changedAt: string;
+  signedIn: boolean;
+  addedByHand: boolean;
+};
 
 type Ask =
   | { kind: 'zoom' | 'form'; g: GuestCardData }
@@ -321,7 +333,7 @@ function AskDialog({
         <Modal open close={close} title={`Undo: take back ${first}’s membership approval?`}>
           <p className="m-0">
             Their account goes back to pending, so they leave the members’ directory until they are approved again. The card moves back to{' '}
-            {back ? guestStageLabels[back] : 'the previous step'}. No email is sent.
+            {back ? stageStepLabel(back) : 'the previous step'}. No email is sent.
           </p>
           {actions(
             <>
@@ -832,7 +844,7 @@ export function UndoStep({ g }: { g: GuestCardData }) {
       disabled={pending}
       onClick={() => (g.stage === 'approved' && g.status === 'joined' ? ask({ kind: 'undo', g }) : run(g, undoGuestStep, form({ id: g.id })))}
     >
-      ↩ Undo: back to {guestStageLabels[back]}
+      ↩ Undo: {g.stage === 'application_done' ? 'application form not back yet' : `back to ${stageStepLabel(back)}`}
       <span className="sr-only"> ({g.name})</span>
     </button>
   );
@@ -869,24 +881,6 @@ export function GuestProgress({ g }: { g: GuestCardData }) {
       <span className="text-ink-muted text-[12px] font-semibold">{label}</span>
     </div>
   );
-}
-
-/** The steps a board card shows in its column (the current step, and the next one when it can start). */
-export function boardSteps(g: GuestCardData): GuestStep[] {
-  switch (g.stage) {
-    case 'review':
-      return ['accept'];
-    case 'zoom_sent':
-      return ['zoom'];
-    case 'send_application':
-      return ['form'];
-    case 'application_done':
-      return ['form', 'panel'];
-    case 'interview':
-      return ['panel', 'membership'];
-    case 'approved':
-      return ['membership'];
-  }
 }
 
 /** "Confirm this time" on the interview page: the interview is set, then the pop-up asks whether to email the guest. */

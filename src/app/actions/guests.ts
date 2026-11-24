@@ -1,6 +1,6 @@
 'use server';
 
-// Guest steps on Admin → Guest Invites & Applications (owner, 2026-11-24; reworked 2026-11-25). Admins only
+// Guest steps on Admin → Guest Invites & Applications (owner, 2026-11-24; reworked 2026-11-25, board removed). Admins only
 // (requireAdmin + RLS). Owner, 2026-11-25: no email goes out when a guest moves on. Each email is its own action, run
 // only after the admin confirms it in a pop-up; an email not sent leaves a reminder in its step. Every step can be undone.
 
@@ -13,7 +13,7 @@ import { formatSlot, pacificLocalToIso } from '@/lib/dates';
 import { onMemberStatus } from '@/lib/email/events';
 import { deliver, loadRecipients, safely, siteUrl } from '@/lib/email/notify';
 import * as T from '@/lib/email/templates';
-import { GUEST_STAGES, guestStageLabels, isGuestStage, previousStage, type GuestStage } from '@/lib/guest-pipeline';
+import { GUEST_STAGES, guestStageLabels, previousStage, stageStepLabel, type GuestStage } from '@/lib/guest-pipeline';
 import { advanceGuest, logGuestEvent as log } from '@/lib/data/guest-steps';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
@@ -121,23 +121,6 @@ export async function reopenGuest(formData: FormData): Promise<void> {
   refresh();
 }
 
-/** Move a card to another column by hand (drag and drop, or the "Move to" list). No emails, no approvals. */
-export async function moveGuestStage(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const viewer = await requireAdmin();
-  const id = idOf(formData);
-  const stage = formData.get('stage');
-  if (!id || !isGuestStage(stage)) return { status: 'error', message: GENERIC };
-  const db = await createClient();
-  const { data: g } = await db.from('guest_requests').select('pipeline_stage').eq('id', id).maybeSingle();
-  if (!g) return { status: 'error', message: GENERIC };
-  if (g.pipeline_stage === stage) return { status: 'success', message: `Already in ${guestStageLabels[stage]}.` };
-  const { error } = await db.from('guest_requests').update({ pipeline_stage: stage, stage_changed_at: new Date().toISOString() }).eq('id', id);
-  if (error) return { status: 'error', message: GENERIC };
-  await log(db, id, viewer.userId, 'stage', stage);
-  refresh();
-  return { status: 'success', message: `Moved to ${guestStageLabels[stage]}.` };
-}
-
 /**
  * Undo: back to the previous column, taking back what moved the guest on (accepting, First Zoom Done, the interview
  * mark, the membership approval). A "membership not approved" is undone first, in place. No emails.
@@ -200,7 +183,7 @@ export async function undoGuestStep(_prev: ActionState, formData: FormData): Pro
   if (error) return { status: 'error', message: GENERIC };
   await log(db, id, viewer.userId, 'stage', back);
   refresh();
-  return { status: 'success', message: `Moved back to ${guestStageLabels[back]}.` };
+  return { status: 'success', message: `Moved back to ${stageStepLabel(back)}.` };
 }
 
 /** First Zoom Done: the guest has been to a meeting (status "visited"; the card moves to "Send Application Form"). */
@@ -519,7 +502,7 @@ export async function cancelPanel(formData: FormData): Promise<void> {
   const { data: iv } = await db.from('panel_interviews').delete().eq('id', id).select('guest_id').maybeSingle();
   if (iv) await log(db, iv.guest_id, viewer.userId, 'interview', 'Panel interview cancelled');
   refresh();
-  redirect('/admin/guests#board');
+  redirect('/admin/guests#guests');
 }
 
 /** Email the guest their interview time (after the admin confirms), and the panelists too when ticked. */

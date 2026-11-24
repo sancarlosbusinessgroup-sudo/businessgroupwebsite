@@ -394,7 +394,7 @@ test.describe('membership application', () => {
 
     await login(page, users.admin, undefined, '/admin/guests');
     // Owner, 2026-11-25: "Send Form" in the Application Form step, confirmed in a pop-up.
-    const row = page.getByRole('table', { name: 'Guest invite requests, one column per step' }).getByRole('row').filter({ hasText: 'Ivy Applicant' });
+    const row = page.getByRole('table', { name: 'Guest invite requests, one column per step' }).getByRole('row').filter({ hasText: email });
     await row.getByRole('button', { name: 'Accept Ivy Applicant' }).click();
     await page.getByRole('dialog', { name: 'Send the Zoom link email to Ivy?' }).getByRole('button', { name: 'Not now' }).click();
     await row.getByRole('button', { name: 'First Zoom Done for Ivy Applicant' }).click();

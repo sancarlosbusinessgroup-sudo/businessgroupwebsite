@@ -4,9 +4,8 @@ import { env } from '@/lib/env';
 import { formatShortDate, formatSlot, nowMs } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { setMemberStatus } from '../actions/admin';
-import { GUEST_STEPS, guestStepLabels, isGuestStage, rankSlots, stepState, type PanelSummary } from '@/lib/guest-pipeline';
-import { GuestBoard, type BoardGuest } from './GuestBoard';
-import { ApproveApplicantButton, GuestProgress, GuestStepsProvider, StepCell, UndoStep, type PanelistOption } from './GuestSteps';
+import { GUEST_STEPS, guestStepHints, guestStepLabels, isGuestStage, rankSlots, stepState, type PanelSummary } from '@/lib/guest-pipeline';
+import { ApproveApplicantButton, GuestProgress, GuestStepsProvider, StepCell, UndoStep, type GuestRow, type PanelistOption } from './GuestSteps';
 import { AddGuestForm } from './AddGuestForm';
 import { OpenApplicationOnHash } from './OpenApplicationOnHash';
 import { CopySignInLink } from './CopySignInLink';
@@ -17,7 +16,7 @@ export type GuestSectionsPage = '/admin' | '/admin/guests';
 const firstOf = <T,>(x: T | T[] | null | undefined): T | null => (Array.isArray(x) ? (x[0] ?? null) : (x ?? null));
 
 /**
- * Guest board, Pending applications, Visitor sign-in link and Guest invite requests on Admin → Guest Invites &
+ * Guest invite requests (the guest steps), Pending applications and the Visitor sign-in link on Admin → Guest Invites &
  * Applications (owner, 2026-11-23/24/25). Callers must have checked requireAdmin().
  */
 export async function GuestSections({ back }: { back: GuestSectionsPage }) {
@@ -31,7 +30,7 @@ export async function GuestSections({ back }: { back: GuestSectionsPage }) {
       )
       .eq('status', 'pending')
       .order('created_at'),
-    // Everyone from the last year (owner, 2026-11-24/25): the board and the guest list show the same people.
+    // Everyone from the last year (owner, 2026-11-24/25).
     supabase
       .from('guest_requests')
       .select(
@@ -116,7 +115,7 @@ export async function GuestSections({ back }: { back: GuestSectionsPage }) {
     });
   }
 
-  const cards: (BoardGuest & { declinedOn: string | null; survey: (typeof guests)[number]['guest_surveys']; createdAt: string })[] = guests.map((g) => {
+  const cards: (GuestRow & { survey: (typeof guests)[number]['guest_surveys']; createdAt: string })[] = guests.map((g) => {
     const memberId = memberByEmail.get(g.email.toLowerCase()) ?? null;
     return {
       id: g.id,
@@ -136,7 +135,6 @@ export async function GuestSections({ back }: { back: GuestSectionsPage }) {
       addedByHand: !!g.added_by,
       accepted: !!g.accepted_at || !!zoomSentOn.get(g.id),
       declined: g.declined_at ? { called: !!g.decline_called_at } : null,
-      declinedOn: g.declined_at ? formatShortDate(new Date(g.declined_at)) : null,
       zoomSentOn: zoomSentOn.get(g.id) ?? null,
       zoomDismissed: !!g.zoom_email_dismissed_at,
       formSentOn: invitedOn.get(g.id) ?? null,
@@ -149,9 +147,6 @@ export async function GuestSections({ back }: { back: GuestSectionsPage }) {
       survey: g.guest_surveys,
     };
   });
-  // Board: everyone not rejected; approved members for 60 days.
-  const board = cards.filter((c) => !c.declined && (c.stage !== 'approved' || new Date(c.changedAt).getTime() >= now - 60 * 86400000));
-  const declined = cards.filter((c) => c.declined).slice(0, 30);
   const list = cards.slice(0, 60);
 
   const panelists: PanelistOption[] = [];
@@ -164,40 +159,117 @@ export async function GuestSections({ back }: { back: GuestSectionsPage }) {
 
   return (
     <GuestStepsProvider panelists={panelists} nextMeeting={nextMeeting}>
-      <section id="board" className="flex scroll-mt-24 flex-col gap-3" aria-labelledby="board-h">
+      <section id="guests" className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="gr-h">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 id="board-h" className="font-display m-0 text-[22px] font-extrabold">
-            Guest board
+          <h2 id="gr-h" className="font-display m-0 text-[22px] font-extrabold">
+            Guest invite requests
           </h2>
+          {/* Owner, 2026-11-25: the guest board is gone; adding a guest by hand lives here. */}
           <AddGuestForm members={members} />
         </div>
         <p className="text-ink-muted m-0 text-sm">
-          Every guest from invite request to approved member. No email is ever sent by itself: each one asks you first, and an email you don’t send leaves a
-          reminder (⏰) in its step. <strong>Undo</strong> moves a guest back one column. To move a card by hand, drag it to another column or use{' '}
-          <strong>Move to</strong> under “Contact &amp; move”.
+          Every guest from invite request to approved member, one column per step, with a progress bar per guest. Contact details are under each name. Nothing
+          is emailed until you confirm it in the pop-up; an email you don’t send leaves a reminder (⏰) in its column. <strong>Undo</strong> moves a guest back
+          one step.
         </p>
-        <GuestBoard guests={board} />
-        {declined.length ? (
-          <details className="border-line rounded-xl border p-3">
-            <summary className="cursor-pointer font-bold">Rejected ({declined.length})</summary>
-            <ul className="m-0 mt-2 flex list-none flex-col gap-2 p-0">
-              {declined.map((d) => (
-                <li key={d.id} className="border-line-soft flex flex-wrap items-start justify-between gap-2 border-b pb-2 last:border-b-0">
-                  <div className="min-w-0 text-sm">
-                    <strong className="text-heading">{d.name}</strong>
-                    {d.business ? ` · ${d.business}` : ''}
-                    <div className="text-ink-muted">Rejected {d.declinedOn}</div>
-                  </div>
-                  <div className="min-w-[220px]">
-                    <StepCell g={d} step="accept" />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </details>
-        ) : null}
+        <ol className="text-ink-soft m-0 grid gap-x-6 gap-y-1 pl-5 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          {GUEST_STEPS.map((s) => (
+            <li key={s}>
+              <strong className="text-heading">{guestStepLabels[s]}:</strong> {guestStepHints[s]}
+            </li>
+          ))}
+        </ol>
+        {list.length === 0 ? (
+          <EmptyState title="No guest requests yet" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <caption className="sr-only">Guest invite requests, one column per step</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Guest</th>
+                  {GUEST_STEPS.map((s) => (
+                    <th key={s} scope="col">
+                      {guestStepLabels[s]}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {list.map((g) => (
+                  <tr key={g.id}>
+                    <td className="min-w-[230px] align-top">
+                      <div className="flex flex-col gap-1.5">
+                        <strong className="text-heading">{g.name}</strong>
+                        {g.business ? <span className="text-ink-muted text-sm">{g.business}</span> : null}
+                        <GuestProgress g={g} />
+                        {/* Owner, 2026-11-25: email, phone, invited by and requested under the name instead of their own columns. */}
+                        <details className="text-sm">
+                          <summary className="cursor-pointer font-semibold">Details</summary>
+                          <dl className="m-0 mt-1 flex max-w-[34ch] flex-col gap-1">
+                            <div>
+                              <dt className="inline font-semibold">Email: </dt>
+                              <dd className="inline break-all">
+                                <a href={`mailto:${g.email}`}>{g.email}</a>
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="inline font-semibold">Phone: </dt>
+                              <dd className="inline">{g.phone ?? '—'}</dd>
+                            </div>
+                            <div>
+                              <dt className="inline font-semibold">Invited by: </dt>
+                              <dd className="inline">{g.invitedBy ?? '—'}</dd>
+                            </div>
+                            <div>
+                              <dt className="inline font-semibold">Requested: </dt>
+                              <dd className="inline">{g.requestedOn}</dd>
+                            </div>
+                            {g.website ? (
+                              <div>
+                                <dt className="inline font-semibold">Website: </dt>
+                                <dd className="inline break-all">
+                                  <a href={g.website} target="_blank" rel="noopener noreferrer">
+                                    {g.website.replace(/^https?:\/\//i, '')}
+                                  </a>
+                                </dd>
+                              </div>
+                            ) : null}
+                          </dl>
+                          {g.signedIn || g.addedByHand ? (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {g.signedIn ? <Pill tone="teal">Signed in at the meeting</Pill> : null}
+                              {g.addedByHand ? <Pill tone="teal">Added by hand</Pill> : null}
+                            </div>
+                          ) : null}
+                        </details>
+                        {g.about ? (
+                          <details className="text-sm">
+                            <summary className="cursor-pointer">About their business</summary>
+                            <p className="m-0 mt-1 max-w-[36ch] whitespace-pre-line">{g.about}</p>
+                          </details>
+                        ) : null}
+                        <SurveyAnswers survey={g.survey} />
+                        <UndoStep g={g} />
+                      </div>
+                    </td>
+                    {GUEST_STEPS.map((s) => {
+                      const st = g.declined ? (s === 'accept' ? 'declined' : 'off') : stepState(g.stage, s);
+                      // The top edge of each step cell is one part of the guest's progress bar.
+                      const bar = st === 'declined' ? 'border-t-red' : st === 'done' ? 'border-t-teal' : st === 'current' ? 'border-t-accent' : 'border-t-line';
+                      return (
+                        <td key={s} className={`min-w-[170px] border-t-4 align-top ${bar}`}>
+                          <StepCell g={g} step={s} />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
-
       <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="ap-h">
         <OpenApplicationOnHash />
         <h2 id="ap-h" className="font-display m-0 text-[22px] font-extrabold">
@@ -308,109 +380,9 @@ export async function GuestSections({ back }: { back: GuestSectionsPage }) {
         </h2>
         <p className="text-ink-muted m-0 text-sm">
           For visitors who join the Zoom without having asked for an invite. Copy this link and paste it in the Zoom chat during the meeting. Visitors fill in
-          their name, email, phone, business and who invited them, and appear in the list below, already marked as visited and “Signed in at the meeting”.
+          their name, email, phone, business and who invited them, and appear in Guest invite requests with First Zoom Done and “Signed in at the meeting”.
         </p>
         <CopySignInLink url={`${env.siteUrl}${visitorSignInPath}`} />
-      </section>
-
-      <section id="guests" className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="gr-h">
-        <h2 id="gr-h" className="font-display m-0 text-[22px] font-extrabold">
-          Guest invite requests
-        </h2>
-        <p className="text-ink-muted m-0 text-sm">
-          The same steps as the guest board, one column each, with a progress bar per guest. Contact details are under each name. Nothing is emailed until you
-          confirm it in the pop-up; an email you don’t send leaves a reminder (⏰) in its column.
-        </p>
-        {list.length === 0 ? (
-          <EmptyState title="No guest requests yet" />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <caption className="sr-only">Guest invite requests, one column per step</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Guest</th>
-                  {GUEST_STEPS.map((s) => (
-                    <th key={s} scope="col">
-                      {guestStepLabels[s]}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((g) => (
-                  <tr key={g.id}>
-                    <td className="min-w-[230px] align-top">
-                      <div className="flex flex-col gap-1.5">
-                        <strong className="text-heading">{g.name}</strong>
-                        {g.business ? <span className="text-ink-muted text-sm">{g.business}</span> : null}
-                        <GuestProgress g={g} />
-                        {/* Owner, 2026-11-25: email, phone, invited by and requested under the name instead of their own columns. */}
-                        <details className="text-sm">
-                          <summary className="cursor-pointer font-semibold">Details</summary>
-                          <dl className="m-0 mt-1 flex max-w-[34ch] flex-col gap-1">
-                            <div>
-                              <dt className="inline font-semibold">Email: </dt>
-                              <dd className="inline break-all">
-                                <a href={`mailto:${g.email}`}>{g.email}</a>
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="inline font-semibold">Phone: </dt>
-                              <dd className="inline">{g.phone ?? '—'}</dd>
-                            </div>
-                            <div>
-                              <dt className="inline font-semibold">Invited by: </dt>
-                              <dd className="inline">{g.invitedBy ?? '—'}</dd>
-                            </div>
-                            <div>
-                              <dt className="inline font-semibold">Requested: </dt>
-                              <dd className="inline">{g.requestedOn}</dd>
-                            </div>
-                            {g.website ? (
-                              <div>
-                                <dt className="inline font-semibold">Website: </dt>
-                                <dd className="inline break-all">
-                                  <a href={g.website} target="_blank" rel="noopener noreferrer">
-                                    {g.website.replace(/^https?:\/\//i, '')}
-                                  </a>
-                                </dd>
-                              </div>
-                            ) : null}
-                          </dl>
-                          {g.signedIn || g.addedByHand ? (
-                            <div className="mt-1 flex flex-wrap gap-1">
-                              {g.signedIn ? <Pill tone="teal">Signed in at the meeting</Pill> : null}
-                              {g.addedByHand ? <Pill tone="teal">Added by hand</Pill> : null}
-                            </div>
-                          ) : null}
-                        </details>
-                        {g.about ? (
-                          <details className="text-sm">
-                            <summary className="cursor-pointer">About their business</summary>
-                            <p className="m-0 mt-1 max-w-[36ch] whitespace-pre-line">{g.about}</p>
-                          </details>
-                        ) : null}
-                        <SurveyAnswers survey={g.survey} />
-                        <UndoStep g={g} />
-                      </div>
-                    </td>
-                    {GUEST_STEPS.map((s) => {
-                      const st = g.declined ? (s === 'accept' ? 'declined' : 'off') : stepState(g.stage, s);
-                      // The top edge of each step cell is one part of the guest's progress bar.
-                      const bar = st === 'declined' ? 'border-t-red' : st === 'done' ? 'border-t-teal' : st === 'current' ? 'border-t-accent' : 'border-t-line';
-                      return (
-                        <td key={s} className={`min-w-[170px] border-t-4 align-top ${bar}`}>
-                          <StepCell g={g} step={s} />
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </section>
     </GuestStepsProvider>
   );

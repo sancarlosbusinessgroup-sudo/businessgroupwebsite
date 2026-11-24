@@ -244,7 +244,13 @@ test('Add a guest by hand: straight into Send Application Form, no email', async
     expect(g!.added_by).toBeTruthy();
     expect(g!.referrer_id).toBeTruthy();
     await page.reload();
-    await expect(page.locator(`[data-guest-card="${g!.id}"]`)).toContainText('Added by hand');
+    const row = page
+      .getByRole('table', { name: 'Guest invite requests, one column per step' })
+      .getByRole('row')
+      .filter({ hasText: `Hank Hand${stamp}` });
+    await row.getByText('Details', { exact: true }).click();
+    await expect(row.getByText('Added by hand')).toBeVisible();
+    await expect(row.getByRole('progressbar')).toHaveAttribute('aria-valuetext', 'Step 3 of 5: Application Form');
     expect(await emailsTo(email, /./, 1500)).toHaveLength(0);
   } finally {
     await rest(`guest_requests?id=eq.${g!.id}`, 'DELETE');

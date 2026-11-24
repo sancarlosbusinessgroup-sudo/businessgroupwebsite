@@ -215,7 +215,7 @@ test.describe('admin', () => {
     try {
       await login(page, users.admin, undefined, '/admin/guests');
       await page
-        .locator(`[data-guest-card="${g!.id}"]`)
+        .getByRole('table', { name: 'Guest invite requests, one column per step' })
         .getByRole('button', { name: `First Zoom Done for Zed Zoom${stamp}` })
         .click();
       await expect(page.getByRole('status').filter({ hasText: 'First Zoom done.' })).toBeVisible();
