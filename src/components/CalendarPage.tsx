@@ -23,7 +23,7 @@ const copy = {
     basePath: '/group-meetings',
     crumb: 'Meetings',
     title: 'Meeting Schedules',
-    lead: 'We meet every other Monday at 8:15 AM - 9:30AM on Zoom',
+    lead: 'We meet every other Monday at 8:15 AM - 9:45AM on Zoom',
     heading: 'Upcoming meetings',
     noun: ['meeting', 'meetings'],
     empty: 'No upcoming meetings in this category',

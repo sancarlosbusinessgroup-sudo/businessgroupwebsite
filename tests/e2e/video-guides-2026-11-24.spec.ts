@@ -5,14 +5,14 @@ import { expectAccessible, login, users } from './support';
 // and "Contact Us" (the original Support page).
 
 test.describe('video guides (2026-11-24)', () => {
-  test('Support opens a dropdown with Video Guides and Contact Us @responsive', async ({ page }) => {
+  test('Support opens a dropdown with Video Guides, Rules and Contact Us @responsive', async ({ page }) => {
     await login(page, users.member);
     const menu = page.getByRole('button', { name: 'Menu', exact: true });
     if (await menu.isVisible()) await menu.click();
     const nav = page.getByRole('navigation', { name: 'Main' });
     await nav.getByRole('button', { name: 'Support' }).click();
     const sub = page.locator('#submenu-support');
-    await expect(sub.getByRole('link')).toHaveText(['Video Guides', 'Contact Us']);
+    await expect(sub.getByRole('link')).toHaveText(['Video Guides', 'Rules', 'Contact Us']);
     await sub.getByRole('link', { name: 'Video Guides' }).click();
     await expect(page).toHaveURL(/\/video-guides$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Video Guides' })).toBeVisible();

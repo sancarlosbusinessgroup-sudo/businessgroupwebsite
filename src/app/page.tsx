@@ -60,7 +60,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               Local businesses, growing through real referrals.
             </h1>
             <p className="text-on-band m-0 max-w-[560px] text-xl font-medium [text-shadow:0_1px_10px_rgb(0_0_0/0.6)]">
-              We meet every other Monday at 8:15 AM - 9:30AM on Zoom
+              We meet every other Monday at 8:15 AM - 9:45AM on Zoom
             </p>
             <div className="flex flex-wrap gap-3">
               {member ? (
@@ -84,7 +84,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           {[
             { v: String(site.founded), l: 'Originally founded with the San Carlos Chamber of Commerce.' },
             { v: String(count), l: 'Member businesses in the directory' },
-            { v: site.meetingCadence, l: '8:15am–9:30am' },
+            { v: site.meetingCadence, l: '8:15am–9:45am' },
             { v: '$0', l: 'No membership fees. We just ask for full participation.' },
             // Owner meeting 2026-10-30: rolling 12 months (never "since January"), counts only; dollar amounts stay members-only.
             ...(year

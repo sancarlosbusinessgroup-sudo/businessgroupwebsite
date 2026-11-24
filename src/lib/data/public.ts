@@ -196,6 +196,22 @@ export const getGallery = shared(
   },
 );
 
+/**
+ * A member's own gallery on their profile (owner, 2026-11-24): live photos they are tagged in (and approved) or
+ * uploaded themselves. Runs as a visitor, so photos still waiting for approval never show.
+ */
+export const getMemberPhotos = shared('getMemberPhotos', ['gallery'], async (profileId: string, limit = 60): Promise<Tables<'gallery_photos'>[]> => {
+  const supabase = publicClient();
+  const { data: tags, error: tagErr } = await supabase.from('gallery_tags').select('photo_id').eq('profile_id', profileId).eq('status', 'approved').limit(200);
+  if (tagErr) fail('photos', tagErr);
+  const ids = (tags ?? []).map((t) => t.photo_id);
+  let q = supabase.from('gallery_photos').select('*');
+  q = ids.length ? q.or(`uploaded_by.eq.${profileId},id.in.(${ids.join(',')})`) : q.eq('uploaded_by', profileId);
+  const { data, error } = await q.order('taken_on', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).limit(limit);
+  if (error) fail('photos', error);
+  return data;
+});
+
 export const getMemberCount = shared('getMemberCount', ['directory'], async (): Promise<number> => {
   const supabase = publicClient();
   const { data, error } = await supabase.rpc('member_count');

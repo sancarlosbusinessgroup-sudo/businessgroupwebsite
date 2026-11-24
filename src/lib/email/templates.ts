@@ -494,6 +494,69 @@ export function guestZoomLinkEmail(o: { siteUrl: string; firstName: string; when
   };
 }
 
+/**
+ * A guest's visit request was declined and the admin chose "Send the email" (owner, 2026-11-24). Kind and brief: the
+ * Membership Committee prefers to phone, so this is only for when a call isn't possible.
+ */
+export function guestDeclinedEmail(o: { siteUrl: string; firstName: string }): Email {
+  return {
+    subject: `Your request to visit ${site.name}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: 'Thank you for your interest in our group.',
+      heading: `Thank you, ${o.firstName}`,
+      blocks: [
+        { p: `Thank you for your interest in visiting ${site.name}. We keep one member per business category so our members never compete for referrals.` },
+        {
+          p: 'After looking at the categories in our group, we don’t think it would be a good fit for you to visit right now. We truly appreciate you thinking of us, and we wish you every success with your business.',
+        },
+      ],
+      footer: `You get this email because you asked to visit ${site.name}.`,
+    }),
+  };
+}
+
+/** A member tagged you in a gallery photo (owner, 2026-11-24): it goes live only after everyone tagged approves. */
+export function galleryTagEmail(o: { siteUrl: string; toFirstName: string; uploaderName: string; caption: string }): Email {
+  return {
+    subject: `${o.uploaderName} tagged you in a photo`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: 'Approve it or say no before it appears in the gallery.',
+      heading: `You’re in a photo, ${o.toFirstName}`,
+      blocks: [
+        { p: `${o.uploaderName} uploaded a photo to the ${site.name} gallery and tagged you in it:` },
+        { quote: o.caption },
+        { p: 'The photo appears on the website only after everyone tagged in it approves. If you say no, it stays hidden.' },
+      ],
+      cta: { label: 'Approve or decline', href: `${o.siteUrl}/gallery#tagged` },
+      footer: accountFooter,
+    }),
+  };
+}
+
+/** The uploader hears how the tags on their photo turned out (owner, 2026-11-24). */
+export function galleryTagOutcomeEmail(o: { siteUrl: string; toFirstName: string; caption: string; live: boolean; declinedBy?: string | null }): Email {
+  return {
+    subject: o.live ? 'Your photo is in the gallery' : 'Your photo won’t be shown',
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: o.live ? 'Everyone you tagged approved it.' : 'Someone you tagged said no.',
+      heading: o.live ? `Your photo is live, ${o.toFirstName}` : `About your photo, ${o.toFirstName}`,
+      blocks: [
+        { quote: o.caption },
+        {
+          p: o.live
+            ? 'Everyone you tagged approved it, so it now shows in the gallery and on their profiles.'
+            : `${o.declinedBy ?? 'Someone you tagged'} would rather not appear in this photo, so it stays hidden. You can delete it, or upload another one.`,
+        },
+      ],
+      cta: { label: 'Open the gallery', href: `${o.siteUrl}/gallery` },
+      footer: accountFooter,
+    }),
+  };
+}
+
 /** An admin gave the member a presentation slot (owner, 2026-10-27). */
 export function slotAssignedEmail(o: { siteUrl: string; firstName: string; slot: keyof typeof slotTitles; when: string; topic?: string | null }): Email {
   const title = slotTitles[o.slot];
@@ -896,7 +959,7 @@ export function managementRecapEmail(o: ManagementRecap & { siteUrl: string; fir
       ['Present', names(o.present)],
       ...(o.substitutes.length ? ([['Sent a substitute', names(o.substitutes)]] as [string, string][]) : []),
       ['Late (after 8:30)', names(o.late)],
-      ['Left early (before 9:30)', names(o.leftEarly)],
+      ['Left early (before 9:45)', names(o.leftEarly)],
       ...(o.excused.length ? ([['Excused (counts as missed)', names(o.excused)]] as [string, string][]) : []),
       ['Absent', names(o.absent)],
     ],

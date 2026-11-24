@@ -6,7 +6,16 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { bustPublic } from '@/lib/data/public';
-import { onOneOnOneAnswered, onOneOnOneMessage, onOneOnOneReported, onOneOnOneRequested, onReferralSent, onReferralUpdated } from '@/lib/email/events';
+import {
+  onGalleryTagAnswered,
+  onGalleryTagged,
+  onOneOnOneAnswered,
+  onOneOnOneMessage,
+  onOneOnOneReported,
+  onOneOnOneRequested,
+  onReferralSent,
+  onReferralUpdated,
+} from '@/lib/email/events';
 import { safely } from '@/lib/email/notify';
 import { prefKeys } from '@/lib/email/prefs';
 import { pacificLocalToIso } from '@/lib/dates';
@@ -404,7 +413,12 @@ export async function deleteOneOnOne(formData: FormData): Promise<void> {
 
 // --- Gallery ----------------------------------------------------------------
 
-const galleryInput = galleryMetaSchema.extend({ imagePath: z.string().max(200), thumbPath: z.string().max(200) });
+const galleryInput = galleryMetaSchema.extend({
+  imagePath: z.string().max(200),
+  thumbPath: z.string().max(200),
+  // Members in the photo (owner, 2026-11-24): it goes live only after each of them approves.
+  tags: z.array(z.uuid()).max(30).optional(),
+});
 
 export async function addGalleryPhoto(input: z.input<typeof galleryInput>): Promise<ActionState> {
   const parsed = galleryInput.safeParse(input);
@@ -413,7 +427,10 @@ export async function addGalleryPhoto(input: z.input<typeof galleryInput>): Prom
   if (!user) return { status: 'error', message: 'Please log in again.' };
   const d = parsed.data;
   if (!d.imagePath.startsWith(`${user.id}/`) || !d.thumbPath.startsWith(`${user.id}/`)) return { status: 'error', message: GENERIC };
+  const tags = [...new Set(d.tags ?? [])];
+  const id = crypto.randomUUID();
   const { error } = await supabase.from('gallery_photos').insert({
+    id,
     album: d.album,
     caption: d.caption,
     taken_on: d.takenOn ?? null,
@@ -422,10 +439,57 @@ export async function addGalleryPhoto(input: z.input<typeof galleryInput>): Prom
     uploaded_by: user.id,
   });
   if (error) return { status: 'error', message: GENERIC };
+  if (tags.length) {
+    const { error: tagError } = await supabase
+      .from('gallery_tags')
+      .insert(
+        tags.map((profileId) => ({
+          photo_id: id,
+          profile_id: profileId,
+          tagged_by: user.id,
+          status: profileId === user.id ? ('approved' as const) : ('pending' as const),
+        })),
+      );
+    if (tagError) {
+      // Never leave a photo public that people were meant to approve first.
+      await supabase.from('gallery_photos').delete().eq('id', id);
+      return { status: 'error', message: GENERIC };
+    }
+  }
   revalidatePath('/gallery');
   revalidatePath('/');
+  revalidatePath('/dashboard');
   await bustPublic('gallery');
-  return { status: 'success' };
+  const waiting = tags.filter((t) => t !== user.id).length;
+  if (waiting) {
+    after(() => safely('gallery tags', () => onGalleryTagged(id)));
+    return {
+      status: 'success',
+      message: `Photo uploaded. It will appear in the gallery once the ${waiting === 1 ? 'member you tagged approves' : `${waiting} members you tagged approve`} it.`,
+    };
+  }
+  return { status: 'success', message: 'Photo added to the gallery.' };
+}
+
+const tagAnswerSchema = z.object({ photoId: z.uuid(), answer: z.enum(['approve', 'decline']) });
+
+/** A tagged member approves or declines a gallery photo (owner, 2026-11-24). They can change their answer later. */
+export async function respondGalleryTag(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = tagAnswerSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { status: 'error', message: GENERIC };
+  const { supabase, user } = await session();
+  if (!user) return { status: 'error', message: 'Please log in again.' };
+  const approve = parsed.data.answer === 'approve';
+  const { error } = await supabase.rpc('respond_gallery_tag', { p_photo: parsed.data.photoId, p_approve: approve });
+  if (error) return { status: 'error', message: GENERIC };
+  revalidatePath('/gallery');
+  revalidatePath('/dashboard');
+  revalidatePath('/');
+  revalidatePath('/members/[slug]', 'page');
+  await bustPublic('gallery');
+  const photoId = parsed.data.photoId;
+  after(() => safely('gallery tag answer', () => onGalleryTagAnswered(photoId, user.id, approve)));
+  return { status: 'success', message: approve ? 'Thanks! You approved this photo.' : 'Got it: this photo won’t be shown.' };
 }
 
 // --- One-on-one requests ------------------------------------------------------

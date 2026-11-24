@@ -39,8 +39,9 @@ test.describe('members invite a guest', () => {
     const menu = page.getByRole('button', { name: 'Menu', exact: true });
     if (await menu.isVisible()) await menu.click();
     const nav = page.getByRole('navigation', { name: 'Main' });
-    await expect(nav.getByRole('link', { name: 'Support' })).toBeVisible();
-    const labels = (await nav.getByRole('link').allTextContents()).map((t) => t.trim());
+    // Support has been a dropdown button since 2026-11-24 (Video Guides, Rules, Contact Us).
+    await expect(nav.getByRole('button', { name: 'Support' })).toBeVisible();
+    const labels = (await nav.locator('a, button').allTextContents()).map((t) => t.trim());
     expect(labels.indexOf('Invite A Guest')).toBe(labels.indexOf('Support') - 1);
     await nav.getByRole('link', { name: 'Invite A Guest' }).click();
     await expect(page).toHaveURL(/\/invite-guest$/);
@@ -57,7 +58,7 @@ test.describe('members invite a guest', () => {
     await login(page, users.admin);
     const nav = page.getByRole('navigation', { name: 'Main' });
     const invite = (await nav.getByRole('link', { name: 'Invite A Guest' }).boundingBox())!;
-    const support = (await nav.getByRole('link', { name: 'Support' }).boundingBox())!;
+    const support = (await nav.getByRole('button', { name: 'Support' }).boundingBox())!;
     expect(Math.round(support.y)).toBe(Math.round(invite.y));
     expect(support.x).toBeGreaterThan(invite.x);
   });
@@ -120,6 +121,7 @@ test.describe('members invite a guest', () => {
       'Members',
       'Member Activity',
       'Member Stats',
+      'Report Cards',
       'BARP Champion',
       'Management',
       'Gallery',

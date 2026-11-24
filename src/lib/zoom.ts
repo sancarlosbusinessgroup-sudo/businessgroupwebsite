@@ -87,15 +87,33 @@ export function matchParticipant(p: Participant, members: MemberRef[], guests: G
   return { kind: 'pending' };
 }
 
-/** Bylaws: arriving after 8:30 AM (15 minutes after the 8:15 start) or leaving before the 9:30 finish. One minute's grace. */
-export function lateEarly(meeting: { starts_at: string; ends_at: string }, joinedAt: string | null, leftAt: string | null) {
+/**
+ * Bylaws: arriving after 8:30 AM (15 minutes after the 8:15 start) or leaving before the 9:45 finish. One minute's grace.
+ * When the Zoom meeting really ended earlier than scheduled (`endedAt`: the last person to leave), leaving is measured
+ * against that instead, so a meeting that finished early doesn't flag everyone (owner, 2026-11-24).
+ */
+export function lateEarly(meeting: { starts_at: string; ends_at: string }, joinedAt: string | null, leftAt: string | null, endedAt?: string | null) {
   const grace = 60_000;
   const calledToOrder = new Date(meeting.starts_at).getTime() + 15 * 60_000;
-  const end = new Date(meeting.ends_at).getTime();
+  const scheduled = new Date(meeting.ends_at).getTime();
+  const real = endedAt ? new Date(endedAt).getTime() : NaN;
+  const end = Number.isFinite(real) ? Math.min(scheduled, real) : scheduled;
   return {
     late: !!joinedAt && new Date(joinedAt).getTime() > calledToOrder + grace,
     leftEarly: !!leftAt && new Date(leftAt).getTime() < end - grace,
   };
+}
+
+/** An admin's choice for one member at one meeting (attendance.left_early); null = go by Zoom. */
+export type LeftEarlyOverride = 'yes' | 'no' | 'excused' | null;
+
+/**
+ * Whether the member left early, after an admin's correction (owner, 2026-11-24): `yes` = left early (no 60-second
+ * infomercial at the next meeting), `excused` = left early for an emergency (no penalty), `no` = stayed to the end.
+ */
+export function leftEarlyStatus(auto: boolean, override: LeftEarlyOverride | string | null | undefined): 'yes' | 'no' | 'excused' {
+  if (override === 'yes' || override === 'no' || override === 'excused') return override;
+  return auto ? 'yes' : 'no';
 }
 
 export const ABSENCE_LIMIT = 2;
@@ -144,4 +162,15 @@ export function noSessionMessage(zoomId: string, instances: { start_time: string
   return days.length
     ? `Zoom has no session of meeting ${id} on that day. Its most recent sessions were on ${days.join(', ')}.`
     : `Zoom has no past sessions of meeting ${id} at all. Was this meeting held with a different Zoom link, or hosted from another Zoom account?`;
+}
+
+type AttendanceTimes = { zoom?: boolean | null; joined_at: string | null; left_at: string | null; left_early?: string | null };
+
+/**
+ * Late / left-early for one member at one meeting: from the Zoom times (measured against the real end when known),
+ * then the admin's left-early correction on top (owner, 2026-11-24).
+ */
+export function attendanceFlags(meeting: { starts_at: string; ends_at: string }, a: AttendanceTimes | null | undefined, endedAt?: string | null) {
+  const auto = a?.zoom ? lateEarly(meeting, a.joined_at, a.left_at, endedAt) : { late: false, leftEarly: false };
+  return { late: auto.late, autoLeftEarly: auto.leftEarly, leftEarly: leftEarlyStatus(auto.leftEarly, a?.left_early) };
 }

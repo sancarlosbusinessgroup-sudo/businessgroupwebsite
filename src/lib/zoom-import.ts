@@ -165,10 +165,18 @@ export async function importZoomAttendance(db: Db, meetingId: string, by: string
     await db.from('guest_requests').update({ meeting_id: meetingId }).eq('id', id).is('meeting_id', null);
   }
   const pending = rows.filter((r) => r.resolution === 'pending').length;
+  // When the meeting really ended: the last person to leave (leaving early is measured against this, owner 2026-11-24).
+  const endedAt =
+    parts
+      .map((p) => p.leftAt)
+      .filter((x): x is string => !!x)
+      .sort()
+      .at(-1) ?? null;
   await db.from('attendance_imports').upsert({
     meeting_id: meetingId,
     source: 'zoom',
     zoom_uuid: uuid,
+    ended_at: endedAt ? new Date(endedAt).toISOString() : null,
     participants: rows.length,
     matched: present.size,
     status: 'done',

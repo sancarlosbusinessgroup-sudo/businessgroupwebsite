@@ -4,7 +4,10 @@ import { notFound } from 'next/navigation';
 import { ProfileView } from '@/components/ProfileView';
 import { getChampionAwards, getCurrentChampion } from '@/lib/data/champion';
 import { getViewer, isAdmin, isApproved } from '@/lib/auth';
-import { PUBLIC_PROFILE_COLUMNS, getMemberBySlug, getPublicPhone, type PublicProfile } from '@/lib/data/public';
+import { PUBLIC_PROFILE_COLUMNS, getMemberBySlug, getMemberPhotos, getPublicPhone, type PublicProfile } from '@/lib/data/public';
+import { GalleryGrid } from '@/app/gallery/GalleryGrid';
+import { formatShortDate } from '@/lib/dates';
+import { mediaUrl } from '@/lib/env';
 import { createClient } from '@/lib/supabase/server';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -49,7 +52,8 @@ export default async function MemberProfilePage({ params }: Props) {
     phone = await getPublicPhone(slug);
   }
 
-  const [wins, current] = await Promise.all([getChampionAwards(24, profile.id), getCurrentChampion()]);
+  const [wins, current, photos] = await Promise.all([getChampionAwards(24, profile.id), getCurrentChampion(), getMemberPhotos(profile.id)]);
+  const isSelf = viewer?.userId === profile.id;
   const champion = { current: current?.profileId === profile.id ? current.label : null, past: wins.map((w) => w.label) };
 
   return (
@@ -64,13 +68,36 @@ export default async function MemberProfilePage({ params }: Props) {
           </Link>
         ) : null}
       </div>
-      <ProfileView
-        profile={profile}
-        contact={{ email, phone, membersOnly: !member }}
-        viewerIsMember={member}
-        isSelf={viewer?.userId === profile.id}
-        champion={champion}
-      />
+      <ProfileView profile={profile} contact={{ email, phone, membersOnly: !member }} viewerIsMember={member} isSelf={isSelf} champion={champion} />
+      {/* The member's own gallery (owner, 2026-11-24): photos they're tagged in (approved) or uploaded. */}
+      {photos.length || isSelf ? (
+        <section className="card flex flex-col gap-4 p-6" aria-labelledby="member-photos-h">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 id="member-photos-h" className="font-display m-0 text-xl font-extrabold">
+              Photos{photos.length ? ` (${photos.length})` : ''}
+            </h2>
+            {isSelf ? (
+              <Link href="/gallery" className="btn btn-outline btn-sm">
+                Upload photos
+              </Link>
+            ) : null}
+          </div>
+          {photos.length ? (
+            <GalleryGrid
+              photos={photos.map((p) => ({
+                id: p.id,
+                caption: p.caption,
+                album: p.album,
+                date: p.taken_on ? formatShortDate(new Date(p.taken_on + 'T12:00:00Z')) : null,
+                thumb: mediaUrl('gallery', p.thumb_path) ?? '',
+                full: mediaUrl('gallery', p.image_path) ?? '',
+              }))}
+            />
+          ) : (
+            <p className="text-ink-muted m-0">No photos yet. Upload one in the Gallery and tag yourself (and anyone else in it) to show it here.</p>
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }

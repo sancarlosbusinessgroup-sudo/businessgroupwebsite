@@ -12,6 +12,7 @@ import { resendFailedEmail } from '@/lib/email/resend';
 import { safely } from '@/lib/email/notify';
 import { sendMemberRecap } from '@/lib/email/cron';
 import { requireAdmin } from '@/lib/auth';
+import { advanceGuest, logGuestEvent } from '@/lib/data/guest-steps';
 import { type ActionState, fieldErrors, formToObject, leadershipSchema, seatLimitSchema } from '@/lib/validation';
 
 // Every write here is also restricted to admins by RLS (is_admin()). Actions with side effects outside the
@@ -229,6 +230,12 @@ export async function inviteToApply(_prev: ActionState, formData: FormData): Pro
   const { data: isAdmin } = await supabase.rpc('is_admin');
   if (!isAdmin) return { status: 'error', message: 'Admins only.' };
   const r = await sendApplyInvite(id.data, localDateKey(new Date()));
+  if (r === 'sent') {
+    const { data: auth } = await supabase.auth.getUser();
+    // Guest board (owner, 2026-11-24): the form is out; the card waits in "Send Application Form" until they apply.
+    if (auth.user) await logGuestEvent(supabase, id.data, auth.user.id, 'apply_invite');
+    await advanceGuest(supabase, id.data, 'send_application');
+  }
   revalidatePath('/admin');
   revalidatePath('/admin/guests');
   if (r === 'sent') return { status: 'success', message: 'Invite sent.' };
@@ -245,6 +252,19 @@ export async function sendZoomLink(_prev: ActionState, formData: FormData): Prom
   const { data: isAdmin } = await supabase.rpc('is_admin');
   if (!isAdmin) return { status: 'error', message: 'Admins only.' };
   const r = await sendGuestZoomLink(id.data, localDateKey(new Date()));
+  if (r === 'sent') {
+    // Guest board (owner, 2026-11-24): sending the Zoom link accepts the guest.
+    const { data: auth } = await supabase.auth.getUser();
+    if (auth.user) {
+      await supabase
+        .from('guest_requests')
+        .update({ accepted_at: new Date().toISOString(), accepted_by: auth.user.id })
+        .eq('id', id.data)
+        .is('accepted_at', null);
+      await logGuestEvent(supabase, id.data, auth.user.id, 'zoom_link');
+    }
+    await advanceGuest(supabase, id.data, 'zoom_sent');
+  }
   revalidatePath('/admin');
   revalidatePath('/admin/guests');
   switch (r) {
@@ -268,11 +288,16 @@ export async function setGuestOneOnOnes(formData: FormData): Promise<void> {
   const id = z.uuid().safeParse(formData.get('id'));
   if (!id.success) return;
   const done = formData.get('done') === 'true';
-  const supabase = await createClient();
+  const supabase = await adminClient();
+  if (!supabase) return;
   await supabase
     .from('guest_requests')
     .update({ one_on_ones_done_at: done ? new Date().toISOString() : null })
     .eq('id', id.data);
+  // Guest board (owner, 2026-11-24): the panel interview (one-on-ones with the Membership Committee).
+  const { data: auth } = await supabase.auth.getUser();
+  if (auth.user) await logGuestEvent(supabase, id.data, auth.user.id, 'interview', done ? 'done' : 'not done yet');
+  if (done) await advanceGuest(supabase, id.data, 'interview');
   revalidatePath('/admin');
   revalidatePath('/admin/guests');
 }

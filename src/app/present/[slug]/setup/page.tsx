@@ -6,6 +6,8 @@ import { getMeetingBySlug } from '@/lib/data/public';
 import { formatMeetingDate } from '@/lib/dates';
 import { SLIDE_KEYS, resolveNotes, resolveSlides, resolveTimers, slideLabel, slideTime } from '@/lib/slides';
 import { createClient } from '@/lib/supabase/server';
+import { loadNoInfomercialList } from '@/lib/data/no-infomercial';
+import { NoInfomercialCard } from '@/components/NoInfomercialCard';
 import { PresentationMaterials, SlideMediaManager } from './SlideMediaManager';
 import { SlideSettingsForm } from './SlideSettingsForm';
 
@@ -81,6 +83,7 @@ export default async function SlideSetupPage({ params }: { params: Promise<{ slu
             {data ? 'This meeting uses a custom order.' : 'This meeting uses the standard agenda.'} Changes apply to this meeting only.
           </p>
         </div>
+        <NoInfomercialCard list={await loadNoInfomercialList(supabase, meeting.id)} />
         <PresentationMaterials meetingId={meeting.id} options={options} media={media} />
         <SlideSettingsForm meetingId={meeting.id} rows={rows} deckHref={`/present/${slug}`} timers={resolveTimers(data?.timers)} />
         <SlideMediaManager

@@ -9,14 +9,16 @@ import { checkImageFile, prepareImage } from '@/lib/images';
 import { createClient } from '@/lib/supabase/browser';
 import { fieldErrors, formToObject, galleryMetaSchema } from '@/lib/validation';
 import { addGalleryPhoto } from '../actions/member';
+import { TagPicker, type TagOption } from './TagPicker';
 
-type Phase = { kind: 'idle' } | { kind: 'working'; text: string } | { kind: 'done' } | { kind: 'error'; text: string };
+type Phase = { kind: 'idle' } | { kind: 'working'; text: string } | { kind: 'done'; text: string } | { kind: 'error'; text: string };
 
-export function UploadPhoto({ userId }: { userId: string }) {
+export function UploadPhoto({ userId, members = [] }: { userId: string; members?: TagOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
+  const [uploads, setUploads] = useState(0);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -42,9 +44,11 @@ export function UploadPhoto({ userId }: { userId: string }) {
       if (up1.error) throw up1.error;
       const up2 = await supabase.storage.from('gallery').upload(thumbPath, thumb, { contentType: 'image/webp' });
       if (up2.error) throw up2.error;
-      const res = await addGalleryPhoto({ ...meta.data, imagePath, thumbPath });
+      const tags = fd.getAll('tags').filter((x): x is string => typeof x === 'string');
+      const res = await addGalleryPhoto({ ...meta.data, imagePath, thumbPath, tags });
       if (res.status !== 'success') throw new Error(res.message ?? 'Could not save the photo');
-      setPhase({ kind: 'done' });
+      setPhase({ kind: 'done', text: res.message ?? 'Photo added to the gallery.' });
+      setUploads((n) => n + 1);
       form.reset();
       router.refresh();
     } catch {
@@ -63,7 +67,7 @@ export function UploadPhoto({ userId }: { userId: string }) {
   const busy = phase.kind === 'working';
   return (
     <form onSubmit={onSubmit} noValidate className="card flex w-full flex-col gap-4 p-5" aria-label="Upload a photo">
-      {phase.kind === 'done' ? <Notice tone="success">Photo added to the gallery.</Notice> : null}
+      {phase.kind === 'done' ? <Notice tone="success">{phase.text}</Notice> : null}
       {phase.kind === 'error' ? <Notice tone="error">{phase.text}</Notice> : null}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <TextField
@@ -88,6 +92,8 @@ export function UploadPhoto({ userId }: { userId: string }) {
         </SelectField>
         <TextField name="caption" label="Caption" required maxLength={140} error={errors.caption} />
         <TextField name="takenOn" type="date" label="Date taken" error={errors.takenOn} />
+        {/* Key resets the picked tags after an upload (form.reset() doesn't reach React state). */}
+        <TagPicker key={uploads} members={members} selfId={userId} />
       </div>
       <div className="flex flex-wrap gap-2.5">
         <button type="submit" className="btn btn-primary" disabled={busy} aria-disabled={busy}>

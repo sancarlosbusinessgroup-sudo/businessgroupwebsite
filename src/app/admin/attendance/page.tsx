@@ -7,7 +7,8 @@ import { absencesFor, memberSince } from '@/lib/data/attendance';
 import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { loadLiveAttendance } from '@/lib/data/live-attendance';
-import { ABSENCE_LIMIT, lateEarly, parseZoomMeetingId } from '@/lib/zoom';
+import { ABSENCE_LIMIT, attendanceFlags, parseZoomMeetingId } from '@/lib/zoom';
+import { AttendanceRulesBox } from '@/components/Rules';
 import { zoomConfigured } from '@/lib/zoom-api';
 import { isLiveWindow } from '@/lib/zoom-live';
 import { AttendanceTable, FetchZoomButton, ReviewRow, VisitorInviterRow, type AttendanceRow } from './AttendanceForms';
@@ -61,7 +62,7 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
         .select('id, name, email, minutes, resolution, invited_by, visitor_business, visitor_email, visitor_phone')
         .eq('meeting_id', meeting.id)
         .order('name'),
-      supabase.from('attendance').select('profile_id, status, substitute, zoom, joined_at, left_at, minutes').eq('meeting_id', meeting.id),
+      supabase.from('attendance').select('profile_id, status, substitute, zoom, joined_at, left_at, minutes, left_early').eq('meeting_id', meeting.id),
       supabase.from('meeting_links').select('join_url').eq('meeting_id', meeting.id).maybeSingle(),
       loadLiveAttendance(supabase, meeting.id),
     ]);
@@ -75,7 +76,7 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
     const hasZoomLink = !!parseZoomMeetingId(linkRes.data?.join_url);
     const rows: AttendanceRow[] = members.map((p) => {
       const a = att.get(p.id);
-      const flags = a?.zoom ? lateEarly(meeting, a.joined_at, a.left_at) : { late: false, leftEarly: false };
+      const flags = attendanceFlags(meeting, a, imp?.ended_at);
       const sum = absences.get(p.id);
       return {
         id: p.id,
@@ -84,6 +85,8 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
         zoom: a?.zoom ? `${timeOf(a.joined_at) ?? '?'}–${timeOf(a.left_at) ?? '?'} · ${a.minutes ?? 0} min` : null,
         late: flags.late,
         leftEarly: flags.leftEarly,
+        autoLeftEarly: flags.autoLeftEarly,
+        override: a?.left_early ?? null,
         missed: sum?.missed ?? 0,
         atLimit: !!sum?.atLimit,
       };
@@ -191,7 +194,10 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
           </h2>
           <p className="text-ink-muted m-0 text-sm">
             Change anyone’s attendance and save. “Sent a substitute” counts as present; “Excused” still counts as a missed meeting. Late means joining Zoom
-            after 8:30 AM; left early means leaving before 9:30 AM.
+            after 8:30 AM; left early means leaving before 9:45 AM, or before the meeting really ended if it finished earlier
+            {imp?.ended_at ? ` (this meeting ended at ${formatMeetingTime(new Date(imp.ended_at))})` : ''}. Zoom isn’t always right, so set{' '}
+            <strong>Left early</strong> by hand when needed: “Excused – left early” is for an emergency the member told us about, and doesn’t stop their
+            60-second infomercial at the next meeting.
           </p>
           <AttendanceTable meetingId={meeting.id} rows={rows} limit={ABSENCE_LIMIT} />
         </section>
@@ -205,6 +211,7 @@ export default async function AdminAttendancePage({ searchParams }: { searchPara
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Attendance</h1>
         <AdminNav current="/admin/attendance" />
         <HowThisWorks tab="/admin/attendance" />
+        <AttendanceRulesBox />
 
         {alerts.length ? (
           <section aria-labelledby="alerts-h" className="border-red bg-red-tint flex flex-col gap-2 rounded-2xl border p-5">

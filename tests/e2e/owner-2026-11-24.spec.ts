@@ -27,6 +27,7 @@ const tabOrder = [
   'Members',
   'Member Activity',
   'Member Stats',
+  'Report Cards',
   'BARP Champion',
   'Management',
   'Gallery',
@@ -43,9 +44,9 @@ test('Overview: action items, Zoom and a card per tab; the old sections are gone
     await expect(page.getByRole('navigation', { name: 'Admin sections' }).getByRole('link')).toHaveText(tabOrder);
 
     const todo = page.getByRole('region', { name: /^Items that Need Immediate Action/ });
-    const item = todo.getByRole('listitem').filter({ hasText: 'Send Ivan Invitee the Zoom link' });
+    const item = todo.getByRole('listitem').filter({ hasText: 'Accept or reject Ivan Invitee' });
     await expect(item).toContainText('Stage: asked for an invite');
-    await expect(item.getByRole('link', { name: /Open Guest Invites & Applications/ })).toHaveAttribute('href', '/admin/guests#guests');
+    await expect(item.getByRole('link', { name: /Open Guest Invites & Applications/ })).toHaveAttribute('href', '/admin/guests#board');
 
     await expect(page.getByRole('heading', { level: 2, name: 'Zoom' })).toBeVisible();
     const tabs = page.getByRole('region', { name: 'Admin tabs' });

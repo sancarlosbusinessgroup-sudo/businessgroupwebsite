@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { absenceSummary, lateEarly, matchParticipant, mergeParticipants, nameKey, noSessionMessage, normalizeName, parseZoomMeetingId } from './zoom';
+import {
+  absenceSummary,
+  attendanceFlags,
+  lateEarly,
+  leftEarlyStatus,
+  matchParticipant,
+  mergeParticipants,
+  nameKey,
+  noSessionMessage,
+  normalizeName,
+  parseZoomMeetingId,
+} from './zoom';
 
 describe('parseZoomMeetingId', () => {
   it('reads the meeting ID from the usual join links', () => {
@@ -80,6 +91,33 @@ describe('lateEarly', () => {
   });
 });
 
+describe('lateEarly with the 9:45 finish and the real end (owner, 2026-11-24)', () => {
+  const meeting = { starts_at: '2026-12-07T16:15:00Z', ends_at: '2026-12-07T17:45:00Z' }; // Dec 7, 8:15–9:45 AM PST
+  it('leaving at 9:35 is early when the meeting ran to 9:45', () => {
+    expect(lateEarly(meeting, '2026-12-07T16:20:00Z', '2026-12-07T17:35:00Z').leftEarly).toBe(true);
+    expect(lateEarly(meeting, '2026-12-07T16:20:00Z', '2026-12-07T17:35:00Z', '2026-12-07T17:46:00Z').leftEarly).toBe(true);
+  });
+  it('a meeting that ended at 9:23 does not flag the people who stayed to its end', () => {
+    expect(lateEarly(meeting, '2026-12-07T16:20:00Z', '2026-12-07T17:23:00Z', '2026-12-07T17:23:30Z').leftEarly).toBe(false);
+    // Someone who left 10 minutes before that early end still left early.
+    expect(lateEarly(meeting, '2026-12-07T16:20:00Z', '2026-12-07T17:13:00Z', '2026-12-07T17:23:30Z').leftEarly).toBe(true);
+  });
+  it('ignores an unreadable end time', () => {
+    expect(lateEarly(meeting, null, '2026-12-07T17:35:00Z', 'not a date').leftEarly).toBe(true);
+  });
+});
+
+describe('leftEarlyStatus', () => {
+  it('follows Zoom unless an admin set it', () => {
+    expect(leftEarlyStatus(true, null)).toBe('yes');
+    expect(leftEarlyStatus(false, undefined)).toBe('no');
+    expect(leftEarlyStatus(true, 'no')).toBe('no');
+    expect(leftEarlyStatus(false, 'yes')).toBe('yes');
+    expect(leftEarlyStatus(true, 'excused')).toBe('excused');
+    expect(leftEarlyStatus(true, 'something else')).toBe('yes');
+  });
+});
+
 describe('absenceSummary', () => {
   const now = new Date('2026-12-01T00:00:00Z');
   const taken = [
@@ -118,5 +156,20 @@ describe('noSessionMessage', () => {
   });
   it('says so when the meeting ID has never been used', () => {
     expect(noSessionMessage('83818742413', [])).toMatch(/no past sessions of meeting 838 1874 2413 at all/);
+  });
+});
+
+describe('attendanceFlags', () => {
+  const meeting = { starts_at: '2026-12-07T16:15:00Z', ends_at: '2026-12-07T17:45:00Z' };
+  it('uses Zoom times, the real end and the admin correction', () => {
+    const a = { zoom: true, joined_at: '2026-12-07T16:40:00Z', left_at: '2026-12-07T17:20:00Z', left_early: null };
+    expect(attendanceFlags(meeting, a)).toEqual({ late: true, autoLeftEarly: true, leftEarly: 'yes' });
+    expect(attendanceFlags(meeting, a, '2026-12-07T17:20:30Z')).toEqual({ late: true, autoLeftEarly: false, leftEarly: 'no' });
+    expect(attendanceFlags(meeting, { ...a, left_early: 'excused' }).leftEarly).toBe('excused');
+    expect(attendanceFlags(meeting, { ...a, left_early: 'no' }).leftEarly).toBe('no');
+  });
+  it('an admin can mark someone left early even without Zoom times', () => {
+    expect(attendanceFlags(meeting, { zoom: false, joined_at: null, left_at: null, left_early: 'yes' }).leftEarly).toBe('yes');
+    expect(attendanceFlags(meeting, undefined)).toEqual({ late: false, autoLeftEarly: false, leftEarly: 'no' });
   });
 });

@@ -64,7 +64,7 @@ describe('Items that Need Immediate Action (owner, 2026-11-24)', () => {
   it('walks each guest through the stages', () => {
     const one = (g: Partial<ActionInput['guests'][number]>, apps: ActionInput['pendingApplications'] = []) =>
       buildActionItems({ ...quiet, guests: [guest(g)], pendingApplications: apps })[0];
-    expect(one({})).toMatchObject({ title: 'Send Gina Guest the Zoom link', tone: 'amber' });
+    expect(one({})).toMatchObject({ title: 'Accept or reject Gina Guest', tone: 'amber' });
     expect(one({ zoomSentAt: daysAgo(2) })).toBeUndefined();
     expect(one({ zoomSentAt: daysAgo(2), meetingEnded: true })!.title).toBe('Did Gina Guest visit?');
     expect(one({ status: 'visited', zoomSentAt: daysAgo(9) })!.title).toBe('Invite Gina Guest to apply');

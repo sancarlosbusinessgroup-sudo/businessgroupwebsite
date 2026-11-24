@@ -32,7 +32,7 @@ test.describe.configure({ mode: 'serial' });
 
 test('home: new meeting line, stats in rounded cards aligned to the top, new founded and fees wording', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByText('We meet every other Monday at 8:15 AM - 9:30AM on Zoom', { exact: true })).toBeVisible();
+  await expect(page.getByText('We meet every other Monday at 8:15 AM - 9:45AM on Zoom', { exact: true })).toBeVisible();
   await expect(page.getByText(/occasional in-person/)).toHaveCount(0);
   const stats = page.getByRole('region', { name: 'At a glance' });
   await expect(stats.getByText('Originally founded with the San Carlos Chamber of Commerce.')).toBeVisible();
@@ -63,7 +63,7 @@ test('about and visit wording', async ({ page }) => {
   await page.goto('/visit');
   await expect(page.getByText(/It's one business profession per person\./)).toBeVisible();
   await page.goto('/group-meetings');
-  await expect(page.getByText('We meet every other Monday at 8:15 AM - 9:30AM on Zoom', { exact: true })).toBeVisible();
+  await expect(page.getByText('We meet every other Monday at 8:15 AM - 9:45AM on Zoom', { exact: true })).toBeVisible();
 });
 
 test('add to calendar: Google, Outlook, Microsoft 365, Yahoo, Apple and an .ics download', async ({ page }) => {

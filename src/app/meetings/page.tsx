@@ -5,7 +5,7 @@ import { speakerFor } from '@/components/meetings';
 import { requireMember } from '@/lib/auth';
 import { attendanceHistory } from '@/lib/attendance';
 import { absencesFor, memberSince } from '@/lib/data/attendance';
-import { ABSENCE_LIMIT, lateEarly } from '@/lib/zoom';
+import { ABSENCE_LIMIT, attendanceFlags } from '@/lib/zoom';
 import { getUpcomingMeetings } from '@/lib/data/public';
 import { formatDayMonth, formatMeetingDate, formatMeetingTime, formatShortDate, inCheckInWindow, nowMs } from '@/lib/dates';
 import { attendancePct } from '@/lib/stats';
@@ -29,7 +29,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const supabase = await createClient();
   const since = new Date(Math.max(Date.parse(me.approved_at ?? me.created_at), nowMs() - 365 * 86400000)).toISOString();
 
-  const [upcoming, rsvpRes, pastRes, attRes, spokeRes] = await Promise.all([
+  const [upcoming, rsvpRes, pastRes, attRes, spokeRes, endsRes] = await Promise.all([
     getUpcomingMeetings(80),
     supabase.from('rsvps').select('meeting_id, attending').eq('profile_id', me.id),
     supabase
@@ -39,7 +39,10 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
       .lt('ends_at', new Date().toISOString())
       .gte('starts_at', since)
       .order('starts_at', { ascending: false }),
-    supabase.from('attendance').select('meeting_id, status, checked_in_at, method, zoom, substitute, joined_at, left_at, minutes').eq('profile_id', me.id),
+    supabase
+      .from('attendance')
+      .select('meeting_id, status, checked_in_at, method, zoom, substitute, joined_at, left_at, minutes, left_early')
+      .eq('profile_id', me.id),
     supabase
       .from('meeting_speakers')
       .select('slot, meetings!inner(starts_at)')
@@ -47,6 +50,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
       .lt('meetings.starts_at', new Date().toISOString())
       .order('created_at', { ascending: false })
       .limit(1),
+    // When each meeting really ended (leaving early is measured against it, owner 2026-11-24).
+    supabase.from('attendance_imports').select('meeting_id, ended_at').gte('imported_at', since),
   ]);
   if (pastRes.error || attRes.error || rsvpRes.error) throw new Error('Could not load your meetings');
 
@@ -56,6 +61,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const thisYear = history.items.filter((i) => i.meeting.starts_at >= yearStart && i.status === 'present').length;
   const lastSpoke = spokeRes.data?.[0];
   const detail = new Map((attRes.data ?? []).map((a) => [a.meeting_id, a]));
+  const endedAt = new Map((endsRes.data ?? []).map((r) => [r.meeting_id, r.ended_at]));
   const missed = (await absencesFor(supabase, [{ id: me.id, since: memberSince(me) }])).get(me.id);
   const now = new Date();
 
@@ -334,7 +340,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                 <tbody>
                   {history.items.slice(0, 12).map((i) => {
                     const a = detail.get(i.meeting.id);
-                    const flags = a?.zoom ? lateEarly(i.meeting, a.joined_at, a.left_at) : { late: false, leftEarly: false };
+                    const flags = attendanceFlags(i.meeting, a, endedAt.get(i.meeting.id));
                     const sub = !!a?.substitute;
                     return (
                       <tr key={i.meeting.id}>
@@ -350,9 +356,13 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                               <Pill tone="amber">Late</Pill>
                             </span>
                           ) : null}
-                          {flags.leftEarly ? (
+                          {flags.leftEarly === 'yes' ? (
                             <span className="ml-2">
                               <Pill tone="amber">Left early</Pill>
+                            </span>
+                          ) : flags.leftEarly === 'excused' ? (
+                            <span className="ml-2">
+                              <Pill tone="teal">Left early · excused</Pill>
                             </span>
                           ) : null}
                         </td>

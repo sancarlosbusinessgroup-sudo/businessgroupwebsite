@@ -20,6 +20,18 @@ export async function getGroupTotals(range: DateRange): Promise<GroupTotals> {
   return { one_on_ones: 0, referrals: 0, closed_deals: 0, visitors: 0, ...t, closed_amount: Number(t.closed_amount ?? 0) };
 }
 
+/**
+ * Group totals between two moments (owner, 2026-11-24), for the slides' "since the last meeting": referrals, closed
+ * business and visitors by time; one-on-ones by date (the day after the first moment through the day of the second).
+ */
+export async function getGroupTotalsWindow(range: { from: string; to: string }): Promise<GroupTotals> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('group_totals_window', { p_from: range.from, p_to: range.to });
+  if (error) fail('group totals', error);
+  const t = data as Partial<GroupTotals>;
+  return { one_on_ones: 0, referrals: 0, closed_deals: 0, visitors: 0, ...t, closed_amount: Number(t.closed_amount ?? 0) };
+}
+
 /** Top members per metric (names + counts only). */
 export async function getLeaderboard(range: DateRange, limit = 5): Promise<LeaderRow[]> {
   const supabase = await createClient();

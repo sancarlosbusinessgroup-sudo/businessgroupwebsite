@@ -6,7 +6,7 @@ import { resolveNotes, resolveSlides, resolveTimers, type SlideKey, type SlideNo
 import { getUpcomingMemberEvents, type CalendarItem, fromMeeting } from './events';
 import { finalizeMeetingChampions, getChampionAwards, getChampionPeriods, getChampionRanking, getMeetingChampionRanking, type ChampionAward } from './champion';
 import { MEETING_CHAMPION_FROM, meetingDateLabel, monthOf, monthRange, previousMonth } from '../champion';
-import { getGroupTotals, getLeaderboard, type GroupTotals, type LeaderRow } from './member';
+import { getGroupTotals, getGroupTotalsWindow, getLeaderboard, type GroupTotals, type LeaderRow } from './member';
 import { getCategorySeats, getLeadership, getMeetingBySlug, getUpcomingMeetings, type MeetingWithSpeakers, type Speaker } from './public';
 
 // Everything the meeting slide deck shows, loaded as the signed-in member (RLS applies).
@@ -71,10 +71,12 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
 
   const [settingsRes, prevRes, countRes, nextRes, mediaRes, linksRes] = await Promise.all([
     supabase.from('meeting_slide_settings').select('slides, notes, timers').eq('meeting_id', meeting.id).maybeSingle(),
+    // The last meeting that was actually held: a cancelled one (Nov 23) must not restart "since the last meeting".
     supabase
       .from('meetings')
-      .select('starts_at')
+      .select('starts_at, ends_at')
       .eq('category', 'Networking')
+      .is('cancelled_reason', null)
       .lt('starts_at', start)
       .order('starts_at', { ascending: false })
       .limit(1)
@@ -97,7 +99,9 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
 
   const prevStart = prevRes.data?.starts_at ?? new Date(Date.parse(start) - 14 * 86400000).toISOString();
   const meetingDay = localDateKey(new Date(start));
-  const cycle = { from: localDateKey(new Date(prevStart)), to: meetingDay };
+  // "Since the last meeting" (owner, 2026-11-24): from the end of the last held meeting to the end of this one, so
+  // one-on-ones, referrals and closed business reported before and during this meeting show after Refresh / R.
+  const cycleWindow = { from: prevRes.data?.ends_at ?? prevStart, to: meeting.ends_at };
 
   // Photos for today's presenters and the next meeting's (shown on the closing slide).
   const nextSpeakers = ((nextRes.data as MeetingWithSpeakers | null)?.meeting_speakers ?? []) as Speaker[];
@@ -121,7 +125,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
         .order('first_name'),
       speakerIds.length ? supabase.from('profiles').select('id, avatar_path').in('id', speakerIds) : Promise.resolve({ data: [], error: null }),
       getCategorySeats(),
-      getGroupTotals(cycle),
+      getGroupTotalsWindow(cycleWindow),
       getGroupTotals(periodRange({ period: 'month' })),
       getGroupTotals(periodRange({ period: 'year' })),
       getLeaderboard(periodRange({ period: 'month' })),

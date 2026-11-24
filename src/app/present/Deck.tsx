@@ -11,7 +11,8 @@ const PREV_KEYS = new Set(['ArrowLeft', 'ArrowUp', 'PageUp', 'p', 'P']);
 
 /**
  * Full-screen 16:9 slide deck. Keyboard: ← → / ↑ ↓ / PageUp PageDown (presentation clickers) / Space,
- * Home / End, F for full screen, R to refresh the data (same slide stays on screen). Works in a Zoom screen share of the browser window.
+ * Home / End, F for full screen, R to refresh the data (same slide stays on screen). Reloading the page also keeps the slide
+ * (#slide-N in the address). Works in a Zoom screen share of the browser window.
  */
 export function Deck({ title, slides, customizeHref, exitHref }: { title: string; slides: DeckSlide[]; customizeHref?: string; exitHref: string }) {
   const [i, setI] = useState(0);
@@ -30,6 +31,23 @@ export function Deck({ title, slides, customizeHref, exitHref }: { title: string
   // Refreshed data can have fewer slides: stay within range.
   const shown = Math.min(i, last);
   const go = useCallback((n: number) => setI(Math.min(Math.max(n, 0), last)), [last]);
+
+  // Owner 2026-11-24: reloading the page (F5 / the browser's reload) keeps the slide. The slide number lives in the
+  // address (#slide-3), so a reload, or a link with it, opens that slide instead of going back to the first one.
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const m = window.location.hash.match(/^#slide-(\d+)$/);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read once from the address after hydration
+    if (m) setI(Math.min(Math.max(Number(m[1]) - 1, 0), last));
+    setReady(true);
+    // Only on first load: later changes come from the deck itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!ready) return;
+    const hash = `#slide-${shown + 1}`;
+    if (window.location.hash !== hash) window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}${hash}`);
+  }, [shown, ready]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

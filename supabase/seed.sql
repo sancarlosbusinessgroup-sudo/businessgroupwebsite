@@ -108,7 +108,7 @@ values ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-8000-0000000
   now() - interval '3 days', now(),
   '', '', '', '', '', '', '', '');
 
--- Meetings: every other Monday 8:15–9:30 AM Pacific, plus one social event -------------
+-- Meetings: every other Monday 8:15–9:45 AM Pacific, plus one social event -------------
 insert into public.meetings (slug, title, description, category, starts_at, ends_at, is_online, location, tags, organizer_id)
 select
   'group-meeting-' || to_char(d, 'YYYY-MM-DD'),
@@ -117,7 +117,7 @@ select
   'Networking',
   -- d is a plain date, so "date + time" is a Pacific wall-clock time converted to UTC (any session time zone)
   (d + time '08:15') at time zone 'America/Los_Angeles',
-  (d + time '09:30') at time zone 'America/Los_Angeles',
+  (d + time '09:45') at time zone 'America/Los_Angeles',
   true, 'Online · Zoom',
   array['BusinessNetworking', 'LocalBusiness', 'SanCarlos'],
   '00000000-0000-4000-8000-000000000001'

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { AdminNav } from '@/components/AdminNav';
 import { HowThisWorks } from '@/components/HowThisWorks';
 import { ConfirmDelete } from '@/components/ConfirmDelete';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, Pill } from '@/components/ui';
 import { requireSuperAdmin } from '@/lib/auth';
 import { formatShortDate } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
@@ -22,7 +22,9 @@ export default async function AdminGalleryPage() {
   const supabase = await createClient();
   const { data: photos, error } = await supabase
     .from('gallery_photos')
-    .select('id, caption, album, taken_on, thumb_path, created_at, uploaded_by, uploader:profiles(first_name, last_name)')
+    .select(
+      'id, caption, album, taken_on, thumb_path, created_at, uploaded_by, uploader:profiles!gallery_photos_uploaded_by_fkey(first_name, last_name), gallery_tags(status, person:profiles!gallery_tags_profile_id_fkey(first_name, last_name))',
+    )
     .order('sort_order', { ascending: true })
     .order('taken_on', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
@@ -61,6 +63,27 @@ export default async function AdminGalleryPage() {
                   )}{' '}
                   · {formatShortDate(new Date(p.created_at))}
                 </p>
+                {/* Tagged members (owner, 2026-11-24): the photo is live only when all of them approved. */}
+                {p.gallery_tags?.length ? (
+                  <div className="flex flex-col gap-1">
+                    <p className="m-0 text-sm font-semibold">
+                      {p.gallery_tags.every((t) => t.status === 'approved') ? 'Live: everyone tagged approved' : 'Not shown yet: waiting for approval'}
+                    </p>
+                    <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" aria-label={`Tagged in ${p.caption}`}>
+                      {p.gallery_tags.map((t, n) => {
+                        const who = Array.isArray(t.person) ? t.person[0] : t.person;
+                        return (
+                          <li key={n}>
+                            <Pill tone={t.status === 'approved' ? 'green' : t.status === 'declined' ? 'red' : 'amber'}>
+                              {who ? `${who.first_name} ${who.last_name}` : 'Member'}:{' '}
+                              {t.status === 'approved' ? 'approved' : t.status === 'declined' ? 'said no' : 'waiting'}
+                            </Pill>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ) : null}
                 <PhotoForm photo={p} />
                 <ConfirmDelete action={adminDeleteGalleryPhoto} id={p.id} what={`photo ${p.caption}`} className="self-start" />
               </li>

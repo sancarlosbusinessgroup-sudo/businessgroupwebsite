@@ -44,6 +44,8 @@ export async function loadActionItems(db: Db, now = new Date()): Promise<ActionI
       .from('guest_requests')
       .select('id, first_name, last_name, email, status, created_at, one_on_ones_done_at, meeting:meetings(ends_at)')
       .neq('status', 'joined')
+      // Declined guests are done with (guest board, owner 2026-11-24).
+      .is('declined_at', null)
       .gte('created_at', recent)
       .order('created_at'),
     db.from('email_log').select('dedupe_key, created_at').eq('kind', 'guest_zoom_link').eq('status', 'sent').gte('created_at', recent).limit(1000),

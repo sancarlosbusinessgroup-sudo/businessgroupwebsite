@@ -94,10 +94,10 @@ test.describe('Zoom attendance', () => {
     const table = page.getByRole('form', { name: 'Attendance for this meeting' });
     const row = (name: string) => table.getByRole('row').filter({ has: page.getByRole('rowheader', { name }) });
     await expect(row('Priya Raman')).toContainText('71 min');
-    await expect(row('Priya Raman').getByRole('combobox')).toHaveValue('present');
+    await expect(row('Priya Raman').getByRole('combobox', { name: /^Attendance for/ })).toHaveValue('present');
     await expect(row('Elena Vasquez')).toContainText('Late');
-    await expect(row('Morgan Member')).toContainText('Left early');
-    await expect(row('Daniel Cho').getByRole('combobox')).toHaveValue('absent');
+    await expect(row('Morgan Member').getByRole('cell').first()).toContainText('Left early');
+    await expect(row('Daniel Cho').getByRole('combobox', { name: /^Attendance for/ })).toHaveValue('absent');
 
     // Review list: "iPhone" is Theo; remember it for next time.
     const review = page.getByRole('region', { name: /Needs review/ });
@@ -106,24 +106,28 @@ test.describe('Zoom attendance', () => {
     // Once sorted out, the person leaves the review list (and the list disappears when it is empty).
     await expect(page.getByRole('region', { name: /Needs review/ })).toHaveCount(0);
     await page.reload();
-    await expect(row('Theo Marchetti').getByRole('combobox')).toHaveValue('present');
+    await expect(row('Theo Marchetti').getByRole('combobox', { name: /^Attendance for/ })).toHaveValue('present');
 
     // By hand: Daniel sent a substitute, Hannah told a leader.
-    await row('Daniel Cho').getByRole('combobox').selectOption('substitute');
-    await row('Hannah Brooks').getByRole('combobox').selectOption('excused');
+    await row('Daniel Cho')
+      .getByRole('combobox', { name: /^Attendance for/ })
+      .selectOption('substitute');
+    await row('Hannah Brooks')
+      .getByRole('combobox', { name: /^Attendance for/ })
+      .selectOption('excused');
     await table.getByRole('button', { name: 'Save attendance' }).click();
     await expect(table.getByRole('status')).toHaveText('Saved 2 changes.');
     await page.reload();
-    await expect(row('Daniel Cho').getByRole('combobox')).toHaveValue('substitute');
-    await expect(row('Hannah Brooks').getByRole('combobox')).toHaveValue('excused');
+    await expect(row('Daniel Cho').getByRole('combobox', { name: /^Attendance for/ })).toHaveValue('substitute');
+    await expect(row('Hannah Brooks').getByRole('combobox', { name: /^Attendance for/ })).toHaveValue('excused');
     await expectAccessible(page);
 
     // Fetching again changes nothing: Theo is matched from the remembered name, Daniel keeps his substitute.
     await page.getByRole('button', { name: 'Fetch from Zoom again' }).click();
     await expect(page.getByRole('status').first()).toHaveText('5 people in the Zoom report, 4 members marked present, 1 invited guest found.');
     await page.reload();
-    await expect(row('Daniel Cho').getByRole('combobox')).toHaveValue('substitute');
-    await expect(row('Theo Marchetti').getByRole('combobox')).toHaveValue('present');
+    await expect(row('Daniel Cho').getByRole('combobox', { name: /^Attendance for/ })).toHaveValue('substitute');
+    await expect(row('Theo Marchetti').getByRole('combobox', { name: /^Attendance for/ })).toHaveValue('present');
   });
 
   test('a member sees their Zoom times, flags and missed-meeting count; no access to the admin page', async ({ page }) => {

@@ -4,7 +4,7 @@ import 'server-only';
 
 import { absencesFor, memberSince } from '../data/attendance';
 import { formatMeetingDate, formatMeetingTime } from '../dates';
-import { lateEarly } from '../zoom';
+import { attendanceFlags } from '../zoom';
 import type { Db } from './recap';
 import type { ManagementRecap, MgmtVisitor } from './templates';
 
@@ -31,8 +31,8 @@ export async function latestEndedMeetingForMgmt(db: Db, now: Date): Promise<Mgmt
 export async function managementRecapFor(db: Db, m: MgmtMeeting, now: Date): Promise<ManagementRecap> {
   const nowIso = now.toISOString();
   const [impRes, attRes, membersRes, guestsRes, zoomRes, pendingRes, waitingRes, nextRes, zoomVisitorsRes] = await Promise.all([
-    db.from('attendance_imports').select('source, status').eq('meeting_id', m.id).maybeSingle(),
-    db.from('attendance').select('profile_id, status, substitute, zoom, joined_at, left_at').eq('meeting_id', m.id),
+    db.from('attendance_imports').select('source, status, ended_at').eq('meeting_id', m.id).maybeSingle(),
+    db.from('attendance').select('profile_id, status, substitute, zoom, joined_at, left_at, left_early').eq('meeting_id', m.id),
     db
       .from('profiles')
       .select('id, first_name, last_name, approved_at, member_since, created_at')
@@ -89,11 +89,9 @@ export async function managementRecapFor(db: Db, m: MgmtMeeting, now: Date): Pro
     if (a?.status === 'present' && a.substitute) substitutes.push(name);
     else if (a?.status === 'present') {
       present.push(name);
-      if (a.zoom) {
-        const f = lateEarly(m, a.joined_at, a.left_at);
-        if (f.late) late.push(name);
-        if (f.leftEarly) leftEarly.push(name);
-      }
+      const f = attendanceFlags(m, a, impRes.data?.ended_at);
+      if (f.late) late.push(name);
+      if (f.leftEarly === 'yes') leftEarly.push(name);
     } else if (a?.status === 'excused') excused.push(name);
     else absent.push(name);
   }

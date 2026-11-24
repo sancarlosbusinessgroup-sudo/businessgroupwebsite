@@ -6,6 +6,7 @@ import { signOut } from '@/app/actions/auth';
 import { mediaUrl } from '@/lib/env';
 import { Avatar } from '../ui';
 import { AdminMenu } from './AdminMenu';
+import { NotificationBell } from './NotificationBell';
 import { NavLinks } from './NavLinks';
 
 export async function Header() {
@@ -36,7 +37,12 @@ export async function Header() {
           <Avatar name={name} size={38} photo={mediaUrl('profile-media', profile?.avatar_path)} />
           {name}
         </Link>
-        {profile?.role === 'admin' ? <AdminMenu superAdmin={!!profile.is_owner} /> : null}
+        {profile?.role === 'admin' ? (
+          <>
+            <AdminMenu superAdmin={!!profile.is_owner} />
+            <NotificationBell />
+          </>
+        ) : null}
         {divider}
         <Link
           href="/profile"

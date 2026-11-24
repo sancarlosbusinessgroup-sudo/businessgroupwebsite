@@ -347,6 +347,63 @@ export async function sendGuestZoomLink(guestId: string, day: string): Promise<Z
   });
 }
 
+/** Admin declined a guest's visit and chose to send the email (owner, 2026-11-24). Once per guest. */
+export async function sendGuestDeclined(guestId: string): Promise<'sent' | 'skipped' | 'failed' | 'duplicate' | 'not_found'> {
+  const db = createAdminClient();
+  if (!db) return 'skipped';
+  const { data: g } = await db.from('guest_requests').select('id, first_name, last_name, email').eq('id', guestId).maybeSingle();
+  if (!g) return 'not_found';
+  return deliver({
+    kind: 'guest_declined',
+    dedupeKey: g.id,
+    to: { email: g.email, name: `${g.first_name} ${g.last_name}` },
+    email: T.guestDeclinedEmail({ siteUrl: siteUrl(), firstName: g.first_name }),
+  });
+}
+
+/** Gallery photo uploaded with tags (owner, 2026-11-24): each tagged member (not the uploader) is asked to approve. */
+export async function onGalleryTagged(photoId: string): Promise<void> {
+  const db = createAdminClient();
+  if (!db) return;
+  const { data: photo } = await db.from('gallery_photos').select('id, caption, uploaded_by').eq('id', photoId).maybeSingle();
+  if (!photo?.uploaded_by) return;
+  const [{ data: up }, { data: tags }] = await Promise.all([
+    db.from('profiles').select('first_name, last_name').eq('id', photo.uploaded_by).maybeSingle(),
+    db.from('gallery_tags').select('profile_id').eq('photo_id', photoId).eq('status', 'pending'),
+  ]);
+  if (!up) return;
+  await notifyMembers(
+    (tags ?? []).map((t) => t.profile_id).filter((id) => id !== photo.uploaded_by),
+    {
+      kind: 'gallery_tag',
+      dedupeKey: photoId,
+      pref: null,
+      build: (r) => T.galleryTagEmail({ siteUrl: siteUrl(), toFirstName: r.firstName, uploaderName: fullName(up), caption: photo.caption }),
+    },
+  );
+}
+
+/** A tagged member answered (owner, 2026-11-24): tell the uploader once the photo is live, or that someone said no. */
+export async function onGalleryTagAnswered(photoId: string, answeredBy: string, approved: boolean): Promise<void> {
+  const db = createAdminClient();
+  if (!db) return;
+  const [{ data: photo }, { data: tags }] = await Promise.all([
+    db.from('gallery_photos').select('id, caption, uploaded_by').eq('id', photoId).maybeSingle(),
+    db.from('gallery_tags').select('profile_id, status').eq('photo_id', photoId),
+  ]);
+  if (!photo?.uploaded_by || photo.uploaded_by === answeredBy) return;
+  const live = (tags ?? []).every((t) => t.status === 'approved');
+  if (approved && !live) return;
+  const { data: who } = approved ? { data: null } : await db.from('profiles').select('first_name, last_name').eq('id', answeredBy).maybeSingle();
+  await notifyMembers([photo.uploaded_by], {
+    kind: live ? 'gallery_live' : 'gallery_declined',
+    dedupeKey: live ? photoId : `${photoId}:${answeredBy}`,
+    pref: null,
+    build: (r) =>
+      T.galleryTagOutcomeEmail({ siteUrl: siteUrl(), toFirstName: r.firstName, caption: photo.caption, live, declinedBy: who ? fullName(who) : null }),
+  });
+}
+
 /** A presenter added their own slide material (owner, 2026-11-07): every admin gets one email per item. */
 export async function onPresenterMaterial(o: {
   materialId: string;

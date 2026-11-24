@@ -66,6 +66,7 @@ export type Database = {
           left_at: string | null;
           minutes: number | null;
           substitute: boolean;
+          left_early: 'yes' | 'no' | 'excused' | null;
         };
         Insert: {
           checked_in_at?: string | null;
@@ -78,6 +79,7 @@ export type Database = {
           left_at?: string | null;
           minutes?: number | null;
           substitute?: boolean;
+          left_early?: 'yes' | 'no' | 'excused' | null;
         };
         Update: {
           checked_in_at?: string | null;
@@ -90,6 +92,7 @@ export type Database = {
           left_at?: string | null;
           minutes?: number | null;
           substitute?: boolean;
+          left_early?: 'yes' | 'no' | 'excused' | null;
         };
         Relationships: [
           {
@@ -119,6 +122,7 @@ export type Database = {
           error: string | null;
           imported_at: string;
           imported_by: string | null;
+          ended_at: string | null;
         };
         Insert: {
           meeting_id: string;
@@ -130,6 +134,7 @@ export type Database = {
           error?: string | null;
           imported_at?: string;
           imported_by?: string | null;
+          ended_at?: string | null;
         };
         Update: {
           source?: 'zoom' | 'manual';
@@ -140,6 +145,7 @@ export type Database = {
           error?: string | null;
           imported_at?: string;
           imported_by?: string | null;
+          ended_at?: string | null;
         };
         Relationships: [
           {
@@ -508,6 +514,102 @@ export type Database = {
           },
         ];
       };
+      gallery_tags: {
+        Row: {
+          photo_id: string;
+          profile_id: string;
+          status: 'pending' | 'approved' | 'declined';
+          tagged_by: string | null;
+          created_at: string;
+          responded_at: string | null;
+        };
+        Insert: {
+          photo_id: string;
+          profile_id: string;
+          status?: 'pending' | 'approved' | 'declined';
+          tagged_by?: string | null;
+          created_at?: string;
+          responded_at?: string | null;
+        };
+        Update: {
+          status?: 'pending' | 'approved' | 'declined';
+          responded_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'gallery_tags_photo_id_fkey';
+            columns: ['photo_id'];
+            isOneToOne: false;
+            referencedRelation: 'gallery_photos';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'gallery_tags_profile_id_fkey';
+            columns: ['profile_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      guest_events: {
+        Row: {
+          id: string;
+          guest_id: string;
+          created_at: string;
+          actor_id: string | null;
+          kind: 'status' | 'stage' | 'accepted' | 'declined' | 'reopened' | 'note' | 'zoom_link' | 'apply_invite' | 'interview';
+          detail: string | null;
+        };
+        Insert: {
+          id?: string;
+          guest_id: string;
+          created_at?: string;
+          actor_id?: string | null;
+          kind: 'status' | 'stage' | 'accepted' | 'declined' | 'reopened' | 'note' | 'zoom_link' | 'apply_invite' | 'interview';
+          detail?: string | null;
+        };
+        Update: { detail?: string | null };
+        Relationships: [
+          {
+            foreignKeyName: 'guest_events_guest_id_fkey';
+            columns: ['guest_id'];
+            isOneToOne: false;
+            referencedRelation: 'guest_requests';
+            referencedColumns: ['id'];
+          },
+          { foreignKeyName: 'guest_events_actor_id_fkey'; columns: ['actor_id']; isOneToOne: false; referencedRelation: 'profiles'; referencedColumns: ['id'] },
+        ];
+      };
+      report_card_goals: {
+        Row: {
+          id: number;
+          one_on_ones: number | null;
+          referrals: number | null;
+          visitors: number | null;
+          attendance_pct: number | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: number;
+          one_on_ones?: number | null;
+          referrals?: number | null;
+          visitors?: number | null;
+          attendance_pct?: number | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          one_on_ones?: number | null;
+          referrals?: number | null;
+          visitors?: number | null;
+          attendance_pct?: number | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       guest_requests: {
         Row: {
           business_description: string | null;
@@ -527,6 +629,14 @@ export type Database = {
           referrer_id: string | null;
           source: string;
           status: E['guest_status'];
+          pipeline_stage: 'review' | 'zoom_sent' | 'send_application' | 'application_done' | 'interview' | 'approved';
+          stage_changed_at: string | null;
+          accepted_at: string | null;
+          accepted_by: string | null;
+          declined_at: string | null;
+          declined_by: string | null;
+          decline_method: 'phone' | 'email' | null;
+          decline_note: string | null;
         };
         Insert: {
           business_description?: string | null;
@@ -546,6 +656,14 @@ export type Database = {
           referrer_id?: string | null;
           source?: string;
           status?: E['guest_status'];
+          pipeline_stage?: 'review' | 'zoom_sent' | 'send_application' | 'application_done' | 'interview' | 'approved';
+          stage_changed_at?: string | null;
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          declined_at?: string | null;
+          declined_by?: string | null;
+          decline_method?: 'phone' | 'email' | null;
+          decline_note?: string | null;
         };
         Update: {
           business_description?: string | null;
@@ -565,6 +683,14 @@ export type Database = {
           referrer_id?: string | null;
           source?: string;
           status?: E['guest_status'];
+          pipeline_stage?: 'review' | 'zoom_sent' | 'send_application' | 'application_done' | 'interview' | 'approved';
+          stage_changed_at?: string | null;
+          accepted_at?: string | null;
+          accepted_by?: string | null;
+          declined_at?: string | null;
+          declined_by?: string | null;
+          decline_method?: 'phone' | 'email' | null;
+          decline_note?: string | null;
         };
         Relationships: [
           {
@@ -1438,6 +1564,8 @@ export type Database = {
       confirm_one_on_one: { Args: { p_id: string }; Returns: undefined };
       complete_onboarding: { Args: { p_share_contacts: boolean; p_agreed: boolean }; Returns: undefined };
       group_totals: { Args: { p_from?: string | null; p_to?: string | null }; Returns: Json };
+      group_totals_window: { Args: { p_from: string; p_to: string }; Returns: Json };
+      respond_gallery_tag: { Args: { p_photo: string; p_approve: boolean }; Returns: string };
       is_admin: { Args: never; Returns: boolean };
       is_owner: { Args: never; Returns: boolean };
       is_approved_member: { Args: never; Returns: boolean };

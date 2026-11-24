@@ -1118,7 +1118,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       case 'adjourn':
         add(key, (ctx) => (
-          <Hero ctx={ctx} kicker="9:30 AM · Adjourn" title="Thank you for joining us">
+          <Hero ctx={ctx} kicker="9:45 AM · Adjourn" title="Thank you for joining us">
             {d.next ? (
               <div className="flex flex-col gap-[0.8cqw] text-[2cqw]" style={{ color: INK }}>
                 <p className="m-0 text-[2.3cqw]">

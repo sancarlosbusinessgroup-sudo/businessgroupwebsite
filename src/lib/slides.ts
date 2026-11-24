@@ -66,7 +66,7 @@ const info: Record<SlideKey, SlideInfo> = {
   ten_qa: { label: 'Questions for the 10-minute presentation', time: '9:21' },
   announcements: { label: 'Announcements', time: '9:26' },
   visitors_thanks: { label: 'Thank you, visitors', time: '9:29' },
-  adjourn: { label: 'Adjourn', time: '9:30' },
+  adjourn: { label: 'Adjourn', time: '9:45' },
 };
 export const slideLabel = (k: SlideKey) => info[k].label;
 export const slideTime = (k: SlideKey) => info[k].time ?? null;

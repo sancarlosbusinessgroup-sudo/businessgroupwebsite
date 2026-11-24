@@ -303,7 +303,7 @@ describe('sign-up trigger', () => {
 });
 
 describe('seed data', () => {
-  it('schedules every regular meeting on a Monday, 8:15–9:30 AM Pacific, whatever the session time zone', async () => {
+  it('schedules every regular meeting on a Monday, 8:15–9:45 AM Pacific, whatever the session time zone', async () => {
     await withClient(async (c) => {
       const rows = (
         await c.query(
@@ -312,7 +312,7 @@ describe('seed data', () => {
            from meetings where slug like 'group-meeting-%'`,
         )
       ).rows;
-      expect(rows).toEqual([{ start: 'Mon 08:15', finish: '09:30' }]);
+      expect(rows).toEqual([{ start: 'Mon 08:15', finish: '09:45' }]);
     });
   });
 });

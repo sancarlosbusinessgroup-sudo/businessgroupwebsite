@@ -55,6 +55,8 @@ export const memberNav: readonly NavItem[] = [
     keepWith: 'help',
     children: [
       { href: '/video-guides', label: 'Video Guides' },
+      // Owner 2026-11-24: the rules from the Bylaws and Procedures.
+      { href: '/rules', label: 'Rules' },
       { href: '/support', label: 'Contact Us' },
     ],
   },
@@ -126,6 +128,11 @@ export const adminLinks = [
     blurb: 'Referral slips, one-on-ones, member events and directory downloads. Delete duplicates or mistakes.',
   },
   { href: '/admin/stats', label: 'Member Stats', blurb: 'Per-member counts for any period: one-on-ones, referrals, closed business and visitors.' },
+  {
+    href: '/admin/report-cards',
+    label: 'Report Cards',
+    blurb: 'A quarterly check-in sheet per member for coaching: attendance, one-on-ones, referrals and visitors against the group’s goals.',
+  },
   { href: '/admin/champion', label: 'BARP Champion', blurb: 'The points ranking for each meeting’s champion. Confirm the pick or choose someone else.' },
   { href: '/admin/leadership', label: 'Management', blurb: 'Who is listed in the Management section of the About page and on the Management Team slide.' },
   { href: '/admin/gallery', label: 'Gallery', blurb: 'Reorder, recaption or remove the photos members upload.', superAdmin: true },
@@ -182,7 +189,7 @@ export const meetingAgenda = [
   { time: '9:21', item: '5 minutes of questions for the 10-minute presentation' },
   { time: '9:26', item: 'Announcements' },
   { time: '9:29', item: 'Thank you, visitors: we will contact you' },
-  { time: '9:30', item: 'Adjourn' },
+  { time: '9:45', item: 'Adjourn' },
 ] as const;
 
 export const visitTips = [

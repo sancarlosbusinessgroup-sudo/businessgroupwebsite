@@ -160,7 +160,7 @@ export function buildActionItems(d: ActionInput): ActionItem[] {
   for (const g of d.guests) {
     if (g.status === 'joined') continue;
     const app = pendingByEmail.get(g.email.toLowerCase());
-    const base = { tab: 'Guest Invites & Applications', href: '/admin/guests#guests' };
+    const base = { tab: 'Guest Invites & Applications', href: '/admin/guests#board' };
     if (app) {
       handled.add(app.id);
       items.push(
@@ -187,8 +187,8 @@ export function buildActionItems(d: ActionInput): ActionItem[] {
       items.push({
         ...base,
         key: `guest-${g.id}`,
-        title: `Send ${g.name} the Zoom link`,
-        detail: `Stage: asked for an invite ${short(g.created_at)}. No Zoom link sent yet.`,
+        title: `Accept or reject ${g.name}`,
+        detail: `Stage: asked for an invite ${short(g.created_at)}. Check for a category conflict, then accept (sends the Zoom link) or decline.`,
         tone: 'amber',
       });
     } else if (g.status === 'requested' && g.zoomSentAt && (g.meetingEnded || now - new Date(g.zoomSentAt).getTime() > 7 * DAY)) {

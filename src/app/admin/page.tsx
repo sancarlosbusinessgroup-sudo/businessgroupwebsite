@@ -7,6 +7,8 @@ import type { ActionTone } from '@/lib/admin-action-items';
 import { isSuperAdmin, requireAdmin } from '@/lib/auth';
 import { adminLinksFor } from '@/lib/content';
 import { loadActionItems } from '@/lib/data/admin-action-items';
+import { loadNoInfomercialList } from '@/lib/data/no-infomercial';
+import { NoInfomercialCard } from '@/components/NoInfomercialCard';
 import { getNextMeeting } from '@/lib/data/public';
 import { formatMeetingDate, formatMeetingTime } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
@@ -33,7 +35,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { error, zoomError } = await searchParams;
   const viewer = await requireAdmin();
   const supabase = await createClient();
-  const [items, next] = await Promise.all([loadActionItems(supabase), getNextMeeting()]);
+  const [items, next, noInfomercial] = await Promise.all([loadActionItems(supabase), getNextMeeting(), loadNoInfomercialList(supabase)]);
   const { data: nextLink } = next ? await supabase.from('meeting_links').select('join_url').eq('meeting_id', next.id).maybeSingle() : { data: null };
   const nextZoomId = parseZoomMeetingId(nextLink?.join_url);
   const tabs = adminLinksFor(isSuperAdmin(viewer)).filter((l) => l.href !== '/admin');
@@ -77,6 +79,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </ul>
           )}
         </section>
+
+        <NoInfomercialCard list={noInfomercial} />
 
         <section id="zoom" className="card flex flex-col gap-3 p-[22px]" aria-labelledby="zoom-h">
           <h2 id="zoom-h" className="font-display m-0 text-[22px] font-extrabold">

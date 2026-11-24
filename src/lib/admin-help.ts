@@ -11,6 +11,7 @@ export type AdminTab =
   | '/admin/activity'
   | '/admin/champion'
   | '/admin/stats'
+  | '/admin/report-cards'
   | '/admin/leadership'
   | '/admin/recap'
   | '/admin/management-recap'
@@ -33,8 +34,11 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
   },
   '/admin/guests': {
     summary:
-      'Everyone on the way to membership, in one place: applications waiting for a decision, the visitor sign-in link for the Zoom chat, every guest invite request, new members’ onboarding and the category seats.',
+      'Everyone on the way to membership, in one place: the guest board, applications waiting for a decision, the visitor sign-in link for the Zoom chat, every guest invite request, new members’ onboarding and the category seats.',
     steps: [
+      'Guest board: one column per step — Accept or Reject, Zoom Link Sent, Send Application Form, Application Form Accomplished, Panel Interview, Membership Approved. Cards move on by themselves when the step is done on the website. Drag a card to another column (or use “Move to” in its details) to move it by hand; that sends no emails and approves no one.',
+      'Accept or Reject: check the business for a category conflict first. Accept emails the guest the Zoom link. Decline asks how you’ll tell them: “I’ll call them”, or “Send the decline email”. Declined guests are listed under “Declined”, where Reopen puts them back.',
+      'Each card’s details show the guest’s contact details, everything that happened (with who did it), and a box for notes only admins see.',
       'Pending applications: people who filled in the membership application. Read their answers and references, then Approve (they get the welcome email) or Decline.',
       'Visitor sign-in link: copy it and paste it in the Zoom chat during a meeting. Visitors who came without asking for an invite fill in their details, and they appear in Guest invite requests, already marked as visited and “Signed in at the meeting”.',
       'Guest invite requests: every visitor, newest first. Send Zoom link → Mark visited (or the Zoom report does it) → Invite to apply → one-on-ones Done → Approved. The status moves by itself when they apply and when they are approved.',
@@ -71,7 +75,9 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
       'Pick a meeting. Around noon Pacific on meeting days the site reads the Zoom participant list and marks members present, with join and leave times.',
       '“Needs review” lists Zoom names the site couldn’t match. Link each to a member (it remembers the name next time), mark it as a visitor, or ignore it.',
       'You can change anyone’s attendance by hand and save. “Sent a substitute” counts as present; “Excused” still counts as missed.',
-      'Late = joined after 8:30 AM. Left early = left before 9:30 AM.',
+      '“Left early” comes from Zoom, but Zoom isn’t always right: set it by hand when needed. “Excused – left early (emergency)” is for someone who told us about an emergency: they keep their 60-second infomercial at the next meeting.',
+      'Members who left early (and weren’t excused) can’t do their 60-second infomercial at the next meeting. They are listed on the Overview and on Customize slides, with a PDF to download.',
+      'Late = joined after 8:30 AM. Left early = left before 9:45 AM (or before the meeting really ended, if it ended earlier).',
       'The absence limit is 2 missed meetings in 6 months. Members at the limit are listed at the top and on the Overview.',
       'Attendance correction requests: members asking to fix their attendance. Fix it in the table, then mark the request resolved.',
       'If Zoom isn’t connected, take attendance by hand; it counts the same.',
@@ -98,6 +104,17 @@ export const adminHelp: Record<AdminTab, AdminHelp> = {
       'After the meeting the top qualifying member is recorded automatically, once the attendance is in (or a day later). You can confirm the pick earlier or choose someone else with a reason.',
       'The champion gets a badge on their profile and directory card until the next meeting’s champion is recorded.',
       'Lifetime points keep adding up and never reset: see the Lifetime column, or choose “Lifetime points” in the meeting list.',
+    ],
+  },
+  '/admin/report-cards': {
+    summary:
+      'A report card per member for each quarter, for coaching check-ins: attendance, lateness, one-on-ones, referrals, visitors and presentations, compared with the goals you set.',
+    steps: [
+      'Pick a quarter. The website started tracking in October 2026, so Q4 2026 is the first one.',
+      'Set the group’s quarterly goals (one-on-ones, referrals, visitors, attendance %). Leave a goal blank for no goal. Goals apply to every quarter shown.',
+      'Meetings count only once their attendance was taken, and only those after the member joined. “Left early” follows the corrections made on Attendance.',
+      'Closed business shows as counts only, never dollars.',
+      'Download one member’s card as a PDF from their row, or every card in one PDF.',
     ],
   },
   '/admin/stats': {

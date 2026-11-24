@@ -166,7 +166,12 @@ export type AttendanceRow = {
   choice: 'present' | 'substitute' | 'excused' | 'absent';
   zoom: string | null;
   late: boolean;
-  leftEarly: boolean;
+  /** After the admin's correction. */
+  leftEarly: 'yes' | 'no' | 'excused';
+  /** What Zoom says, before any correction. */
+  autoLeftEarly: boolean;
+  /** The admin's correction, or null (go by Zoom). */
+  override: 'yes' | 'no' | 'excused' | null;
   missed: number;
   atLimit: boolean;
 };
@@ -177,7 +182,7 @@ export function AttendanceTable({ meetingId, rows, limit }: { meetingId: string;
     <form action={action} aria-label="Attendance for this meeting" className="flex flex-col gap-4">
       <input type="hidden" name="meetingId" value={meetingId} />
       <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Attendance table">
-        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[860px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-line border-b">
               <th scope="col" className="py-2 pr-3">
@@ -189,8 +194,11 @@ export function AttendanceTable({ meetingId, rows, limit }: { meetingId: string;
               <th scope="col" className="py-2 pr-3">
                 Missed (6 months)
               </th>
-              <th scope="col" className="py-2">
+              <th scope="col" className="py-2 pr-3">
                 Attendance
+              </th>
+              <th scope="col" className="py-2">
+                Left early
               </th>
             </tr>
           </thead>
@@ -207,9 +215,13 @@ export function AttendanceTable({ meetingId, rows, limit }: { meetingId: string;
                       <Pill tone="amber">Late</Pill>
                     </span>
                   ) : null}
-                  {r.leftEarly ? (
+                  {r.leftEarly === 'yes' ? (
                     <span className="ml-2">
                       <Pill tone="amber">Left early</Pill>
+                    </span>
+                  ) : r.leftEarly === 'excused' ? (
+                    <span className="ml-2">
+                      <Pill tone="teal">Left early · excused</Pill>
                     </span>
                   ) : null}
                 </td>
@@ -226,6 +238,18 @@ export function AttendanceTable({ meetingId, rows, limit }: { meetingId: string;
                     <option value="substitute">Sent a substitute</option>
                     <option value="excused">Excused (told a leader)</option>
                     <option value="absent">Absent</option>
+                  </select>
+                </td>
+                <td className="py-2">
+                  <label className="sr-only" htmlFor={`e-${r.id}`}>
+                    Left early: {r.name}
+                  </label>
+                  {/* Owner 2026-11-24: Zoom isn't always right, so admins can set this by hand. */}
+                  <select key={r.override ?? 'auto'} id={`e-${r.id}`} name={`e_${r.id}`} defaultValue={r.override ?? 'auto'} className="field min-h-11 py-1">
+                    <option value="auto">{r.autoLeftEarly ? 'From Zoom: left early' : 'From Zoom: stayed'}</option>
+                    <option value="yes">Left early</option>
+                    <option value="no">Did not leave early</option>
+                    <option value="excused">Excused – left early (emergency)</option>
                   </select>
                 </td>
               </tr>

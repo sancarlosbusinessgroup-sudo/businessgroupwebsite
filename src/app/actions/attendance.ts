@@ -14,6 +14,8 @@ const GENERIC = 'Something went wrong. Please try again.';
 
 function done(meetingId: string) {
   revalidatePath('/admin/attendance');
+  revalidatePath('/admin/management-recap');
+  revalidatePath('/present/[slug]/setup', 'page');
   revalidatePath('/admin');
   revalidatePath('/meetings');
   return meetingId;
@@ -154,16 +156,27 @@ async function countPresent(meetingId: string) {
 }
 
 const CHOICES = ['present', 'substitute', 'excused', 'absent'] as const;
+const EARLY = ['auto', 'yes', 'no', 'excused'] as const;
+type Early = 'yes' | 'no' | 'excused' | null;
 
-/** Take or correct attendance by hand for one meeting: one choice per member. */
+/**
+ * Take or correct attendance by hand for one meeting: one choice per member, plus "Left early" (owner, 2026-11-24:
+ * Zoom isn't always right, so admins set it by hand; "excused" = left early for an emergency, no infomercial penalty).
+ */
 export async function saveAttendance(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const viewer = await requireAdmin();
   const meetingId = z.uuid().safeParse(formData.get('meetingId'));
   if (!meetingId.success) return { status: 'error', message: GENERIC };
   const supabase = await createClient();
-  const { data: existing } = await supabase.from('attendance').select('profile_id, status, substitute').eq('meeting_id', meetingId.data);
+  const { data: existing } = await supabase.from('attendance').select('profile_id, status, substitute, left_early').eq('meeting_id', meetingId.data);
   const had = new Map((existing ?? []).map((r) => [r.profile_id, r]));
-  const rows: { meeting_id: string; profile_id: string; status: 'present' | 'excused' | 'absent'; substitute: boolean }[] = [];
+  const early = new Map<string, Early>();
+  for (const [k, v] of formData.entries()) {
+    const m = k.match(/^e_([0-9a-f-]{36})$/);
+    if (!m || typeof v !== 'string' || !(EARLY as readonly string[]).includes(v)) continue;
+    early.set(m[1]!, v === 'auto' ? null : (v as Early));
+  }
+  const rows: { meeting_id: string; profile_id: string; status: 'present' | 'excused' | 'absent'; substitute: boolean; left_early: Early }[] = [];
   for (const [k, v] of formData.entries()) {
     const m = k.match(/^s_([0-9a-f-]{36})$/);
     if (!m || typeof v !== 'string' || !(CHOICES as readonly string[]).includes(v)) continue;
@@ -172,10 +185,11 @@ export async function saveAttendance(_prev: ActionState, formData: FormData): Pr
     const prev = had.get(profileId);
     const status = choice === 'substitute' ? 'present' : choice;
     const substitute = choice === 'substitute';
+    const leftEarly = early.has(profileId) ? early.get(profileId)! : (prev?.left_early ?? null);
     // No row and absent: nothing to store (no row already means absent).
     if (!prev && choice === 'absent') continue;
-    if (prev && prev.status === status && prev.substitute === substitute) continue;
-    rows.push({ meeting_id: meetingId.data, profile_id: profileId, status, substitute });
+    if (prev && prev.status === status && prev.substitute === substitute && (prev.left_early ?? null) === leftEarly) continue;
+    rows.push({ meeting_id: meetingId.data, profile_id: profileId, status, substitute, left_early: leftEarly });
   }
   if (rows.length) {
     const { error } = await supabase.from('attendance').upsert(

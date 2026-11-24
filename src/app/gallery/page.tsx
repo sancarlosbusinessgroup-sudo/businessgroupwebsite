@@ -7,6 +7,8 @@ import { formatShortDate } from '@/lib/dates';
 import { mediaUrl } from '@/lib/env';
 import { GalleryGrid } from './GalleryGrid';
 import { UploadPhoto } from './UploadPhoto';
+import { TagRequests, WaitingPhotos } from './TagRequests';
+import { loadMyTagRequests, loadMyWaitingPhotos, loadTagOptions } from '@/lib/data/gallery-tags';
 
 export const metadata: Metadata = {
   title: 'Gallery',
@@ -16,6 +18,9 @@ export const metadata: Metadata = {
 export default async function GalleryPage() {
   const [viewer, photos] = await Promise.all([getViewer(), getGallery(undefined, 120)]);
   const member = isApproved(viewer);
+  // Tagging (owner, 2026-11-24): members pick who's in the photo; tagged members approve before it goes live.
+  const [tagOptions, requests, waiting] =
+    member && viewer ? await Promise.all([loadTagOptions(), loadMyTagRequests(viewer.userId), loadMyWaitingPhotos(viewer.userId)]) : [[], [], []];
   const items = photos.map((p) => ({
     id: p.id,
     caption: p.caption,
@@ -35,10 +40,12 @@ export default async function GalleryPage() {
         )}
       </PageHero>
       <section className="container-site flex flex-col gap-6 pt-8 pb-16">
-        {member && viewer ? <UploadPhoto userId={viewer.userId} /> : null}
+        <TagRequests requests={requests} />
+        {member && viewer ? <UploadPhoto userId={viewer.userId} members={tagOptions} /> : null}
+        <WaitingPhotos photos={waiting} />
         {isSuperAdmin(viewer) ? (
           <p className="m-0">
-            <Link href="/admin/gallery" className="btn btn-outline btn-sm">
+            <Link href="/admin/gallery" className="btn btn-outline btn-sm h-auto max-w-full py-2 text-center whitespace-normal">
               Edit as admin: order, captions, albums, remove photos
             </Link>
           </p>

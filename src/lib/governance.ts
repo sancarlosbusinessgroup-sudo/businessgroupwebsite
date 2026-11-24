@@ -34,7 +34,7 @@ export const procedures = {
     'Attendance is expected at every meeting. It shows that a person keeps their commitments as a businessperson, which helps us feel confident with referrals. Once someone joins the group, attendance should be at every meeting.',
     'Members should be seated when the meeting is called to order, on Zoom or in person.',
     'If you arrive after the meeting has started at 8:30 AM, you will not be allowed to do your infomercial.',
-    'If you leave before the 9:30 AM finish, you will not be permitted to do your infomercial at the next meeting.',
+    'If you leave before the 9:45 AM finish, you will not be permitted to do your infomercial at the next meeting.',
   ],
   absences: [
     'If there is a reason you cannot attend, please let one of the leaders know.',
@@ -69,7 +69,7 @@ export const procedures = {
     },
     {
       term: 'Tardiness',
-      text: 'If a member is not in their seat or on Zoom when the meeting is called to order, they are late for the meeting and will not be allowed to do their 60-second speaking opportunity. If you leave before the 9:30 AM finish, you will not be permitted to do your 60-second speaking opportunity at the next meeting.',
+      text: 'If a member is not in their seat or on Zoom when the meeting is called to order, they are late for the meeting and will not be allowed to do their 60-second speaking opportunity. If you leave before the 9:45 AM finish, you will not be permitted to do your 60-second speaking opportunity at the next meeting.',
     },
     {
       term: 'One-to-one',

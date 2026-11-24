@@ -363,7 +363,7 @@ test.describe('meeting slides follow the new agenda', () => {
     const move = page.getByRole('form', { name: 'Move Sponsor thank-you' });
     await move.getByLabel('Show after').selectOption('adjourn');
     await move.getByRole('button', { name: 'Move' }).click();
-    await expect(page.getByRole('list', { name: 'Added slides list' })).toContainText('after “9:30 · Adjourn”');
+    await expect(page.getByRole('list', { name: 'Added slides list' })).toContainText('after “9:45 · Adjourn”');
     for (const name of ['Sponsor thank-you', 'Celeste’s deck', 'Member testimonial']) {
       await page.getByRole('button', { name: `Remove ${name}` }).click();
       await expect(page.getByRole('button', { name: `Remove ${name}` })).toHaveCount(0);

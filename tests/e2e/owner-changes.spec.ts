@@ -237,7 +237,7 @@ test.describe('cancelled meetings and slides', () => {
 test.describe('banners, directory, profile and support (second request of the day)', () => {
   test('home hero: brighter photo, new guest wording and section titles', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('We meet every other Monday at 8:15 AM - 9:30AM on Zoom', { exact: true })).toBeVisible();
+    await expect(page.getByText('We meet every other Monday at 8:15 AM - 9:45AM on Zoom', { exact: true })).toBeVisible();
     await expect(page.getByText(/Come as a guest up to two times/)).toHaveCount(0);
     await expect(page.getByRole('heading', { level: 2, name: 'A system for business growth.' })).toBeVisible();
     await expect(page.getByRole('heading', { name: /More than networking/ })).toHaveCount(0);
@@ -344,7 +344,10 @@ test.describe('fourth request of the day', () => {
     await login(page, users.member);
     await page.goto('/dashboard');
     if ((page.viewportSize()?.width ?? 1280) < 768) await page.getByRole('button', { name: 'Menu' }).click();
-    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Support', exact: true }).click();
+    // Support has been a dropdown since 2026-11-24: Video Guides, Rules, Contact Us (the Support page).
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await nav.getByRole('button', { name: 'Support', exact: true }).click();
+    await nav.getByRole('link', { name: 'Contact Us', exact: true }).click();
     await expect(page).toHaveURL('/support');
   });
 

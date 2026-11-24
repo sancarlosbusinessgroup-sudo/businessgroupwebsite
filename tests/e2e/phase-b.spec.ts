@@ -145,7 +145,7 @@ test.describe('meeting slides', () => {
     await expect(page.getByRole('heading', { level: 1, name: /Slides for/ })).toBeVisible();
     await expectAccessible(page);
     await page.getByLabel('Show “8:30 · Let’s begin (meeting called to order)”').uncheck();
-    await page.getByLabel('Position of “9:30 · Adjourn”').fill('0');
+    await page.getByLabel('Position of “9:45 · Adjourn”').fill('0');
     await page.getByRole('button', { name: 'Save slides' }).click();
     await expect(page.getByText('Slides saved.')).toBeVisible();
 

@@ -1,9 +1,12 @@
 import { EmptyState, Pill } from '@/components/ui';
 import { guestStatusLabels, visitorSignInPath } from '@/lib/content';
 import { env } from '@/lib/env';
-import { formatShortDate } from '@/lib/dates';
+import { formatShortDate, nowMs } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { setGuestOneOnOnes, setGuestStatus, setMemberStatus } from '../actions/admin';
+import { reopenGuest } from '../actions/guests';
+import { describeGuestEvent, isGuestStage } from '@/lib/guest-pipeline';
+import { GuestBoard, type BoardGuest } from './GuestBoard';
 import { SendZoomLinkButton } from './SendZoomLinkButton';
 import { OpenApplicationOnHash } from './OpenApplicationOnHash';
 import { InviteToApplyButton } from './InviteToApplyButton';
@@ -18,7 +21,8 @@ export type GuestSectionsPage = '/admin' | '/admin/guests';
  */
 export async function GuestSections({ back }: { back: GuestSectionsPage }) {
   const supabase = await createClient();
-  const [pendingRes, guestsRes, invitesRes, zoomSentRes] = await Promise.all([
+  const now = nowMs();
+  const [pendingRes, guestsRes, invitesRes, zoomSentRes, boardRes, declinedRes] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -35,6 +39,23 @@ export async function GuestSections({ back }: { back: GuestSectionsPage }) {
       .limit(50),
     supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'apply_invite').eq('status', 'sent').order('created_at').limit(500),
     supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'guest_zoom_link').eq('status', 'sent').order('created_at').limit(500),
+    // Guest board (owner, 2026-11-24): everyone not declined, from the last year; approved members for 60 days.
+    supabase
+      .from('guest_requests')
+      .select(
+        'id, first_name, last_name, email, phone, website, business_name, business_description, invited_by_text, status, source, created_at, one_on_ones_done_at, pipeline_stage, stage_changed_at',
+      )
+      .is('declined_at', null)
+      .gte('created_at', new Date(now - 365 * 86400000).toISOString())
+      .or(`pipeline_stage.neq.approved,stage_changed_at.gte.${new Date(now - 60 * 86400000).toISOString()}`)
+      .order('created_at', { ascending: false })
+      .limit(300),
+    supabase
+      .from('guest_requests')
+      .select('id, first_name, last_name, business_name, declined_at, decline_method, decline_note, decliner:declined_by(first_name, last_name)')
+      .not('declined_at', 'is', null)
+      .order('declined_at', { ascending: false })
+      .limit(30),
   ]);
   if (pendingRes.error || guestsRes.error) throw new Error('Could not load applications and guest requests');
   const invitedOn = new Map((invitesRes.data ?? []).map((r) => [r.dedupe_key.split(':')[0], formatShortDate(new Date(r.created_at))]));
@@ -47,8 +68,97 @@ export async function GuestSections({ back }: { back: GuestSectionsPage }) {
     }),
   );
 
+  const boardRows = boardRes.data ?? [];
+  const { data: events } = boardRows.length
+    ? await supabase
+        .from('guest_events')
+        .select('guest_id, created_at, kind, detail, actor:actor_id(first_name, last_name)')
+        .in(
+          'guest_id',
+          boardRows.map((g) => g.id),
+        )
+        .order('created_at', { ascending: false })
+        .limit(2000)
+    : { data: [] };
+  const history = new Map<string, BoardGuest['history']>();
+  for (const e of events ?? []) {
+    const actor = (Array.isArray(e.actor) ? e.actor[0] : e.actor) as { first_name: string; last_name: string } | null;
+    const list = history.get(e.guest_id) ?? [];
+    list.push({ at: formatShortDate(new Date(e.created_at)), who: actor ? `${actor.first_name} ${actor.last_name}` : null, text: describeGuestEvent(e) });
+    history.set(e.guest_id, list);
+  }
+  const board: BoardGuest[] = boardRows.map((g) => ({
+    id: g.id,
+    name: `${g.first_name} ${g.last_name}`,
+    business: g.business_name,
+    email: g.email,
+    phone: g.phone,
+    website: g.website,
+    about: g.business_description,
+    invitedBy: g.invited_by_text,
+    requestedOn: formatShortDate(new Date(g.created_at)),
+    changedAt: g.stage_changed_at ?? g.created_at,
+    stage: isGuestStage(g.pipeline_stage) ? g.pipeline_stage : 'review',
+    status: g.status,
+    signedIn: g.source === 'meeting_sign_in',
+    zoomSentOn: zoomSentOn.get(g.id) ?? null,
+    formSentOn: invitedOn.get(g.id) ?? null,
+    interviewDone: !!g.one_on_ones_done_at,
+    applicantId: pendingByEmail.get(g.email.toLowerCase())?.id ?? null,
+    history: history.get(g.id) ?? [],
+  }));
+  const declined = declinedRes.data ?? [];
+
   return (
     <>
+      <section id="board" className="flex scroll-mt-24 flex-col gap-3" aria-labelledby="board-h">
+        <h2 id="board-h" className="font-display m-0 text-[22px] font-extrabold">
+          Guest board
+        </h2>
+        <p className="text-ink-muted m-0 text-sm">
+          Every guest from invite request to approved member. Cards move on by themselves when a step is done on the website (Zoom link sent, visited, applied,
+          interview done, approved). To move a card by hand, drag it to another column or use <strong>Move to</strong> in its details. Moving a card by hand
+          doesn’t send emails or approve anyone: use the buttons on the card for that.
+        </p>
+        <GuestBoard guests={board} />
+        {declined.length ? (
+          <details className="border-line rounded-xl border p-3">
+            <summary className="cursor-pointer font-bold">Declined ({declined.length})</summary>
+            <ul className="m-0 mt-2 flex list-none flex-col gap-2 p-0">
+              {declined.map((d) => {
+                const by = (Array.isArray(d.decliner) ? d.decliner[0] : d.decliner) as { first_name: string; last_name: string } | null;
+                return (
+                  <li key={d.id} className="border-line-soft flex flex-wrap items-center justify-between gap-2 border-b pb-2 last:border-b-0">
+                    <div className="min-w-0 text-sm">
+                      <strong className="text-heading">
+                        {d.first_name} {d.last_name}
+                      </strong>
+                      {d.business_name ? ` · ${d.business_name}` : ''}
+                      <div className="text-ink-muted">
+                        Declined {d.declined_at ? formatShortDate(new Date(d.declined_at)) : ''}
+                        {d.decline_method ? (d.decline_method === 'phone' ? ' · told by phone' : ' · told by email') : ''}
+                        {by ? ` · by ${by.first_name} ${by.last_name}` : ''}
+                      </div>
+                      {d.decline_note ? <div className="whitespace-pre-line">{d.decline_note}</div> : null}
+                    </div>
+                    <form action={reopenGuest}>
+                      <input type="hidden" name="id" value={d.id} />
+                      <button type="submit" className="btn btn-outline btn-sm">
+                        Reopen
+                        <span className="sr-only">
+                          {' '}
+                          {d.first_name} {d.last_name}
+                        </span>
+                      </button>
+                    </form>
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
+        ) : null}
+      </section>
+
       <section className="card flex flex-col gap-3.5 p-[22px]" aria-labelledby="ap-h">
         <OpenApplicationOnHash />
         <h2 id="ap-h" className="font-display m-0 text-[22px] font-extrabold">
