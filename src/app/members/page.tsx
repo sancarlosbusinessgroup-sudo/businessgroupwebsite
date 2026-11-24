@@ -124,12 +124,22 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
 
         {featured && champion ? (
           <section className="flex flex-col gap-3 rounded-[20px] bg-[#fef3c7] p-5 ring-2 ring-[#f59e0b]" aria-labelledby="champion-h">
-            <h2 id="champion-h" className="font-display m-0 text-xl font-extrabold text-[#5b3a00]">
-              Current BARP Champion · {champion.label}
-            </h2>
+            <div className="flex flex-col gap-1">
+              <h2 id="champion-h" className="font-display m-0 text-xl font-extrabold text-[#5b3a00]">
+                {champion.leading ? 'Leading the BARP Champion race' : `Current BARP Champion · ${champion.label}`}
+              </h2>
+              {/* Owner, 2026-11-25: points start again at every meeting (every two weeks), not every month. */}
+              <p className="m-0 text-sm text-[#5b3a00]">
+                {champion.leading
+                  ? `Most points since ${champion.since ?? 'the last meeting'}. The champion is announced at the ${champion.nextMeeting ?? 'next'} meeting.`
+                  : champion.kind === 'meeting'
+                    ? 'Most points between the last two meetings. Points start again from zero after every meeting.'
+                    : 'Points start again from zero after every meeting.'}
+              </p>
+            </div>
             {/* Photo on the left, text on the right (owner, 2026-11-01). */}
             <div className="max-w-[760px]">
-              <MemberCard p={featured} i={0} contact={contacts.get(featured.id)} champion={champion.label} row />
+              <MemberCard p={featured} i={0} contact={contacts.get(featured.id)} champion={champion.leading ? null : champion.label} row />
             </div>
           </section>
         ) : null}
@@ -142,7 +152,12 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
           <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-5 p-0">
             {items.map((p, i) => (
               <li key={p.id}>
-                <MemberCard p={p} i={i} contact={contacts.get(p.id)} champion={champion?.profileId === p.id ? champion.label : null} />
+                <MemberCard
+                  p={p}
+                  i={i}
+                  contact={contacts.get(p.id)}
+                  champion={champion && !champion.leading && champion.profileId === p.id ? champion.label : null}
+                />
               </li>
             ))}
           </ul>

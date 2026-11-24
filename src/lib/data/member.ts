@@ -32,6 +32,17 @@ export async function getGroupTotalsWindow(range: { from: string; to: string }):
   return { one_on_ones: 0, referrals: 0, closed_deals: 0, visitors: 0, ...t, closed_amount: Number(t.closed_amount ?? 0) };
 }
 
+/**
+ * Top members per metric between two moments (owner, 2026-11-25): the Leaderboards slide counts since the last meeting,
+ * like the champion, up to the end of this one. Falls back to the calendar month while the database function is missing.
+ */
+export async function getLeaderboardWindow(range: { from: string; to: string }, limit = 5): Promise<LeaderRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('leaderboard_window', { p_from: range.from, p_to: range.to, p_limit: limit });
+  if (error) return getLeaderboard({ from: range.from.slice(0, 10), to: null }, limit);
+  return data;
+}
+
 /** Top members per metric (names + counts only). */
 export async function getLeaderboard(range: DateRange, limit = 5): Promise<LeaderRow[]> {
   const supabase = await createClient();

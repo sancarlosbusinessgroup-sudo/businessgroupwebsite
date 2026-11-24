@@ -255,9 +255,69 @@ export async function getChampionAwards(limit = 24, profileId?: string): Promise
   return [...perMeeting, ...monthly].sort((a, b) => b.endsAt.localeCompare(a.endsAt)).slice(0, limit);
 }
 
-/** The current champion: the most recent award. The badge belongs to them until the next meeting's champion is recorded. */
-export async function getCurrentChampion(): Promise<ChampionAward | null> {
-  return (await getChampionAwards(1))[0] ?? null;
+/** The reigning champion, or (`leading`) the member ahead in the period in progress when no meeting champion is crowned yet. */
+export type CurrentChampion = ChampionAward & {
+  /** Not crowned: the live leader since the last meeting (only shown to members, never as a badge). */
+  leading?: boolean;
+  /** "the Nov 9, 2026 meeting": where the points in the period in progress start. */
+  since?: string | null;
+  /** "Dec 7, 2026": the meeting where the champion of the period in progress is announced. */
+  nextMeeting?: string | null;
+};
+
+/**
+ * The live leader of the period in progress (since the last meeting), for the directory before the first meeting champion
+ * is crowned. Cached 5 minutes; null without the service-role key or when nobody has points.
+ */
+const getLiveLeader = unstable_cache(
+  async (): Promise<CurrentChampion | null> => {
+    const db = createAdminClient();
+    if (!db) return null;
+    const period = currentPeriod(await getChampionPeriods(db));
+    if (!period) return null;
+    const { auto } = await getMeetingChampionRanking(period, db);
+    if (!auto || !auto.points) return null;
+    const { data: p } = await db.from('profiles').select('business_name, slug, avatar_path').eq('id', auto.id).maybeSingle();
+    return {
+      key: period.meetingId,
+      kind: 'meeting',
+      endsAt: period.to,
+      month: '',
+      label: `${meetingDateLabel(period.startsAt)} meeting`,
+      profileId: auto.id,
+      name: auto.name,
+      business: p?.business_name ?? null,
+      slug: p?.slug ?? null,
+      avatar: p?.avatar_path ?? null,
+      reason: null,
+      points: {},
+      overridden: false,
+      leading: true,
+      since: period.previousStart ? `the ${meetingDateLabel(period.previousStart)} meeting` : null,
+      nextMeeting: meetingDateLabel(period.startsAt),
+    };
+  },
+  ['champion-live-leader'],
+  { revalidate: 300, tags: ['directory'] },
+);
+
+/**
+ * The current champion (owner, 2026-11-25: points start again at every meeting, so the champion is per meeting, not per
+ * month). The champion of the most recent meeting keeps the title until the next meeting's champion is recorded. Once the
+ * per-meeting system has started, a monthly champion no longer counts as current: until the first meeting champion is
+ * crowned, this returns the live leader since the last meeting (`leading`).
+ */
+export async function getCurrentChampion(now = new Date()): Promise<CurrentChampion | null> {
+  const latest = (await getChampionAwards(1))[0] ?? null;
+  if (latest?.kind === 'meeting') return latest;
+  if (now.toISOString() < MEETING_CHAMPION_FROM) return latest;
+  return getLiveLeader().catch(() => null);
+}
+
+/** The crowned champion only (badges on profiles and directory cards): never the live leader. */
+export async function getCrownedChampion(): Promise<ChampionAward | null> {
+  const c = await getCurrentChampion();
+  return c && !c.leading ? c : null;
 }
 
 /**

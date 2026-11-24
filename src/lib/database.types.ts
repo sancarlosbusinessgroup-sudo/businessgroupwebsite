@@ -637,6 +637,13 @@ export type Database = {
           declined_by: string | null;
           decline_method: 'phone' | 'email' | null;
           decline_note: string | null;
+          added_by: string | null;
+          zoom_email_dismissed_at: string | null;
+          decline_called_at: string | null;
+          membership_declined_at: string | null;
+          membership_declined_by: string | null;
+          membership_called_at: string | null;
+          welcome_email_dismissed_at: string | null;
         };
         Insert: {
           business_description?: string | null;
@@ -664,6 +671,13 @@ export type Database = {
           declined_by?: string | null;
           decline_method?: 'phone' | 'email' | null;
           decline_note?: string | null;
+          added_by?: string | null;
+          zoom_email_dismissed_at?: string | null;
+          decline_called_at?: string | null;
+          membership_declined_at?: string | null;
+          membership_declined_by?: string | null;
+          membership_called_at?: string | null;
+          welcome_email_dismissed_at?: string | null;
         };
         Update: {
           business_description?: string | null;
@@ -691,6 +705,13 @@ export type Database = {
           declined_by?: string | null;
           decline_method?: 'phone' | 'email' | null;
           decline_note?: string | null;
+          added_by?: string | null;
+          zoom_email_dismissed_at?: string | null;
+          decline_called_at?: string | null;
+          membership_declined_at?: string | null;
+          membership_declined_by?: string | null;
+          membership_called_at?: string | null;
+          welcome_email_dismissed_at?: string | null;
         };
         Relationships: [
           {
@@ -705,6 +726,100 @@ export type Database = {
             columns: ['referrer_id'];
             isOneToOne: false;
             referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'guest_requests_added_by_fkey';
+            columns: ['added_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      panel_interviews: {
+        Row: {
+          id: string;
+          guest_id: string;
+          panelist_ids: string[];
+          duration_minutes: number;
+          format: 'zoom' | 'phone' | 'in_person';
+          location: string | null;
+          status: 'scheduling' | 'scheduled';
+          scheduled_at: string | null;
+          confirmed_by: string | null;
+          guest_emailed_at: string | null;
+          guest_email_dismissed_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          guest_id: string;
+          panelist_ids: string[];
+          duration_minutes?: number;
+          format?: 'zoom' | 'phone' | 'in_person';
+          location?: string | null;
+          status?: 'scheduling' | 'scheduled';
+          scheduled_at?: string | null;
+          confirmed_by?: string | null;
+          guest_emailed_at?: string | null;
+          guest_email_dismissed_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          guest_id?: string;
+          panelist_ids?: string[];
+          duration_minutes?: number;
+          format?: 'zoom' | 'phone' | 'in_person';
+          location?: string | null;
+          status?: 'scheduling' | 'scheduled';
+          scheduled_at?: string | null;
+          confirmed_by?: string | null;
+          guest_emailed_at?: string | null;
+          guest_email_dismissed_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'panel_interviews_guest_id_fkey';
+            columns: ['guest_id'];
+            isOneToOne: true;
+            referencedRelation: 'guest_requests';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      panel_interview_slots: {
+        Row: { id: string; interview_id: string; starts_at: string; added_by: string | null; created_at: string };
+        Insert: { id?: string; interview_id: string; starts_at: string; added_by?: string | null; created_at?: string };
+        Update: { id?: string; interview_id?: string; starts_at?: string; added_by?: string | null; created_at?: string };
+        Relationships: [
+          {
+            foreignKeyName: 'panel_interview_slots_interview_id_fkey';
+            columns: ['interview_id'];
+            isOneToOne: false;
+            referencedRelation: 'panel_interviews';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      panel_interview_answers: {
+        Row: { slot_id: string; profile_id: string; answer: 'yes' | 'maybe' | 'no'; updated_at: string };
+        Insert: { slot_id: string; profile_id: string; answer: 'yes' | 'maybe' | 'no'; updated_at?: string };
+        Update: { slot_id?: string; profile_id?: string; answer?: 'yes' | 'maybe' | 'no'; updated_at?: string };
+        Relationships: [
+          {
+            foreignKeyName: 'panel_interview_answers_slot_id_fkey';
+            columns: ['slot_id'];
+            isOneToOne: false;
+            referencedRelation: 'panel_interview_slots';
             referencedColumns: ['id'];
           },
         ];
@@ -1572,6 +1687,10 @@ export type Database = {
       join_meeting: { Args: { p_meeting: string }; Returns: string };
       leaderboard: {
         Args: { p_from?: string | null; p_to?: string | null; p_limit?: number };
+        Returns: { first_name: string; last_name: string; metric: string; profile_id: string; rank: number; value: number }[];
+      };
+      leaderboard_window: {
+        Args: { p_from: string; p_to: string; p_limit?: number };
         Returns: { first_name: string; last_name: string; metric: string; profile_id: string; rank: number; value: number }[];
       };
       meeting_visitors: { Args: { p_meeting: string }; Returns: { business_name: string | null; display_name: string; invited_by: string | null }[] };

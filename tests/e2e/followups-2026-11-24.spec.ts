@@ -184,55 +184,70 @@ test.describe('guest board', () => {
   const column = (page: Page, name: string) => page.getByRole('region', { name: new RegExp(`^\\d?\\s*${name}`) });
   const card = (page: Page) => page.locator(`[data-guest-card="${guestId}"]`);
 
-  test('six columns; decline by phone, reopen, move by hand, accept, drag; history kept', async ({ page }) => {
+  // Owner, 2026-11-25: Reject sends no email (call them), Accept asks before emailing the Zoom link, First Zoom Done,
+  // Undo, and the history is hidden on the cards (still recorded).
+  test('six columns; reject (call them), undo reject, move by hand, drag, accept then confirm the Zoom email; history kept', async ({ page }) => {
     await login(page, users.admin, undefined, '/admin/guests');
     const board = page.getByRole('region', { name: 'Guest board columns' });
     await expect(board.getByRole('heading', { level: 3 })).toHaveText([
       /Accept or Reject/,
-      /Zoom Link Sent/,
+      /Zoom Link/,
       /Send Application Form/,
       /Application Form Accomplished/,
       /Panel Interview/,
       /Membership Approved/,
     ]);
+    await expect(column(page, 'Accept or Reject')).toContainText(
+      'New requests. Check for membership rules compliance, or category conflict, then accept or decline.',
+    );
     await expect(column(page, 'Accept or Reject').locator(`[data-guest-card="${guestId}"]`)).toBeVisible();
-    await expect(card(page)).toContainText('Board Games Co');
+    // The business, request date and inviter as bullet points.
+    await expect(card(page).getByRole('listitem').filter({ hasText: 'Board Games Co' })).toBeVisible();
+    await expect(
+      card(page)
+        .getByRole('listitem')
+        .filter({ hasText: /^Requested / }),
+    ).toBeVisible();
+    await expect(card(page).getByText('History')).toHaveCount(0);
 
-    // Decline: I'll call them, with a note.
+    // Reject: no email, a reminder to call them with their phone number.
     await card(page)
-      .getByRole('button', { name: /^Decline…/ })
+      .getByRole('button', { name: `Reject Bea Board${stamp}` })
       .click();
-    const form = page.getByRole('form', { name: `Decline Bea Board${stamp}` });
-    await expect(form.getByRole('radio', { name: 'I’ll call them' })).toBeChecked();
-    await form.getByLabel('Note (only admins see it)').fill('Overlaps with an existing member');
-    await form.getByRole('button', { name: 'Decline', exact: true }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Declined. Remember to call them.' })).toBeVisible();
+    const dialog = page.getByRole('dialog', { name: `Reject Bea?` });
+    await expect(dialog).toContainText('No email is sent.');
+    await dialog.getByLabel('Note (only admins see it)').fill('Overlaps with an existing member');
+    await dialog.getByRole('button', { name: 'Reject', exact: true }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Rejected. No email was sent: please call them on 555-0199.' })).toBeVisible();
     await page.reload();
     await expect(card(page)).toHaveCount(0);
-    const declined = page.locator('details').filter({ has: page.getByText(/^Declined \(\d+\)$/) });
-    await declined.getByText(/^Declined \(\d+\)$/).click();
-    const item = declined.getByRole('listitem').filter({ hasText: `Bea Board${stamp}` });
-    await expect(item).toContainText('told by phone');
-    await expect(item).toContainText('Overlaps with an existing member');
-
-    // Reopen: back in Accept or Reject.
-    await item.getByRole('button', { name: /^Reopen/ }).click();
+    const rejected = page.locator('details').filter({ has: page.getByText(/^Rejected \(\d+\)$/) });
+    await rejected.getByText(/^Rejected \(\d+\)$/).click();
+    const item = rejected.getByRole('listitem').filter({ hasText: `Bea Board${stamp}` });
+    await expect(item).toContainText('555-0199');
+    await expect(item).toContainText(`Call Bea Board${stamp} on 555-0199`);
+    expect((await rest(`guest_requests?id=eq.${guestId}&select=decline_method,decline_note`))[0]).toEqual({
+      decline_method: 'phone',
+      decline_note: 'Overlaps with an existing member',
+    });
+    // I called them: the reminder goes; Undo reject: back in Accept or Reject.
+    await item.getByRole('button', { name: 'I called them' }).click();
+    await expect(item).not.toContainText(`Call Bea Board${stamp} on`);
+    await item.getByRole('button', { name: 'Undo reject' }).click();
     await expect(column(page, 'Accept or Reject').locator(`[data-guest-card="${guestId}"]`)).toBeVisible();
 
-    // Move by hand to Panel Interview (keyboard way): no emails, history says so.
-    await card(page).getByText('Details, history & move').click();
+    // Move by hand to Panel Interview (keyboard way): no emails.
+    await card(page).getByText('Contact & move').click();
     await card(page).getByLabel(`Move Bea Board${stamp} to`).selectOption('interview');
     await card(page).getByRole('button', { name: 'Move', exact: true }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Moved to Panel Interview.' })).toBeVisible();
     await page.reload();
     await expect(column(page, 'Panel Interview').locator(`[data-guest-card="${guestId}"]`)).toBeVisible();
-    await card(page).getByText('Details, history & move').click();
-    await expect(card(page)).toContainText('Moved to Panel Interview');
-    await expect(card(page)).toContainText('Declined: by phone (Overlaps with an existing member)');
-    await expect(card(page)).toContainText('Reopened');
+    // The history is still recorded (hidden on the card for now).
+    const kinds = (await rest(`guest_events?guest_id=eq.${guestId}&select=kind,detail&order=created_at`)).map((e) => `${e.kind}:${e.detail ?? ''}`);
+    expect(kinds).toEqual(expect.arrayContaining(['declined:call them (Overlaps with an existing member)', 'reopened:', 'stage:interview']));
 
-    // Drag it back to Accept or Reject, then accept: Zoom link sent, card moves on by itself.
-    await page.reload();
+    // Drag it back to Accept or Reject.
     // A real mouse drag (Playwright's dragTo shortcut doesn't start an HTML drag here).
     const from = (await card(page).locator('strong').first().boundingBox())!;
     const to = (await column(page, 'Accept or Reject').boundingBox())!;
@@ -244,25 +259,44 @@ test.describe('guest board', () => {
     await expect(page.getByRole('status').filter({ hasText: 'Moved to Accept or Reject.' })).toBeVisible();
     await page.reload();
     await expect(column(page, 'Accept or Reject').locator(`[data-guest-card="${guestId}"]`)).toBeVisible();
-    await card(page)
-      .getByRole('button', { name: /^Accept .* and send the Zoom link/ })
-      .click();
-    await expect(page.getByRole('status').filter({ hasText: /Accepted/ })).toBeVisible();
-    await page.reload();
-    await expect(column(page, 'Zoom Link Sent').locator(`[data-guest-card="${guestId}"]`)).toBeVisible();
-    expect((await rest(`guest_requests?id=eq.${guestId}&select=accepted_at,pipeline_stage`))[0]).toMatchObject({ pipeline_stage: 'zoom_sent' });
 
-    // A step done elsewhere on the website (marked visited) moves the card forward.
+    // Accept: the card moves on; nothing is emailed until the pop-up is confirmed. "Not now" leaves a reminder.
     await card(page)
-      .getByRole('button', { name: /^Mark visited/ })
+      .getByRole('button', { name: `Accept Bea Board${stamp}` })
+      .click();
+    const ask = page.getByRole('dialog', { name: 'Send the Zoom link email to Bea?' });
+    await expect(ask).toBeVisible();
+    await ask.getByRole('button', { name: 'Not now' }).click();
+    await page.reload();
+    await expect(column(page, 'Zoom Link').locator(`[data-guest-card="${guestId}"]`)).toBeVisible();
+    expect((await rest(`guest_requests?id=eq.${guestId}&select=pipeline_stage`))[0]).toMatchObject({ pipeline_stage: 'zoom_sent' });
+    expect(await rest(`email_log?kind=eq.guest_zoom_link&dedupe_key=like.${guestId}*&select=id`)).toEqual([]);
+    await expect(card(page)).toContainText('Zoom link not sent yet.');
+    await card(page)
+      .getByRole('button', { name: `Send Zoom link to Bea Board${stamp}` })
+      .click();
+    await page.getByRole('dialog', { name: 'Send the Zoom link email to Bea?' }).getByRole('button', { name: 'Send email' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Zoom link sent.' })).toBeVisible();
+    await page.reload();
+    await expect(card(page)).not.toContainText('Zoom link not sent yet.');
+
+    // First Zoom Done moves the card forward; Undo moves it back.
+    await card(page)
+      .getByRole('button', { name: `First Zoom Done for Bea Board${stamp}` })
       .click();
     await page.reload();
     await expect(column(page, 'Send Application Form').locator(`[data-guest-card="${guestId}"]`)).toBeVisible();
+    await card(page)
+      .getByRole('button', { name: /^↩ Undo: back to Zoom Link/ })
+      .click();
+    await page.reload();
+    await expect(column(page, 'Zoom Link').locator(`[data-guest-card="${guestId}"]`)).toBeVisible();
+    expect((await rest(`guest_requests?id=eq.${guestId}&select=status`))[0]).toEqual({ status: 'requested' });
     await expectAccessible(page);
   });
 
   test('the bell lists what needs attention', async ({ page }) => {
-    await rest(`guest_requests?id=eq.${guestId}`, 'PATCH', { status: 'requested', pipeline_stage: 'review' });
+    await rest(`guest_requests?id=eq.${guestId}`, 'PATCH', { status: 'requested', pipeline_stage: 'review', accepted_at: null });
     await rest(`email_log?kind=eq.guest_zoom_link&dedupe_key=like.${guestId}*`, 'DELETE');
     await login(page, users.admin, undefined, '/dashboard');
     const bell = page.getByRole('button', { name: /^Notifications/ });

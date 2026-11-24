@@ -786,49 +786,53 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         page(key, {
           title: 'Leaderboards',
           body: (
-            <div className="grid gap-[1.6cqw]" style={{ gridTemplateColumns: `repeat(${leaderboardMetrics.length}, minmax(0, 1fr))` }}>
-              {leaderboardMetrics.map((m, i) => {
-                const rows = d.leaders.filter((r) => r.metric === m.key);
-                const color = STEP_COLORS[i + 1] ?? BLUE;
-                return (
-                  <div key={m.key} className={`${card()} flex flex-col overflow-hidden`}>
-                    {/* Coloured header with a pointer, as in the roadmap sample. */}
-                    <div className="relative flex items-center gap-[0.9cqw] px-[1.3cqw] py-[1cqw] text-white" style={{ background: color }}>
-                      <Icon name={icons[m.key] ?? 'award'} style={{ width: '2.2cqw', height: '2.2cqw' }} />
-                      <h3 className="font-display m-0 text-[1.55cqw] font-extrabold text-white">{m.label}</h3>
-                      <span
-                        className="absolute -bottom-[0.9cqw] left-1/2 h-[1.8cqw] w-[1.8cqw] -translate-x-1/2 rotate-45"
-                        style={{ background: color }}
-                        aria-hidden="true"
-                      />
+            <div className="flex flex-col gap-[1.2cqw]">
+              {/* Owner, 2026-11-25: counts since the last meeting (they start again at every meeting), live on Refresh / R. */}
+              <Muted>Since the last meeting</Muted>
+              <div className="grid gap-[1.6cqw]" style={{ gridTemplateColumns: `repeat(${leaderboardMetrics.length}, minmax(0, 1fr))` }}>
+                {leaderboardMetrics.map((m, i) => {
+                  const rows = d.leaders.filter((r) => r.metric === m.key);
+                  const color = STEP_COLORS[i + 1] ?? BLUE;
+                  return (
+                    <div key={m.key} className={`${card()} flex flex-col overflow-hidden`}>
+                      {/* Coloured header with a pointer, as in the roadmap sample. */}
+                      <div className="relative flex items-center gap-[0.9cqw] px-[1.3cqw] py-[1cqw] text-white" style={{ background: color }}>
+                        <Icon name={icons[m.key] ?? 'award'} style={{ width: '2.2cqw', height: '2.2cqw' }} />
+                        <h3 className="font-display m-0 text-[1.55cqw] font-extrabold text-white">{m.label}</h3>
+                        <span
+                          className="absolute -bottom-[0.9cqw] left-1/2 h-[1.8cqw] w-[1.8cqw] -translate-x-1/2 rotate-45"
+                          style={{ background: color }}
+                          aria-hidden="true"
+                        />
+                      </div>
+                      <div className="px-[1.1cqw] pt-[1.6cqw] pb-[1.1cqw]">
+                        {rows.length ? (
+                          <ol className="m-0 flex list-none flex-col gap-[0.5cqw] p-0">
+                            {rows.map((r) => (
+                              <li key={r.profile_id} className="flex items-center gap-[0.8cqw] text-[1.6cqw]">
+                                <span
+                                  className="flex h-[2.3cqw] w-[2.3cqw] flex-none items-center justify-center rounded-full text-[1.2cqw] font-extrabold text-white"
+                                  style={{ background: color }}
+                                >
+                                  {r.rank}
+                                </span>
+                                <span className="min-w-0 flex-1 truncate" style={{ color: INK }}>
+                                  {r.first_name} {r.last_name.slice(0, 1)}.
+                                </span>
+                                <strong className="tabular-nums" style={{ color: NAVY }}>
+                                  {r.value}
+                                </strong>
+                              </li>
+                            ))}
+                          </ol>
+                        ) : (
+                          <Muted>Nothing yet.</Muted>
+                        )}
+                      </div>
                     </div>
-                    <div className="px-[1.1cqw] pt-[1.6cqw] pb-[1.1cqw]">
-                      {rows.length ? (
-                        <ol className="m-0 flex list-none flex-col gap-[0.5cqw] p-0">
-                          {rows.map((r) => (
-                            <li key={r.profile_id} className="flex items-center gap-[0.8cqw] text-[1.6cqw]">
-                              <span
-                                className="flex h-[2.3cqw] w-[2.3cqw] flex-none items-center justify-center rounded-full text-[1.2cqw] font-extrabold text-white"
-                                style={{ background: color }}
-                              >
-                                {r.rank}
-                              </span>
-                              <span className="min-w-0 flex-1 truncate" style={{ color: INK }}>
-                                {r.first_name} {r.last_name.slice(0, 1)}.
-                              </span>
-                              <strong className="tabular-nums" style={{ color: NAVY }}>
-                                {r.value}
-                              </strong>
-                            </li>
-                          ))}
-                        </ol>
-                      ) : (
-                        <Muted>Nothing yet.</Muted>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           ),
         });

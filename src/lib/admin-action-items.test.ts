@@ -66,8 +66,11 @@ describe('Items that Need Immediate Action (owner, 2026-11-24)', () => {
       buildActionItems({ ...quiet, guests: [guest(g)], pendingApplications: apps })[0];
     expect(one({})).toMatchObject({ title: 'Accept or reject Gina Guest', tone: 'amber' });
     expect(one({ zoomSentAt: daysAgo(2) })).toBeUndefined();
-    expect(one({ zoomSentAt: daysAgo(2), meetingEnded: true })!.title).toBe('Did Gina Guest visit?');
-    expect(one({ status: 'visited', zoomSentAt: daysAgo(9) })!.title).toBe('Invite Gina Guest to apply');
+    // Owner, 2026-11-25: First Zoom Done instead of "visited", and accepting no longer sends the Zoom link.
+    expect(one({ zoomSentAt: daysAgo(2), meetingEnded: true })!.title).toBe('Did Gina Guest join a Zoom?');
+    expect(one({ accepted: true })!.title).toBe('Send Gina Guest the Zoom link');
+    expect(one({ accepted: true, zoomDismissed: true })).toBeUndefined();
+    expect(one({ status: 'visited', zoomSentAt: daysAgo(9) })!.title).toBe('Send Gina Guest the application form');
     expect(one({ status: 'visited', applyInviteAt: daysAgo(1) })).toBeUndefined();
     const app = [{ id: 'p1', name: 'Gina Guest', email: 'GINA@example.test', created_at: daysAgo(1) }];
     expect(one({ status: 'applied' }, app)!.title).toBe('Finish Gina Guest’s one-on-ones');
@@ -76,6 +79,20 @@ describe('Items that Need Immediate Action (owner, 2026-11-24)', () => {
       href: '/admin/guests#application-p1',
     });
     expect(one({ status: 'joined' })).toBeUndefined();
+  });
+
+  it('asks to phone rejected guests and to tell guests their interview time (owner, 2026-11-25)', () => {
+    const items = buildActionItems({
+      ...quiet,
+      calls: [
+        { id: 'g1', name: 'Gina Guest', phone: '650-555-0100', why: 'rejected' },
+        { id: 'g2', name: 'Hal Hopeful', phone: null, why: 'membership' },
+      ],
+      panelEmails: [{ id: 'p1', name: 'Ivy Interview' }],
+    });
+    expect(items.map((i) => i.title)).toEqual(['Call Gina Guest (650-555-0100)', 'Call Hal Hopeful', 'Tell Ivy Interview when their panel interview is']);
+    expect(items[0]!.tone).toBe('red');
+    expect(items[2]!.href).toBe('/admin/panel/p1');
   });
 
   it('lists applications that have no guest request on their own', () => {

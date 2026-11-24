@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ProfileView } from '@/components/ProfileView';
-import { getChampionAwards, getCurrentChampion } from '@/lib/data/champion';
+import { getChampionAwards, getCrownedChampion } from '@/lib/data/champion';
 import { Notice } from '@/components/ui';
 import { WeeklyAskForm } from '@/components/WeeklyAskForm';
 import { formatShortDate } from '@/lib/dates';
@@ -41,7 +41,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   ]);
   const [wins, currentChampion, pendingEmail] = await Promise.all([
     getChampionAwards(24, p.id),
-    getCurrentChampion(),
+    getCrownedChampion(),
     editing ? pendingEmailChange(p.id) : Promise.resolve(null),
   ]);
   const loginEmail = viewer.email ?? contactRes.data?.email ?? '';

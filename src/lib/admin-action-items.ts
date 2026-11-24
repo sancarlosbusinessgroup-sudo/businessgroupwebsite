@@ -52,7 +52,17 @@ export type ActionInput = {
     applyInviteAt: string | null;
     /** The meeting they asked to visit has ended. */
     meetingEnded: boolean;
+    /** Accepted on the guest board (owner, 2026-11-25: accepting no longer sends the Zoom link by itself). */
+    accepted?: boolean;
+    /** The Zoom link email was marked "not needed". */
+    zoomDismissed?: boolean;
+    /** Membership not approved after the panel interview. */
+    membershipDeclined?: boolean;
   }[];
+  /** Guests to phone: rejected, or membership not approved (no email is sent to them). */
+  calls?: { id: string; name: string; phone: string | null; why: 'rejected' | 'membership' }[];
+  /** Panel interviews set, but the guest has not been emailed the time (nor marked "not needed"). */
+  panelEmails?: { id: string; name: string }[];
   /** Emails that failed in the past 7 days. */
   failedEmails: number;
   /** Approved members who were reminded but still haven't finished onboarding. */
@@ -183,31 +193,66 @@ export function buildActionItems(d: ActionInput): ActionItem[] {
       );
       continue;
     }
-    if (g.status === 'requested' && !g.zoomSentAt) {
+    if (g.membershipDeclined) continue;
+    if (g.status === 'requested' && !g.accepted && !g.zoomSentAt) {
       items.push({
         ...base,
         key: `guest-${g.id}`,
         title: `Accept or reject ${g.name}`,
-        detail: `Stage: asked for an invite ${short(g.created_at)}. Check for a category conflict, then accept (sends the Zoom link) or decline.`,
+        detail: `Stage: asked for an invite ${short(g.created_at)}. Check for membership rules compliance or a category conflict, then accept or reject.`,
         tone: 'amber',
       });
-    } else if (g.status === 'requested' && g.zoomSentAt && (g.meetingEnded || now - new Date(g.zoomSentAt).getTime() > 7 * DAY)) {
+    } else if (g.status === 'requested' && !g.zoomSentAt && !g.zoomDismissed) {
       items.push({
         ...base,
         key: `guest-${g.id}`,
-        title: `Did ${g.name} visit?`,
-        detail: `Stage: Zoom link sent ${short(g.zoomSentAt)}, not marked as visited. Mark them visited if they came (the Zoom report does it when it recognizes them).`,
+        title: `Send ${g.name} the Zoom link`,
+        detail: 'Stage: accepted, but the Zoom link email hasn’t been sent. Send it from the Zoom Link step, or mark it “Not needed”.',
+        tone: 'amber',
+      });
+    } else if (
+      g.status === 'requested' &&
+      (g.meetingEnded || (g.zoomSentAt ? now - new Date(g.zoomSentAt).getTime() > 7 * DAY : now - new Date(g.created_at).getTime() > 7 * DAY))
+    ) {
+      items.push({
+        ...base,
+        key: `guest-${g.id}`,
+        title: `Did ${g.name} join a Zoom?`,
+        detail: `Stage: ${g.zoomSentAt ? `Zoom link sent ${short(g.zoomSentAt)}` : 'accepted'}, First Zoom not done. Press First Zoom Done if they came (the Zoom report does it when it recognizes them).`,
         tone: 'teal',
       });
     } else if (g.status === 'visited' && !g.applyInviteAt) {
       items.push({
         ...base,
         key: `guest-${g.id}`,
-        title: `Invite ${g.name} to apply`,
-        detail: 'Stage: visited. When the Membership Committee agrees, send them the application form.',
+        title: `Send ${g.name} the application form`,
+        detail: 'Stage: First Zoom done. When the Membership Committee agrees, send them the application form.',
         tone: 'teal',
       });
     }
+  }
+  for (const c of d.calls ?? []) {
+    items.push({
+      key: `call-${c.why}-${c.id}`,
+      title: `Call ${c.name}${c.phone ? ` (${c.phone})` : ''}`,
+      detail:
+        c.why === 'rejected'
+          ? 'Their invite request was rejected. No email was sent, so please tell them by phone, then press “I called them”.'
+          : 'Their membership was not approved. No email was sent, so please tell them by phone, then press “I called them”.',
+      tab: 'Guest Invites & Applications',
+      href: '/admin/guests#guests',
+      tone: 'red',
+    });
+  }
+  for (const p of d.panelEmails ?? []) {
+    items.push({
+      key: `panel-email-${p.id}`,
+      title: `Tell ${p.name} when their panel interview is`,
+      detail: 'The time is confirmed but hasn’t been emailed to them. Email it, or mark it “Not needed” if you told them another way.',
+      tab: 'Guest Invites & Applications',
+      href: `/admin/panel/${p.id}`,
+      tone: 'amber',
+    });
   }
   for (const p of d.pendingApplications) {
     if (handled.has(p.id)) continue;

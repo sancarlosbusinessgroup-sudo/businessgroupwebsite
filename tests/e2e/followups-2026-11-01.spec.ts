@@ -138,8 +138,24 @@ test('directory: the "Current BARP Champion" section is for logged-in members on
   browser,
 }) => {
   const [me] = await db<{ id: string }>('profiles?select=id&first_name=eq.Morgan&last_name=eq.Member');
-  const month = '2099-01-01';
-  await rest('champion_awards', 'POST', { month, profile_id: me?.id, reason: 'E2E champion section' });
+  // Owner, 2026-11-25: the champion is per meeting (points start again at every meeting), so the current one is the latest
+  // meeting champion, not a month's.
+  const [m] = await rest('meetings', 'POST', {
+    slug: `champion-${Date.now()}`,
+    title: 'Champion test meeting',
+    category: 'Networking',
+    starts_at: '2099-01-05T16:15:00Z',
+    ends_at: '2099-01-05T17:45:00Z',
+  });
+  await rest('meeting_champions', 'POST', {
+    meeting_id: m?.id,
+    profile_id: me?.id,
+    auto_profile_id: me?.id,
+    points: {},
+    period_from: '2098-12-22T17:45:00Z',
+    period_to: '2099-01-05T17:45:00Z',
+    reason: 'E2E champion section',
+  });
   try {
     const visitor = await (await browser.newContext()).newPage();
     await visitor.goto('/members');
@@ -156,6 +172,7 @@ test('directory: the "Current BARP Champion" section is for logged-in members on
     const name = await card.getByRole('heading', { name: 'Morgan Member' }).boundingBox();
     expect(photo && name && name.x > photo.x + photo.width - 1).toBe(true);
   } finally {
-    await rest(`champion_awards?month=eq.${month}`, 'DELETE');
+    await rest(`meeting_champions?meeting_id=eq.${m?.id}`, 'DELETE');
+    await rest(`meetings?id=eq.${m?.id}`, 'DELETE');
   }
 });

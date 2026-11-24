@@ -31,8 +31,8 @@ export default async function VideoGuidesPage() {
             The full tour
           </h2>
           <p className="text-ink-soft m-0 max-w-[760px]">
-            All 14 chapters in one video ({full.duration}). The videos have no sound: follow the captions at the bottom. They were recorded with made-up sample
-            members, so the names you see are not real.
+            All 14 chapters in one video ({full.duration}). A voice reads each step aloud, and the captions at the bottom say the same thing. They were recorded
+            with made-up sample members, so the names you see are not real.
           </p>
         </div>
         <div className="card overflow-hidden p-2 sm:p-3">

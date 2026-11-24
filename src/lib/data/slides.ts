@@ -6,7 +6,7 @@ import { resolveNotes, resolveSlides, resolveTimers, type SlideKey, type SlideNo
 import { getUpcomingMemberEvents, type CalendarItem, fromMeeting } from './events';
 import { finalizeMeetingChampions, getChampionAwards, getChampionPeriods, getChampionRanking, getMeetingChampionRanking, type ChampionAward } from './champion';
 import { MEETING_CHAMPION_FROM, meetingDateLabel, monthOf, monthRange, previousMonth } from '../champion';
-import { getGroupTotals, getGroupTotalsWindow, getLeaderboard, type GroupTotals, type LeaderRow } from './member';
+import { getGroupTotals, getGroupTotalsWindow, getLeaderboardWindow, type GroupTotals, type LeaderRow } from './member';
 import { getCategorySeats, getLeadership, getMeetingBySlug, getUpcomingMeetings, type MeetingWithSpeakers, type Speaker } from './public';
 
 // Everything the meeting slide deck shows, loaded as the signed-in member (RLS applies).
@@ -128,7 +128,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
       getGroupTotalsWindow(cycleWindow),
       getGroupTotals(periodRange({ period: 'month' })),
       getGroupTotals(periodRange({ period: 'year' })),
-      getLeaderboard(periodRange({ period: 'month' })),
+      getLeaderboardWindow(cycleWindow),
       getUpcomingMeetings(12),
       getUpcomingMemberEvents(12),
       getLeadership(),

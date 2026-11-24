@@ -393,8 +393,14 @@ test.describe('membership application', () => {
     await expect(page.getByText("You're on the list, Ivy!")).toBeVisible();
 
     await login(page, users.admin, undefined, '/admin/guests');
-    await page.getByRole('button', { name: 'Invite to apply (Ivy Applicant)' }).click();
-    await expect(page.getByText('Invite sent.')).toBeVisible();
+    // Owner, 2026-11-25: "Send Form" in the Application Form step, confirmed in a pop-up.
+    const row = page.getByRole('table', { name: 'Guest invite requests, one column per step' }).getByRole('row').filter({ hasText: 'Ivy Applicant' });
+    await row.getByRole('button', { name: 'Accept Ivy Applicant' }).click();
+    await page.getByRole('dialog', { name: 'Send the Zoom link email to Ivy?' }).getByRole('button', { name: 'Not now' }).click();
+    await row.getByRole('button', { name: 'First Zoom Done for Ivy Applicant' }).click();
+    await row.getByRole('button', { name: 'Send Form to Ivy Applicant' }).click();
+    await page.getByRole('dialog', { name: 'Email the application form to Ivy?' }).getByRole('button', { name: 'Send email' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Invite sent.' })).toBeVisible();
     let mail: { subject: string; htmlContent: string; textContent: string } | undefined;
     for (let i = 0; i < 40 && !mail; i++) {
       const all = (await (await fetch(`${BREVO}/emails?to=${encodeURIComponent(email)}`)).json()) as {
@@ -409,7 +415,7 @@ test.describe('membership application', () => {
     const link = mail?.textContent.match(/https?:\/\/\S+\/join\?invite=[0-9a-f-]{36}/)?.[0] ?? '';
     expect(link).not.toBe('');
     await page.reload();
-    await expect(page.getByText(/Invited \w{3} \d+, \d{4}/).first()).toBeVisible();
+    await expect(row.getByText(/^Form sent \w{3} \d+, \d{4}/)).toBeVisible();
 
     await page.getByRole('button', { name: 'Log out' }).click();
     await page.goto(new URL(link).pathname + new URL(link).search);

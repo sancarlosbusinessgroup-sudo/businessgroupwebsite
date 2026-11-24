@@ -102,3 +102,6 @@ export function formatMoney(n: number): string {
   const whole = Number.isInteger(n);
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 });
 }
+
+/** "Tue, Dec 1, 10:00 AM" (Pacific): a proposed or confirmed panel interview time (owner, 2026-11-25). */
+export const formatSlot = (d: Date) => fmt({ weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(d);

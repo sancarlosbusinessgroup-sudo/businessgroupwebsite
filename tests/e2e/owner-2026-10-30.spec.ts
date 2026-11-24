@@ -172,8 +172,10 @@ test('visitor sign-in link: a walk-in visitor signs in and shows on Guest invite
 
     await login(page, users.admin, undefined, '/admin/guests');
     const row = page.getByRole('row').filter({ hasText: 'Wally Walkin' });
+    // Owner, 2026-11-25: contact details (and this mark) under "Details"; "Visiting" is now "First Zoom Done".
+    await row.getByText('Details', { exact: true }).click();
     await expect(row.getByText('Signed in at the meeting')).toBeVisible();
-    await expect(row.getByText('Visiting')).toBeVisible();
+    await expect(row.getByText('First Zoom Done', { exact: true })).toBeVisible();
   } finally {
     await rest(`guest_requests?email=eq.${encodeURIComponent(email)}`, 'DELETE');
     await rest(`meetings?id=eq.${m?.id}`, 'DELETE');

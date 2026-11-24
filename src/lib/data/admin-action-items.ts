@@ -17,7 +17,7 @@ const DAY = 86_400_000;
 export async function loadActionItems(db: Db, now = new Date()): Promise<ActionItem[]> {
   const nowIso = now.toISOString();
   const recent = new Date(now.getTime() - 90 * DAY).toISOString();
-  const [lastRes, nextRes, membersRes, corrRes, pendingRes, guestsRes, zoomSentRes, applyRes, failedRes, onboardRes] = await Promise.all([
+  const [lastRes, nextRes, membersRes, corrRes, pendingRes, guestsRes, zoomSentRes, applyRes, failedRes, onboardRes, callsRes, panelsRes] = await Promise.all([
     db
       .from('meetings')
       .select('id, starts_at, ends_at')
@@ -42,7 +42,9 @@ export async function loadActionItems(db: Db, now = new Date()): Promise<ActionI
     db.from('profiles').select('id, first_name, last_name, created_at, member_contacts(email)').eq('status', 'pending').order('created_at'),
     db
       .from('guest_requests')
-      .select('id, first_name, last_name, email, status, created_at, one_on_ones_done_at, meeting:meetings(ends_at)')
+      .select(
+        'id, first_name, last_name, email, status, created_at, one_on_ones_done_at, accepted_at, zoom_email_dismissed_at, membership_declined_at, meeting:meetings(ends_at)',
+      )
       .neq('status', 'joined')
       // Declined guests are done with (guest board, owner 2026-11-24).
       .is('declined_at', null)
@@ -61,6 +63,17 @@ export async function loadActionItems(db: Db, now = new Date()): Promise<ActionI
       .is('completed_at', null)
       .not('reminded_at', 'is', null)
       .gte('invited_at', new Date(now.getTime() - 60 * DAY).toISOString()),
+    // Owner, 2026-11-25: rejected guests and "membership not approved" get a phone call, never an email.
+    db
+      .from('guest_requests')
+      .select('id, first_name, last_name, phone, declined_at, decline_called_at, membership_declined_at, membership_called_at')
+      .or('and(declined_at.not.is.null,decline_called_at.is.null),and(membership_declined_at.not.is.null,membership_called_at.is.null)')
+      .gte('created_at', recent)
+      .limit(50),
+    db
+      .from('panel_interviews')
+      .select('id, status, guest_emailed_at, guest_email_dismissed_at, guest:guest_requests(first_name, last_name, one_on_ones_done_at)')
+      .limit(100),
   ]);
 
   const last = lastRes.data ?? null;
@@ -133,9 +146,25 @@ export async function loadActionItems(db: Db, now = new Date()): Promise<ActionI
         created_at: g.created_at,
         one_on_ones_done_at: g.one_on_ones_done_at,
         zoomSentAt: zoomSent.get(g.id) ?? null,
+        accepted: !!g.accepted_at,
+        zoomDismissed: !!g.zoom_email_dismissed_at,
+        membershipDeclined: !!g.membership_declined_at,
         applyInviteAt: applySent.get(g.id) ?? null,
         meetingEnded: !!m?.ends_at && new Date(m.ends_at).getTime() <= now.getTime(),
       };
+    }),
+    calls: (callsRes.data ?? []).flatMap((c) => {
+      const name = `${c.first_name} ${c.last_name}`;
+      const out: { id: string; name: string; phone: string | null; why: 'rejected' | 'membership' }[] = [];
+      if (c.declined_at && !c.decline_called_at) out.push({ id: c.id, name, phone: c.phone, why: 'rejected' });
+      if (c.membership_declined_at && !c.membership_called_at) out.push({ id: c.id, name, phone: c.phone, why: 'membership' });
+      return out;
+    }),
+    panelEmails: (panelsRes.data ?? []).flatMap((p) => {
+      const g = Array.isArray(p.guest) ? p.guest[0] : p.guest;
+      return p.status === 'scheduled' && !p.guest_emailed_at && !p.guest_email_dismissed_at && g && !g.one_on_ones_done_at
+        ? [{ id: p.id, name: `${g.first_name} ${g.last_name}` }]
+        : [];
     }),
     failedEmails: failedRes.count ?? 0,
     onboardingOverdue: (onboardRes.data ?? [])

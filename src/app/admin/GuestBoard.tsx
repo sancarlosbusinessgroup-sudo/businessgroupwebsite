@@ -2,35 +2,22 @@
 
 import { useRouter } from 'next/navigation';
 import { useActionState, useRef, useState, useTransition, type DragEvent } from 'react';
-import { acceptGuest, addGuestNote, declineGuest, moveGuestStage } from '@/app/actions/guests';
-import { setGuestOneOnOnes, setGuestStatus, setMemberStatus } from '@/app/actions/admin';
+import { moveGuestStage } from '@/app/actions/guests';
 import { SubmitButton } from '@/components/forms';
 import { Pill } from '@/components/ui';
 import { GUEST_STAGES, guestStageHints, guestStageLabels, type GuestStage } from '@/lib/guest-pipeline';
 import { idle, type ActionState } from '@/lib/validation';
-import { InviteToApplyButton } from './InviteToApplyButton';
-import { SendZoomLinkButton } from './SendZoomLinkButton';
+import { boardSteps, StepCell, UndoStep, type GuestCardData } from './GuestSteps';
 
-export type BoardGuest = {
-  id: string;
-  name: string;
+export type BoardGuest = GuestCardData & {
   business: string | null;
-  email: string;
-  phone: string | null;
   website: string | null;
   about: string | null;
   invitedBy: string | null;
   requestedOn: string;
   changedAt: string;
-  stage: GuestStage;
-  status: 'requested' | 'visited' | 'applied' | 'joined';
   signedIn: boolean;
-  zoomSentOn: string | null;
-  formSentOn: string | null;
-  interviewDone: boolean;
-  /** Their pending membership application (matched by email), for "See application" and "Approve membership". */
-  applicantId: string | null;
-  history: { at: string; who: string | null; text: string }[];
+  addedByHand: boolean;
 };
 
 function Message({ state }: { state: ActionState }) {
@@ -43,83 +30,6 @@ function Message({ state }: { state: ActionState }) {
 }
 
 type Notify = (name: string, r: ActionState) => void;
-
-function AcceptButton({ g, notify }: { g: BoardGuest; notify: Notify }) {
-  // The card moves to another column when this succeeds, so the message is also shown above the board.
-  const [, action] = useActionState(async (prev: ActionState, fd: FormData) => {
-    const r = await acceptGuest(prev, fd);
-    notify(g.name, r);
-    return r;
-  }, idle);
-  return (
-    <form action={action} className="flex flex-col items-start gap-1">
-      <input type="hidden" name="id" value={g.id} />
-      <SubmitButton pendingText="Accepting…" className="btn btn-primary btn-sm">
-        Accept<span className="sr-only"> {g.name} and send the Zoom link</span>
-      </SubmitButton>
-      <span className="text-ink-muted text-[13px]">Sends the Zoom link</span>
-    </form>
-  );
-}
-
-function DeclineForm({ g, notify }: { g: BoardGuest; notify: Notify }) {
-  const [open, setOpen] = useState(false);
-  // The card leaves the board when this succeeds, so the message is shown above the board.
-  const [, action] = useActionState(async (prev: ActionState, fd: FormData) => {
-    const r = await declineGuest(prev, fd);
-    notify(g.name, r);
-    return r;
-  }, idle);
-  if (!open)
-    return (
-      <button type="button" className="btn btn-outline btn-sm" onClick={() => setOpen(true)} aria-expanded={false}>
-        Decline…<span className="sr-only"> {g.name}</span>
-      </button>
-    );
-  return (
-    <form action={action} className="border-line flex w-full flex-col gap-2 rounded-xl border p-3" aria-label={`Decline ${g.name}`}>
-      <input type="hidden" name="id" value={g.id} />
-      <fieldset className="m-0 flex flex-col gap-1 border-0 p-0">
-        <legend className="mb-1 text-sm font-bold">How will you tell them?</legend>
-        <label className="flex min-h-11 items-center gap-2 text-sm">
-          <input type="radio" name="method" value="phone" defaultChecked className="h-5 w-5" /> I’ll call them
-        </label>
-        <label className="flex min-h-11 items-center gap-2 text-sm">
-          <input type="radio" name="method" value="email" className="h-5 w-5" /> Send the decline email
-        </label>
-      </fieldset>
-      <label className="label m-0" htmlFor={`dn-${g.id}`}>
-        Note (only admins see it)
-      </label>
-      <textarea id={`dn-${g.id}`} name="note" className="field min-h-[64px]" maxLength={1000} placeholder="Why, and anything said" />
-      <div className="flex flex-wrap gap-2">
-        <SubmitButton pendingText="Declining…" className="btn btn-primary btn-sm">
-          Decline
-        </SubmitButton>
-        <button type="button" className="btn btn-outline btn-sm" onClick={() => setOpen(false)}>
-          Cancel
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function NoteForm({ id }: { id: string }) {
-  const [state, action] = useActionState(addGuestNote, idle);
-  return (
-    <form action={action} className="flex flex-col gap-1.5">
-      <input type="hidden" name="id" value={id} />
-      <label className="label m-0" htmlFor={`note-${id}`}>
-        Add a note
-      </label>
-      <textarea id={`note-${id}`} name="note" className="field min-h-[56px]" maxLength={1000} />
-      <SubmitButton pendingText="Saving…" className="btn btn-outline btn-sm self-start">
-        Save note
-      </SubmitButton>
-      <Message state={state} />
-    </form>
-  );
-}
 
 function MoveForm({ g, onMoved, notify }: { g: BoardGuest; onMoved: (stage: GuestStage) => void; notify: Notify }) {
   const [, action] = useActionState(async (prev: ActionState, fd: FormData) => {
@@ -147,69 +57,8 @@ function MoveForm({ g, onMoved, notify }: { g: BoardGuest; onMoved: (stage: Gues
       <SubmitButton pendingText="Moving…" className="btn btn-outline btn-sm">
         Move
       </SubmitButton>
-      <div className="w-full"></div>
     </form>
   );
-}
-
-function StageActions({ g, notify }: { g: BoardGuest; notify: Notify }) {
-  switch (g.stage) {
-    case 'review':
-      return (
-        <div className="flex flex-wrap items-start gap-2">
-          <AcceptButton g={g} notify={notify} />
-          <DeclineForm g={g} notify={notify} />
-        </div>
-      );
-    case 'zoom_sent':
-      return (
-        <div className="flex flex-wrap items-start gap-2">
-          {g.status === 'requested' ? (
-            <form action={setGuestStatus}>
-              <input type="hidden" name="id" value={g.id} />
-              <input type="hidden" name="status" value="visited" />
-              <button type="submit" className="btn btn-primary btn-sm">
-                Mark visited<span className="sr-only"> for {g.name}</span>
-              </button>
-            </form>
-          ) : null}
-          <SendZoomLinkButton id={g.id} name={g.name} sentOn={g.zoomSentOn} />
-        </div>
-      );
-    case 'send_application':
-      return <InviteToApplyButton id={g.id} name={g.name} sentOn={g.formSentOn} />;
-    case 'application_done':
-    case 'interview':
-      return (
-        <div className="flex flex-wrap items-start gap-2">
-          {g.applicantId ? (
-            <a href={`#application-${g.applicantId}`} className="btn btn-outline btn-sm">
-              See application<span className="sr-only"> of {g.name}</span>
-            </a>
-          ) : null}
-          <form action={setGuestOneOnOnes}>
-            <input type="hidden" name="id" value={g.id} />
-            <input type="hidden" name="done" value={g.interviewDone ? 'false' : 'true'} />
-            <button type="submit" className={`btn btn-sm ${g.interviewDone ? 'btn-outline' : g.stage === 'interview' ? 'btn-primary' : 'btn-outline'}`}>
-              {g.interviewDone ? 'Undo interview done' : 'Interview done'}
-              <span className="sr-only"> for {g.name}</span>
-            </button>
-          </form>
-          {g.stage === 'interview' && g.applicantId ? (
-            <form action={setMemberStatus}>
-              <input type="hidden" name="back" value="/admin/guests" />
-              <input type="hidden" name="id" value={g.applicantId} />
-              <input type="hidden" name="status" value="approved" />
-              <button type="submit" className="btn btn-primary btn-sm">
-                Approve membership<span className="sr-only"> of {g.name}</span>
-              </button>
-            </form>
-          ) : null}
-        </div>
-      );
-    default:
-      return null;
-  }
 }
 
 function Card({
@@ -223,12 +72,9 @@ function Card({
   onDragStart: (e: DragEvent, id: string) => void;
   notify: Notify;
 }) {
-  const hints = [
-    g.signedIn ? 'Signed in at the meeting' : null,
-    g.zoomSentOn ? `Zoom link sent ${g.zoomSentOn}` : null,
-    g.formSentOn ? `Form sent ${g.formSentOn}` : null,
-    g.interviewDone ? 'Interview done' : null,
-  ].filter((x): x is string => !!x);
+  const hints = [g.signedIn ? 'Signed in at the meeting' : null, g.addedByHand ? 'Added by hand' : null].filter((x): x is string => !!x);
+  // Owner, 2026-11-25: the business, request date and inviter as bullet points.
+  const facts = [g.business, `Requested ${g.requestedOn}`, g.invitedBy ? `Invited by ${g.invitedBy}` : null].filter((x): x is string => !!x);
   return (
     <li
       draggable
@@ -236,18 +82,18 @@ function Card({
       data-guest-card={g.id}
       className="border-line bg-surface flex cursor-grab flex-col gap-2 rounded-xl border p-3 shadow-sm active:cursor-grabbing"
     >
-      <div>
+      <div className="flex flex-col gap-1">
         <strong className="text-heading block">{g.name}</strong>
-        {g.business ? <span className="text-ink-soft block text-sm">{g.business}</span> : null}
-        <span className="text-ink-muted block text-[13px]">
-          Requested {g.requestedOn}
-          {g.invitedBy ? ` · invited by ${g.invitedBy}` : ''}
-        </span>
+        <ul className="text-ink-soft m-0 list-disc pl-5 text-[13px] leading-snug">
+          {facts.map((f) => (
+            <li key={f}>{f}</li>
+          ))}
+        </ul>
       </div>
       {hints.length ? (
         <div className="flex flex-wrap gap-1">
           {hints.map((h) => (
-            <Pill key={h} tone={h === 'Interview done' ? 'green' : 'teal'}>
+            <Pill key={h} tone="teal">
               {h}
             </Pill>
           ))}
@@ -259,9 +105,12 @@ function Card({
           <p className="m-0 mt-1 whitespace-pre-line">{g.about}</p>
         </details>
       ) : null}
-      <StageActions g={g} notify={notify} />
+      {boardSteps(g).map((s) => (
+        <StepCell key={s} g={g} step={s} />
+      ))}
+      <UndoStep g={g} />
       <details className="text-sm">
-        <summary className="cursor-pointer font-semibold">Details, history &amp; move</summary>
+        <summary className="cursor-pointer font-semibold">Contact &amp; move</summary>
         <div className="mt-2 flex flex-col gap-3">
           <p className="m-0">
             <a href={`mailto:${g.email}`}>{g.email}</a>
@@ -276,22 +125,7 @@ function Card({
             ) : null}
           </p>
           <MoveForm g={g} onMoved={onMoved} notify={notify} />
-          <div>
-            <p className="m-0 font-bold">History</p>
-            {g.history.length === 0 ? (
-              <p className="text-ink-muted m-0">Nothing yet.</p>
-            ) : (
-              <ul className="m-0 flex list-none flex-col gap-1 p-0">
-                {g.history.map((h, n) => (
-                  <li key={n}>
-                    <span className="text-ink-muted">{h.at}</span> · {h.text}
-                    {h.who ? <span className="text-ink-muted"> · {h.who}</span> : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <NoteForm id={g.id} />
+          {/* History and notes are hidden for now (owner, 2026-11-25); they are still recorded. */}
         </div>
       </details>
     </li>

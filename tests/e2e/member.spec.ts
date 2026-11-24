@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { db, expectAccessible, login, trackConsole, users } from './support';
+import { STACK, db, expectAccessible, login, serviceKey, trackConsole, users } from './support';
 
 test.describe('member area', () => {
   test.beforeEach(async ({ page }) => {
@@ -195,10 +195,32 @@ test.describe('admin', () => {
     await expect(page).toHaveURL(/\/dashboard/);
   });
 
-  test('admin can mark a guest as visited', async ({ page }) => {
-    await login(page, users.admin, undefined, '/admin/guests');
-    const btn = page.getByRole('button', { name: /^Mark visited/ }).first();
-    await btn.click();
-    await expect(page.getByText('Visiting').first()).toBeVisible();
+  // Owner, 2026-11-25: "Mark visited" is now "First Zoom Done" (button and status).
+  test('admin can mark a guest’s first Zoom as done', async ({ page }) => {
+    const key = await serviceKey();
+    const headers = { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Prefer: 'return=representation' };
+    const stamp = Date.now();
+    const [g] = (await (
+      await fetch(`${STACK}/rest/v1/guest_requests`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ first_name: 'Zed', last_name: `Zoom${stamp}`, email: `zed.${stamp}@example.org` }),
+      })
+    ).json()) as { id: string }[];
+    await fetch(`${STACK}/rest/v1/guest_requests?id=eq.${g!.id}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ pipeline_stage: 'zoom_sent', accepted_at: new Date().toISOString() }),
+    });
+    try {
+      await login(page, users.admin, undefined, '/admin/guests');
+      await page
+        .locator(`[data-guest-card="${g!.id}"]`)
+        .getByRole('button', { name: `First Zoom Done for Zed Zoom${stamp}` })
+        .click();
+      await expect(page.getByRole('status').filter({ hasText: 'First Zoom done.' })).toBeVisible();
+    } finally {
+      await fetch(`${STACK}/rest/v1/guest_requests?id=eq.${g!.id}`, { method: 'DELETE', headers });
+    }
   });
 });

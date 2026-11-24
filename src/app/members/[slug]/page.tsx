@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ProfileView } from '@/components/ProfileView';
-import { getChampionAwards, getCurrentChampion } from '@/lib/data/champion';
+import { getChampionAwards, getCrownedChampion } from '@/lib/data/champion';
 import { getViewer, isAdmin, isApproved } from '@/lib/auth';
 import { PUBLIC_PROFILE_COLUMNS, getMemberBySlug, getMemberPhotos, getPublicPhone, type PublicProfile } from '@/lib/data/public';
 import { GalleryGrid } from '@/app/gallery/GalleryGrid';
@@ -52,7 +52,7 @@ export default async function MemberProfilePage({ params }: Props) {
     phone = await getPublicPhone(slug);
   }
 
-  const [wins, current, photos] = await Promise.all([getChampionAwards(24, profile.id), getCurrentChampion(), getMemberPhotos(profile.id)]);
+  const [wins, current, photos] = await Promise.all([getChampionAwards(24, profile.id), getCrownedChampion(), getMemberPhotos(profile.id)]);
   const isSelf = viewer?.userId === profile.id;
   const champion = { current: current?.profileId === profile.id ? current.label : null, past: wins.map((w) => w.label) };
 

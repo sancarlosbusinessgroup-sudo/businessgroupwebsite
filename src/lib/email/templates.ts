@@ -1009,3 +1009,113 @@ export function managementRecapEmail(o: ManagementRecap & { siteUrl: string; fir
     }),
   };
 }
+
+// --- Panel interviews (owner, 2026-11-25) -----------------------------------------------------------------------
+
+const formatWords = { zoom: 'On Zoom', phone: 'By phone', in_person: 'In person' } as const;
+export type PanelFormat = keyof typeof formatWords;
+
+/** A panelist is asked which of the proposed times they can make for a guest's panel interview. */
+export function panelAvailabilityEmail(o: {
+  siteUrl: string;
+  toFirstName: string;
+  guestName: string;
+  guestBusiness?: string | null;
+  askedBy: string;
+  /** The other panelists. */
+  panel: string[];
+  times: string[];
+  link: string;
+}): Email {
+  return {
+    subject: `When can you interview ${o.guestName}?`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: `Pick the times you can make for ${o.guestName}'s panel interview.`,
+      heading: `${o.toFirstName}, you're on a panel interview`,
+      blocks: [
+        {
+          p: `${o.askedBy} has asked you to interview ${o.guestName}${o.guestBusiness ? ` (${o.guestBusiness})` : ''} for membership${
+            o.panel.length ? `, together with ${andList(o.panel)}` : ''
+          }.`,
+        },
+        { p: 'Please mark which of these times you can make. As soon as one time works for all three of you, it can be confirmed.' },
+        { list: o.times.map((t, i) => [`Option ${i + 1}`, t] as [string, string]) },
+        { p: 'None of them work? Add another time on the same page.' },
+      ],
+      cta: { label: 'Mark my availability', href: o.link },
+      footer: `You get this email because you are on the Management team of ${site.name}.`,
+    }),
+  };
+}
+
+/** The guest is told when their panel interview is, with whom and how (only when an admin confirms the email). */
+export function panelInterviewGuestEmail(o: {
+  siteUrl: string;
+  firstName: string;
+  when: string;
+  minutes: number;
+  format: PanelFormat;
+  location?: string | null;
+  panel: string[];
+}): Email {
+  const where = o.location?.trim() || null;
+  return {
+    subject: `Your membership interview with ${site.name}, ${o.when}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: 'Your panel interview with our Membership Committee is set.',
+      heading: `Your interview is set, ${o.firstName}`,
+      blocks: [
+        { p: `Thank you for applying to ${site.name}. Three members of our Management team would like to meet you for a short panel interview.` },
+        {
+          list: [
+            ['When', o.when],
+            ['How long', `About ${o.minutes} minutes`],
+            ['How', formatWords[o.format]],
+            ...(where ? ([[o.format === 'in_person' ? 'Where' : o.format === 'zoom' ? 'Zoom link' : 'Phone', where]] as [string, string][]) : []),
+            ['With', andList(o.panel)],
+          ],
+        },
+        { p: 'If the time no longer works for you, simply reply to this email and we will find another one.' },
+      ],
+      footer: `You get this email because you applied to join ${site.name}.`,
+    }),
+  };
+}
+
+/** The panelists are told the time that was confirmed. */
+export function panelConfirmedEmail(o: {
+  siteUrl: string;
+  toFirstName: string;
+  guestName: string;
+  when: string;
+  minutes: number;
+  format: PanelFormat;
+  location?: string | null;
+  panel: string[];
+  link: string;
+}): Email {
+  return {
+    subject: `Panel interview set: ${o.guestName}, ${o.when}`,
+    ...layout({
+      siteUrl: o.siteUrl,
+      preheader: `${o.guestName}'s panel interview is set for ${o.when}.`,
+      heading: `${o.guestName}'s interview is set`,
+      blocks: [
+        {
+          list: [
+            ['When', o.when],
+            ['How long', `About ${o.minutes} minutes`],
+            ['How', formatWords[o.format]],
+            ...(o.location?.trim() ? ([['Where / link', o.location.trim()]] as [string, string][]) : []),
+            ['Panel', andList(o.panel)],
+          ],
+        },
+        { p: `Their application is on the Guest Invites & Applications page. After the interview, mark it done there.` },
+      ],
+      cta: { label: 'Open the interview', href: o.link },
+      footer: `You get this email because you are on ${o.guestName}'s interview panel.`,
+    }),
+  };
+}

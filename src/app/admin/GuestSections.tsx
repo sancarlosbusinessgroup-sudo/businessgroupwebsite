@@ -1,28 +1,29 @@
 import { EmptyState, Pill } from '@/components/ui';
-import { guestStatusLabels, visitorSignInPath } from '@/lib/content';
+import { visitorSignInPath } from '@/lib/content';
 import { env } from '@/lib/env';
-import { formatShortDate, nowMs } from '@/lib/dates';
+import { formatShortDate, formatSlot, nowMs } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
-import { setGuestOneOnOnes, setGuestStatus, setMemberStatus } from '../actions/admin';
-import { reopenGuest } from '../actions/guests';
-import { describeGuestEvent, isGuestStage } from '@/lib/guest-pipeline';
+import { setMemberStatus } from '../actions/admin';
+import { GUEST_STEPS, guestStepLabels, isGuestStage, rankSlots, stepState, type PanelSummary } from '@/lib/guest-pipeline';
 import { GuestBoard, type BoardGuest } from './GuestBoard';
-import { SendZoomLinkButton } from './SendZoomLinkButton';
+import { GuestProgress, GuestStepsProvider, StepCell, UndoStep, type PanelistOption } from './GuestSteps';
+import { AddGuestForm } from './AddGuestForm';
 import { OpenApplicationOnHash } from './OpenApplicationOnHash';
-import { InviteToApplyButton } from './InviteToApplyButton';
 import { CopySignInLink } from './CopySignInLink';
 
 /** The admin pages that show these sections; Approve/Decline errors come back to the page the admin was on. */
 export type GuestSectionsPage = '/admin' | '/admin/guests';
 
+const firstOf = <T,>(x: T | T[] | null | undefined): T | null => (Array.isArray(x) ? (x[0] ?? null) : (x ?? null));
+
 /**
- * Pending applications, Visitor sign-in link and Guest invite requests on Admin → Guest Invites & Applications
- * (owner, 2026-11-23). They were also on the Overview until 2026-11-24. Callers must have checked requireAdmin().
+ * Guest board, Pending applications, Visitor sign-in link and Guest invite requests on Admin → Guest Invites &
+ * Applications (owner, 2026-11-23/24/25). Callers must have checked requireAdmin().
  */
 export async function GuestSections({ back }: { back: GuestSectionsPage }) {
   const supabase = await createClient();
   const now = nowMs();
-  const [pendingRes, guestsRes, invitesRes, zoomSentRes, boardRes, declinedRes] = await Promise.all([
+  const [pendingRes, guestsRes, invitesRes, zoomSentRes, welcomeRes, leadersRes, membersRes, nextRes] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -30,130 +31,168 @@ export async function GuestSections({ back }: { back: GuestSectionsPage }) {
       )
       .eq('status', 'pending')
       .order('created_at'),
+    // Everyone from the last year (owner, 2026-11-24/25): the board and the guest list show the same people.
     supabase
       .from('guest_requests')
       .select(
-        'id, first_name, last_name, email, business_name, business_description, phone, website, invited_by_text, status, created_at, one_on_ones_done_at, source, guest_surveys(answered_at, coming_back, interested_in_joining, most_interesting, one_on_one_with, comments)',
+        'id, first_name, last_name, email, phone, website, business_name, business_description, invited_by_text, status, source, created_at, one_on_ones_done_at, pipeline_stage, stage_changed_at, accepted_at, declined_at, decline_called_at, zoom_email_dismissed_at, added_by, membership_declined_at, membership_called_at, welcome_email_dismissed_at, guest_surveys(answered_at, coming_back, interested_in_joining, most_interesting, one_on_one_with, comments)',
       )
-      .order('created_at', { ascending: false })
-      .limit(50),
-    supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'apply_invite').eq('status', 'sent').order('created_at').limit(500),
-    supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'guest_zoom_link').eq('status', 'sent').order('created_at').limit(500),
-    // Guest board (owner, 2026-11-24): everyone not declined, from the last year; approved members for 60 days.
-    supabase
-      .from('guest_requests')
-      .select(
-        'id, first_name, last_name, email, phone, website, business_name, business_description, invited_by_text, status, source, created_at, one_on_ones_done_at, pipeline_stage, stage_changed_at',
-      )
-      .is('declined_at', null)
       .gte('created_at', new Date(now - 365 * 86400000).toISOString())
-      .or(`pipeline_stage.neq.approved,stage_changed_at.gte.${new Date(now - 60 * 86400000).toISOString()}`)
       .order('created_at', { ascending: false })
       .limit(300),
+    supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'apply_invite').eq('status', 'sent').order('created_at').limit(1000),
+    supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'guest_zoom_link').eq('status', 'sent').order('created_at').limit(1000),
+    supabase.from('email_log').select('dedupe_key, created_at').eq('kind', 'welcome').eq('status', 'sent').order('created_at').limit(1000),
+    // Panelists: the Management list (owner, 2026-11-25), people with an admin login.
+    supabase.from('leadership').select('role, sort_order, profile:profiles(id, first_name, last_name, role)').not('profile_id', 'is', null).order('sort_order'),
+    supabase.from('profiles').select('id, first_name, last_name').eq('status', 'approved').order('first_name').order('last_name'),
     supabase
-      .from('guest_requests')
-      .select('id, first_name, last_name, business_name, declined_at, decline_method, decline_note, decliner:declined_by(first_name, last_name)')
-      .not('declined_at', 'is', null)
-      .order('declined_at', { ascending: false })
-      .limit(30),
+      .from('meetings')
+      .select('starts_at')
+      .eq('category', 'Networking')
+      .is('cancelled_reason', null)
+      .gt('ends_at', new Date(now).toISOString())
+      .order('starts_at')
+      .limit(1)
+      .maybeSingle(),
   ]);
   if (pendingRes.error || guestsRes.error) throw new Error('Could not load applications and guest requests');
-  const invitedOn = new Map((invitesRes.data ?? []).map((r) => [r.dedupe_key.split(':')[0], formatShortDate(new Date(r.created_at))]));
-  const zoomSentOn = new Map((zoomSentRes.data ?? []).map((r) => [r.dedupe_key.split(':')[0], formatShortDate(new Date(r.created_at))]));
-  // Guests who have applied: their pending membership application, matched by email (for "Application approval").
+  const lastSent = (rows: { dedupe_key: string; created_at: string }[] | null) =>
+    new Map((rows ?? []).map((r) => [r.dedupe_key.split(':')[0], formatShortDate(new Date(r.created_at))]));
+  const invitedOn = lastSent(invitesRes.data);
+  const zoomSentOn = lastSent(zoomSentRes.data);
+  const welcomeOn = lastSent(welcomeRes.data);
+  // Guests who have applied: their pending membership application, matched by email.
   const pendingByEmail = new Map(
     pendingRes.data.flatMap((p) => {
-      const c = Array.isArray(p.member_contacts) ? p.member_contacts[0] : p.member_contacts;
+      const c = firstOf(p.member_contacts);
       return c?.email ? [[c.email.toLowerCase(), { id: p.id, name: `${p.first_name} ${p.last_name}` }] as const] : [];
     }),
   );
+  const guests = guestsRes.data;
 
-  const boardRows = boardRes.data ?? [];
-  const { data: events } = boardRows.length
+  // Members who joined through the guest list: their account, for "Welcome email sent".
+  const joinedEmails = guests.filter((g) => g.status === 'joined').map((g) => g.email.toLowerCase());
+  const { data: joinedContacts } = joinedEmails.length
     ? await supabase
-        .from('guest_events')
-        .select('guest_id, created_at, kind, detail, actor:actor_id(first_name, last_name)')
+        .from('member_contacts')
+        .select('profile_id, email')
+        .in('email', [...new Set([...joinedEmails, ...guests.filter((g) => g.status === 'joined').map((g) => g.email)])])
+    : { data: [] };
+  const memberByEmail = new Map((joinedContacts ?? []).map((c) => [c.email.toLowerCase(), c.profile_id]));
+
+  // Panel interviews: panelists, proposed times and who can make them.
+  const { data: panels } = guests.length
+    ? await supabase
+        .from('panel_interviews')
+        .select(
+          'id, guest_id, panelist_ids, status, scheduled_at, guest_emailed_at, guest_email_dismissed_at, panel_interview_slots(id, starts_at, panel_interview_answers(profile_id, answer))',
+        )
         .in(
           'guest_id',
-          boardRows.map((g) => g.id),
+          guests.map((g) => g.id),
         )
-        .order('created_at', { ascending: false })
-        .limit(2000)
     : { data: [] };
-  const history = new Map<string, BoardGuest['history']>();
-  for (const e of events ?? []) {
-    const actor = (Array.isArray(e.actor) ? e.actor[0] : e.actor) as { first_name: string; last_name: string } | null;
-    const list = history.get(e.guest_id) ?? [];
-    list.push({ at: formatShortDate(new Date(e.created_at)), who: actor ? `${actor.first_name} ${actor.last_name}` : null, text: describeGuestEvent(e) });
-    history.set(e.guest_id, list);
+  const panelistIds = [...new Set((panels ?? []).flatMap((p) => p.panelist_ids))];
+  const { data: panelPeople } = panelistIds.length ? await supabase.from('profiles').select('id, first_name, last_name').in('id', panelistIds) : { data: [] };
+  const personName = new Map((panelPeople ?? []).map((p) => [p.id, `${p.first_name} ${p.last_name}`]));
+  const panelByGuest = new Map<string, PanelSummary>();
+  for (const p of panels ?? []) {
+    const slots = p.panel_interview_slots ?? [];
+    const answers = slots.flatMap((s) => (s.panel_interview_answers ?? []).map((a) => ({ slotId: s.id, profileId: a.profile_id, answer: a.answer })));
+    const best = rankSlots(
+      slots.map((s) => ({ id: s.id, startsAt: s.starts_at })),
+      p.panelist_ids,
+      answers,
+    )[0];
+    panelByGuest.set(p.guest_id, {
+      id: p.id,
+      status: p.status,
+      when: p.scheduled_at ? formatSlot(new Date(p.scheduled_at)) : null,
+      panelists: p.panelist_ids.map((id) => ({ id, name: personName.get(id) ?? 'Former member', answered: answers.some((a) => a.profileId === id) })),
+      best: best ? { label: formatSlot(new Date(best.startsAt)), allYes: best.allYes, slotId: best.id } : null,
+      guestEmailed: !!p.guest_emailed_at,
+      guestEmailDismissed: !!p.guest_email_dismissed_at,
+    });
   }
-  const board: BoardGuest[] = boardRows.map((g) => ({
-    id: g.id,
-    name: `${g.first_name} ${g.last_name}`,
-    business: g.business_name,
-    email: g.email,
-    phone: g.phone,
-    website: g.website,
-    about: g.business_description,
-    invitedBy: g.invited_by_text,
-    requestedOn: formatShortDate(new Date(g.created_at)),
-    changedAt: g.stage_changed_at ?? g.created_at,
-    stage: isGuestStage(g.pipeline_stage) ? g.pipeline_stage : 'review',
-    status: g.status,
-    signedIn: g.source === 'meeting_sign_in',
-    zoomSentOn: zoomSentOn.get(g.id) ?? null,
-    formSentOn: invitedOn.get(g.id) ?? null,
-    interviewDone: !!g.one_on_ones_done_at,
-    applicantId: pendingByEmail.get(g.email.toLowerCase())?.id ?? null,
-    history: history.get(g.id) ?? [],
-  }));
-  const declined = declinedRes.data ?? [];
+
+  const cards: (BoardGuest & { declinedOn: string | null; survey: (typeof guests)[number]['guest_surveys']; createdAt: string })[] = guests.map((g) => {
+    const memberId = memberByEmail.get(g.email.toLowerCase()) ?? null;
+    return {
+      id: g.id,
+      name: `${g.first_name} ${g.last_name}`,
+      business: g.business_name,
+      email: g.email,
+      phone: g.phone,
+      website: g.website,
+      about: g.business_description,
+      invitedBy: g.invited_by_text,
+      requestedOn: formatShortDate(new Date(g.created_at)),
+      createdAt: g.created_at,
+      changedAt: g.stage_changed_at ?? g.created_at,
+      stage: isGuestStage(g.pipeline_stage) ? g.pipeline_stage : 'review',
+      status: g.status,
+      signedIn: g.source === 'meeting_sign_in',
+      addedByHand: !!g.added_by,
+      accepted: !!g.accepted_at || !!zoomSentOn.get(g.id),
+      declined: g.declined_at ? { called: !!g.decline_called_at } : null,
+      declinedOn: g.declined_at ? formatShortDate(new Date(g.declined_at)) : null,
+      zoomSentOn: zoomSentOn.get(g.id) ?? null,
+      zoomDismissed: !!g.zoom_email_dismissed_at,
+      formSentOn: invitedOn.get(g.id) ?? null,
+      interviewDone: !!g.one_on_ones_done_at,
+      panel: panelByGuest.get(g.id) ?? null,
+      membershipDeclined: g.membership_declined_at ? { called: !!g.membership_called_at } : null,
+      welcomeSentOn: memberId ? (welcomeOn.get(memberId) ?? null) : null,
+      welcomeDismissed: !!g.welcome_email_dismissed_at,
+      applicantId: pendingByEmail.get(g.email.toLowerCase())?.id ?? null,
+      survey: g.guest_surveys,
+    };
+  });
+  // Board: everyone not rejected; approved members for 60 days.
+  const board = cards.filter((c) => !c.declined && (c.stage !== 'approved' || new Date(c.changedAt).getTime() >= now - 60 * 86400000));
+  const declined = cards.filter((c) => c.declined).slice(0, 30);
+  const list = cards.slice(0, 60);
+
+  const panelists: PanelistOption[] = [];
+  for (const l of leadersRes.data ?? []) {
+    const p = firstOf(l.profile) as { id: string; first_name: string; last_name: string; role: string } | null;
+    if (p && p.role === 'admin' && !panelists.some((x) => x.id === p.id)) panelists.push({ id: p.id, name: `${p.first_name} ${p.last_name}`, role: l.role });
+  }
+  const nextMeeting = nextRes.data ? formatShortDate(new Date(nextRes.data.starts_at)) : null;
+  const members = (membersRes.data ?? []).map((m) => ({ id: m.id, name: `${m.first_name} ${m.last_name}` }));
 
   return (
-    <>
+    <GuestStepsProvider panelists={panelists} nextMeeting={nextMeeting}>
       <section id="board" className="flex scroll-mt-24 flex-col gap-3" aria-labelledby="board-h">
-        <h2 id="board-h" className="font-display m-0 text-[22px] font-extrabold">
-          Guest board
-        </h2>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 id="board-h" className="font-display m-0 text-[22px] font-extrabold">
+            Guest board
+          </h2>
+          <AddGuestForm members={members} />
+        </div>
         <p className="text-ink-muted m-0 text-sm">
-          Every guest from invite request to approved member. Cards move on by themselves when a step is done on the website (Zoom link sent, visited, applied,
-          interview done, approved). To move a card by hand, drag it to another column or use <strong>Move to</strong> in its details. Moving a card by hand
-          doesn’t send emails or approve anyone: use the buttons on the card for that.
+          Every guest from invite request to approved member. No email is ever sent by itself: each one asks you first, and an email you don’t send leaves a
+          reminder (⏰) in its step. <strong>Undo</strong> moves a guest back one column. To move a card by hand, drag it to another column or use{' '}
+          <strong>Move to</strong> under “Contact &amp; move”.
         </p>
         <GuestBoard guests={board} />
         {declined.length ? (
           <details className="border-line rounded-xl border p-3">
-            <summary className="cursor-pointer font-bold">Declined ({declined.length})</summary>
+            <summary className="cursor-pointer font-bold">Rejected ({declined.length})</summary>
             <ul className="m-0 mt-2 flex list-none flex-col gap-2 p-0">
-              {declined.map((d) => {
-                const by = (Array.isArray(d.decliner) ? d.decliner[0] : d.decliner) as { first_name: string; last_name: string } | null;
-                return (
-                  <li key={d.id} className="border-line-soft flex flex-wrap items-center justify-between gap-2 border-b pb-2 last:border-b-0">
-                    <div className="min-w-0 text-sm">
-                      <strong className="text-heading">
-                        {d.first_name} {d.last_name}
-                      </strong>
-                      {d.business_name ? ` · ${d.business_name}` : ''}
-                      <div className="text-ink-muted">
-                        Declined {d.declined_at ? formatShortDate(new Date(d.declined_at)) : ''}
-                        {d.decline_method ? (d.decline_method === 'phone' ? ' · told by phone' : ' · told by email') : ''}
-                        {by ? ` · by ${by.first_name} ${by.last_name}` : ''}
-                      </div>
-                      {d.decline_note ? <div className="whitespace-pre-line">{d.decline_note}</div> : null}
-                    </div>
-                    <form action={reopenGuest}>
-                      <input type="hidden" name="id" value={d.id} />
-                      <button type="submit" className="btn btn-outline btn-sm">
-                        Reopen
-                        <span className="sr-only">
-                          {' '}
-                          {d.first_name} {d.last_name}
-                        </span>
-                      </button>
-                    </form>
-                  </li>
-                );
-              })}
+              {declined.map((d) => (
+                <li key={d.id} className="border-line-soft flex flex-wrap items-start justify-between gap-2 border-b pb-2 last:border-b-0">
+                  <div className="min-w-0 text-sm">
+                    <strong className="text-heading">{d.name}</strong>
+                    {d.business ? ` · ${d.business}` : ''}
+                    <div className="text-ink-muted">Rejected {d.declinedOn}</div>
+                  </div>
+                  <div className="min-w-[220px]">
+                    <StepCell g={d} step="accept" />
+                  </div>
+                </li>
+              ))}
             </ul>
           </details>
         ) : null}
@@ -290,157 +329,93 @@ export async function GuestSections({ back }: { back: GuestSectionsPage }) {
           Guest invite requests
         </h2>
         <p className="text-ink-muted m-0 text-sm">
-          <strong>Send Zoom link</strong> emails the guest the Zoom link for their meeting. After they have visited and the Membership Committee agrees, use{' '}
-          <strong>Invite to apply</strong> to email them the membership application form, already filled in with their name and email. Mark their one-on-ones
-          with the Membership Committee as done, then <strong>Approved</strong> approves their application and emails them their welcome.
+          The same steps as the guest board, one column each, with a progress bar per guest. Contact details are under each name. Nothing is emailed until you
+          confirm it in the pop-up; an email you don’t send leaves a reminder (⏰) in its column.
         </p>
-        {guestsRes.data.length === 0 ? (
+        {list.length === 0 ? (
           <EmptyState title="No guest requests yet" />
         ) : (
           <div className="overflow-x-auto">
             <table className="data-table">
-              <caption className="sr-only">Guest invite requests</caption>
+              <caption className="sr-only">Guest invite requests, one column per step</caption>
               <thead>
                 <tr>
                   <th scope="col">Guest</th>
-                  <th scope="col">Email</th>
-                  <th scope="col">Phone</th>
-                  <th scope="col">Invited by</th>
-                  <th scope="col">Requested</th>
-                  <th scope="col">Zoom link</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Application</th>
-                  <th scope="col">One-on-ones</th>
-                  <th scope="col">Application approval</th>
+                  {GUEST_STEPS.map((s) => (
+                    <th key={s} scope="col">
+                      {guestStepLabels[s]}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {guestsRes.data.map((g) => (
+                {list.map((g) => (
                   <tr key={g.id}>
-                    <td>
-                      <strong>
-                        {g.first_name} {g.last_name}
-                      </strong>
-                      <div className="text-ink-muted text-sm">{g.business_name}</div>
-                      {g.business_description ? (
+                    <td className="min-w-[230px] align-top">
+                      <div className="flex flex-col gap-1.5">
+                        <strong className="text-heading">{g.name}</strong>
+                        {g.business ? <span className="text-ink-muted text-sm">{g.business}</span> : null}
+                        <GuestProgress g={g} />
+                        {/* Owner, 2026-11-25: email, phone, invited by and requested under the name instead of their own columns. */}
                         <details className="text-sm">
-                          <summary className="cursor-pointer">About their business</summary>
-                          <p className="m-0 mt-1 max-w-[36ch] whitespace-pre-line">{g.business_description}</p>
+                          <summary className="cursor-pointer font-semibold">Details</summary>
+                          <dl className="m-0 mt-1 flex max-w-[34ch] flex-col gap-1">
+                            <div>
+                              <dt className="inline font-semibold">Email: </dt>
+                              <dd className="inline break-all">
+                                <a href={`mailto:${g.email}`}>{g.email}</a>
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="inline font-semibold">Phone: </dt>
+                              <dd className="inline">{g.phone ?? '—'}</dd>
+                            </div>
+                            <div>
+                              <dt className="inline font-semibold">Invited by: </dt>
+                              <dd className="inline">{g.invitedBy ?? '—'}</dd>
+                            </div>
+                            <div>
+                              <dt className="inline font-semibold">Requested: </dt>
+                              <dd className="inline">{g.requestedOn}</dd>
+                            </div>
+                            {g.website ? (
+                              <div>
+                                <dt className="inline font-semibold">Website: </dt>
+                                <dd className="inline break-all">
+                                  <a href={g.website} target="_blank" rel="noopener noreferrer">
+                                    {g.website.replace(/^https?:\/\//i, '')}
+                                  </a>
+                                </dd>
+                              </div>
+                            ) : null}
+                          </dl>
+                          {g.signedIn || g.addedByHand ? (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {g.signedIn ? <Pill tone="teal">Signed in at the meeting</Pill> : null}
+                              {g.addedByHand ? <Pill tone="teal">Added by hand</Pill> : null}
+                            </div>
+                          ) : null}
                         </details>
-                      ) : null}
-                      <SurveyAnswers survey={g.guest_surveys} />
-                      {g.website ? (
-                        <div className="text-sm">
-                          <a href={g.website} target="_blank" rel="noopener noreferrer">
-                            {g.website.replace(/^https?:\/\//i, '')}
-                          </a>
-                        </div>
-                      ) : null}
+                        {g.about ? (
+                          <details className="text-sm">
+                            <summary className="cursor-pointer">About their business</summary>
+                            <p className="m-0 mt-1 max-w-[36ch] whitespace-pre-line">{g.about}</p>
+                          </details>
+                        ) : null}
+                        <SurveyAnswers survey={g.survey} />
+                        <UndoStep g={g} />
+                      </div>
                     </td>
-                    <td>
-                      <a href={`mailto:${g.email}`}>{g.email}</a>
-                    </td>
-                    <td className="whitespace-nowrap">{g.phone ?? '—'}</td>
-                    <td>{g.invited_by_text ?? '—'}</td>
-                    <td className="whitespace-nowrap">
-                      {formatShortDate(new Date(g.created_at))}
-                      {g.source === 'meeting_sign_in' ? (
-                        <div className="mt-1">
-                          <Pill tone="teal">Signed in at the meeting</Pill>
-                        </div>
-                      ) : null}
-                    </td>
-                    <td>
-                      {g.status === 'joined' ? (
-                        '—'
-                      ) : (
-                        <SendZoomLinkButton id={g.id} name={`${g.first_name} ${g.last_name}`} sentOn={zoomSentOn.get(g.id) ?? null} />
-                      )}
-                    </td>
-                    <td>
-                      {g.status === 'requested' ? (
-                        <form action={setGuestStatus}>
-                          <input type="hidden" name="id" value={g.id} />
-                          <input type="hidden" name="status" value="visited" />
-                          <button type="submit" className="btn btn-outline btn-sm">
-                            Mark visited
-                            <span className="sr-only">
-                              {' '}
-                              for {g.first_name} {g.last_name}
-                            </span>
-                          </button>
-                        </form>
-                      ) : (
-                        <Pill tone={g.status === 'joined' ? 'green' : 'teal'}>{guestStatusLabels[g.status]}</Pill>
-                      )}
-                    </td>
-                    <td>
-                      {g.status === 'requested' || g.status === 'visited' ? (
-                        <InviteToApplyButton id={g.id} name={`${g.first_name} ${g.last_name}`} sentOn={invitedOn.get(g.id) ?? null} />
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td>
-                      {g.one_on_ones_done_at ? (
-                        <div className="flex flex-col items-start gap-1">
-                          <Pill tone="green">Done</Pill>
-                          <form action={setGuestOneOnOnes}>
-                            <input type="hidden" name="id" value={g.id} />
-                            <input type="hidden" name="done" value="false" />
-                            <button type="submit" className="text-teal-text cursor-pointer border-0 bg-transparent p-0 text-sm underline">
-                              Undo
-                              <span className="sr-only">
-                                {' '}
-                                one-on-ones for {g.first_name} {g.last_name}
-                              </span>
-                            </button>
-                          </form>
-                        </div>
-                      ) : (
-                        <form action={setGuestOneOnOnes}>
-                          <input type="hidden" name="id" value={g.id} />
-                          <input type="hidden" name="done" value="true" />
-                          <button type="submit" className="btn btn-outline btn-sm">
-                            Done?
-                            <span className="sr-only">
-                              {' '}
-                              Mark one-on-ones done for {g.first_name} {g.last_name}
-                            </span>
-                          </button>
-                        </form>
-                      )}
-                    </td>
-                    <td>
-                      {(() => {
-                        if (g.status === 'joined') return <Pill tone="green">Approved</Pill>;
-                        const applicant = pendingByEmail.get(g.email.toLowerCase());
-                        if (!applicant) return <span className="text-ink-muted text-sm">Waiting for their application</span>;
-                        return (
-                          <div className="flex flex-col items-start gap-1.5">
-                            <a href={`#application-${applicant.id}`} className="text-sm font-bold">
-                              See application
-                              <span className="sr-only">
-                                {' '}
-                                of {g.first_name} {g.last_name}
-                              </span>
-                            </a>
-                            <form action={setMemberStatus}>
-                              <input type="hidden" name="back" value={back} />
-                              <input type="hidden" name="id" value={applicant.id} />
-                              <input type="hidden" name="status" value="approved" />
-                              <button type="submit" className="btn btn-primary btn-sm">
-                                Approved
-                                <span className="sr-only">
-                                  {' '}
-                                  (approve the application of {g.first_name} {g.last_name})
-                                </span>
-                              </button>
-                            </form>
-                          </div>
-                        );
-                      })()}
-                    </td>
+                    {GUEST_STEPS.map((s) => {
+                      const st = g.declined ? (s === 'accept' ? 'declined' : 'off') : stepState(g.stage, s);
+                      // The top edge of each step cell is one part of the guest's progress bar.
+                      const bar = st === 'declined' ? 'border-t-red' : st === 'done' ? 'border-t-teal' : st === 'current' ? 'border-t-accent' : 'border-t-line';
+                      return (
+                        <td key={s} className={`min-w-[170px] border-t-4 align-top ${bar}`}>
+                          <StepCell g={g} step={s} />
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -448,7 +423,7 @@ export async function GuestSections({ back }: { back: GuestSectionsPage }) {
           </div>
         )}
       </section>
-    </>
+    </GuestStepsProvider>
   );
 }
 

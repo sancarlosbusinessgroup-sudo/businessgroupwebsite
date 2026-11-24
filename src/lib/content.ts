@@ -68,7 +68,7 @@ export const memberNav: readonly NavItem[] = [
  * poster frames beside them as .webp.
  */
 export const memberGuideVideos = {
-  full: { file: 'members-guide-full', title: "Member's Guide: the full tour", duration: '13:43' },
+  full: { file: 'members-guide-full', title: "Member's Guide: the full tour", duration: '13:39' },
   chapters: [
     { file: '01-logging-in', title: 'Logging in for the first time', duration: '1:03', text: 'Log in, use your temporary password and choose your own.' },
     { file: '02-onboarding', title: 'Finishing your onboarding', duration: '1:01', text: 'Headshot and logo, your details, and the two agreements.' },
@@ -250,7 +250,7 @@ export const visitorSignInPath = '/visitor-sign-in';
 
 export const guestStatusLabels = {
   requested: 'Invited',
-  visited: 'Visiting',
+  visited: 'First Zoom Done',
   applied: 'Applied',
   joined: 'Joined',
 } as const;
