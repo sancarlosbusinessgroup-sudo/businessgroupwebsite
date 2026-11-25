@@ -8,9 +8,10 @@ describe('deleting referral slips (2026-10-23)', () => {
     await withClient(async (c) => {
       await c.query('begin');
       try {
+        // Two different prospects: the same slip twice within 24 hours is refused since 2026-11-25 (test-plan 171).
         const ins = async (status: string) =>
           (
-            await c.query(`insert into referrals (from_id, to_id, contact_name, status) values ($1, $2, 'Del Test', $3) returning id`, [
+            await c.query(`insert into referrals (from_id, to_id, contact_name, status) values ($1, $2, 'Del Test ' || $3, $3::referral_status) returning id`, [
               ids.member,
               ids.admin,
               status,

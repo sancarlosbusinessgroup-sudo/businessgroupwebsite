@@ -1,13 +1,19 @@
 // Tiny stand-in for the Supabase API gateway: routes /auth/v1 to Supabase Auth
 // and /rest/v1 to PostgREST, so @supabase/supabase-js works against the local stack.
+// /realtime/v1 is a postgres_changes stand-in for public.activity_versions (see realtime.mjs).
 // /storage/v1 is a minimal file store on disk (upload, list, signed links, download, remove) for tests;
 // it checks only that the caller is signed in, not the storage policies (DB tests cover those).
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
+import { attachRealtime } from './realtime.mjs';
 
 const STORE = process.env.STORAGE_DIR ?? '/tmp/businessgroup-local-stack/storage';
-const safe = (p) => p.split('/').filter((x) => x && x !== '..' && x !== '.').join('/');
+const safe = (p) =>
+  p
+    .split('/')
+    .filter((x) => x && x !== '..' && x !== '.')
+    .join('/');
 function role(req) {
   const tok = (req.headers.authorization ?? '').replace(/^Bearer /, '');
   try {
@@ -57,7 +63,10 @@ function storage(req, res, url) {
     if (role(req) === 'anon') return send(403, { message: 'not signed in' });
     if (req.method === 'POST' && (m = rest.match(/^\/object\/sign\/([^/]+)$/))) {
       const { paths = [] } = JSON.parse(body.toString() || '{}');
-      return send(200, paths.map((p) => ({ path: p, signedURL: `/object/sign/${m[1]}/${safe(p)}?token=local`, error: null })));
+      return send(
+        200,
+        paths.map((p) => ({ path: p, signedURL: `/object/sign/${m[1]}/${safe(p)}?token=local`, error: null })),
+      );
     }
     if (req.method === 'POST' && (m = rest.match(/^\/object\/sign\/([^/]+)\/(.+)$/)))
       return send(200, { signedURL: `/object/sign/${m[1]}/${safe(decodeURIComponent(m[2]))}?token=local` });
@@ -66,7 +75,10 @@ function storage(req, res, url) {
       const { prefix = '' } = JSON.parse(body.toString() || '{}');
       const dir = path.join(STORE, m[1], safe(prefix));
       const names = fs.existsSync(dir) ? fs.readdirSync(dir).filter((n) => !n.endsWith('.type') && fs.statSync(path.join(dir, n)).isFile()) : [];
-      return send(200, names.map((n) => ({ name: n, id: n, metadata: { size: fs.statSync(path.join(dir, n)).size } })));
+      return send(
+        200,
+        names.map((n) => ({ name: n, id: n, metadata: { size: fs.statSync(path.join(dir, n)).size } })),
+      );
     }
     if ((req.method === 'POST' || req.method === 'PUT') && (m = rest.match(/^\/object\/([^/]+)\/(.+)$/))) {
       const file = path.join(STORE, m[1], safe(decodeURIComponent(m[2])));
@@ -79,7 +91,10 @@ function storage(req, res, url) {
     if (req.method === 'DELETE' && (m = rest.match(/^\/object\/([^/]+)$/))) {
       const { prefixes = [] } = JSON.parse(body.toString() || '{}');
       for (const p of prefixes) for (const f of [path.join(STORE, m[1], safe(p))]) [f, `${f}.type`].forEach((x) => fs.rmSync(x, { force: true }));
-      return send(200, prefixes.map((p) => ({ name: p })));
+      return send(
+        200,
+        prefixes.map((p) => ({ name: p })),
+      );
     }
     send(404, { message: 'not available in local stack' });
   });
@@ -127,6 +142,9 @@ const server = http.createServer((req, res) => {
   });
   req.pipe(upstream);
 });
+
+// Realtime stand-in for the live activity updates (websocket upgrades on /realtime/v1/websocket).
+attachRealtime(server);
 
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`gateway on http://127.0.0.1:${PORT}`);

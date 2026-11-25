@@ -1,3 +1,6 @@
+import { LiveRefresh } from '@/components/LiveRefresh';
+import { getActivityVersion } from '@/lib/data/live';
+import { REPORT_KINDS } from '@/lib/live-activity';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminNav } from '@/components/AdminNav';
@@ -13,6 +16,8 @@ export const metadata: Metadata = { title: 'Member Stats' };
 
 export default async function AdminStatsPage({ searchParams }: { searchParams: Promise<StatsSearch> }) {
   await requireAdmin();
+  // Live (owner, 2026-11-25): read before the page data; the page reloads by itself when activity changes.
+  const liveVersion = await getActivityVersion(REPORT_KINDS);
   const sp = await searchParams;
   const { period, range, sort, dir } = parseStatsSearch(sp, await getLastMeetingDate());
   const showClosed = sp.closed === '1';
@@ -30,6 +35,7 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: P
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
+        <LiveRefresh version={liveVersion} kinds={REPORT_KINDS} />
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Member Stats</h1>
         <AdminNav current="/admin/stats" />
         <HowThisWorks tab="/admin/stats">

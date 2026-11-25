@@ -1,3 +1,6 @@
+import { LiveRefresh } from '@/components/LiveRefresh';
+import { getActivityVersion } from '@/lib/data/live';
+import { REPORT_KINDS } from '@/lib/live-activity';
 import type { Metadata } from 'next';
 import { personName } from '@/lib/people';
 import Link from 'next/link';
@@ -25,6 +28,8 @@ const LB_PERIODS: Period[] = ['month', 'quarter', 'year', 'all'];
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ lb?: string; welcome?: string }> }) {
   const { lb, welcome } = await searchParams;
   const viewer = await requireMember('/dashboard');
+  // Live (owner, 2026-11-25): read before the page data; the page reloads by itself when activity changes.
+  const liveVersion = await getActivityVersion(REPORT_KINDS);
   const me = viewer.profile;
   const lbPeriod: Period = isPeriod(lb) && LB_PERIODS.includes(lb) ? lb : 'month';
   const supabase = await createClient();
@@ -48,6 +53,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
+        <LiveRefresh version={liveVersion} kinds={REPORT_KINDS} />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-ink-muted m-0 text-[15px]">{formatLongToday()}</p>

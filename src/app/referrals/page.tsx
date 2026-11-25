@@ -1,3 +1,6 @@
+import { LiveRefresh } from '@/components/LiveRefresh';
+import { getActivityVersion } from '@/lib/data/live';
+import { REPORT_KINDS } from '@/lib/live-activity';
 import type { Metadata } from 'next';
 import { EmptyState } from '@/components/ui';
 import { requireMember } from '@/lib/auth';
@@ -12,6 +15,8 @@ export const metadata: Metadata = { title: 'Referral tracker' };
 export default async function ReferralsPage({ searchParams }: { searchParams: Promise<{ to?: string }> }) {
   const sp = await searchParams;
   const viewer = await requireMember('/referrals');
+  // Live (owner, 2026-11-25): read before the page data; the page reloads by itself when activity changes.
+  const liveVersion = await getActivityVersion(REPORT_KINDS);
   const me = viewer.profile;
   const supabase = await createClient();
   const [members, refsRes] = await Promise.all([
@@ -29,6 +34,7 @@ export default async function ReferralsPage({ searchParams }: { searchParams: Pr
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
+        <LiveRefresh version={liveVersion} kinds={REPORT_KINDS} />
         <div>
           <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Referral tracker</h1>
         </div>

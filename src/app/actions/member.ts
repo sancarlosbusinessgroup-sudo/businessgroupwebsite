@@ -194,6 +194,7 @@ export async function sendReferral(_prev: ActionState, formData: FormData): Prom
     // Backdated when the member forgot to file it (owner, 2026-10-27); the database refuses future dates.
     ...(dayToIso(d.referredOn) ? { created_at: dayToIso(d.referredOn)! } : {}),
   });
+  if (isDuplicate(error)) return { status: 'error', message: DUPLICATE_REFERRAL, values };
   if (error) return { status: 'error', message: GENERIC, values };
   after(() => safely('referral sent', () => onReferralSent(referralId)));
   revalidateReferralPages();
@@ -221,6 +222,7 @@ export async function fileClosedBusiness(_prev: ActionState, formData: FormData)
     p_notes: d.notes ?? null,
     p_closed_on: d.referredOn ?? null,
   });
+  if (isDuplicate(error)) return { status: 'error', message: DUPLICATE_REFERRAL, values };
   if (error || !referralId) return { status: 'error', message: GENERIC, values };
   after(() => safely('closed business filed', () => onReferralSent(referralId)));
   revalidateReferralPages();
@@ -228,8 +230,13 @@ export async function fileClosedBusiness(_prev: ActionState, formData: FormData)
 }
 
 function revalidateReferralPages() {
-  for (const p of ['/referrals', '/closed-business', '/dashboard', '/admin/stats', '/admin/champion']) revalidatePath(p);
+  for (const p of ['/referrals', '/closed-business', '/dashboard', '/admin/activity', '/admin/stats', '/admin/champion']) revalidatePath(p);
 }
+
+// Duplicate guards (owner, 2026-11-25): the database refuses a second copy of the same report (unique key / trigger).
+const isDuplicate = (error: { code?: string } | null) => error?.code === '23505';
+const DUPLICATE_REFERRAL =
+  'This referral slip is already filed: you sent this member a slip for the same person in the last 24 hours, so it wasn’t saved twice.';
 
 export async function updateReferral(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const values = formToObject(formData);
@@ -270,6 +277,7 @@ export async function reportOneOnOne(_prev: ActionState, formData: FormData): Pr
     .insert({ reporter_id: user.id, partner_id: parsed.data.partnerId, met_on: parsed.data.metOn })
     .select('id')
     .single();
+  if (isDuplicate(error)) return sameDayOneOnOne(supabase, user.id, parsed.data.partnerId, parsed.data.metOn, values);
   if (error || !data) return { status: 'error', message: GENERIC, values };
   const oneId = data.id;
   after(() => safely('one-on-one reported', () => onOneOnOneReported(oneId)));
@@ -279,6 +287,37 @@ export async function reportOneOnOne(_prev: ActionState, formData: FormData): Pr
   revalidatePath('/one-on-ones');
   revalidatePath('/dashboard');
   return { status: 'success', message: 'One-on-one reported. Thanks for keeping your activity current!' };
+}
+
+/**
+ * The same two members already have a one-on-one on that day (owner, 2026-11-25: no double counting). If the other
+ * member reported it and it still waits for this member's confirmation, confirm theirs: it then counts once for each.
+ */
+async function sameDayOneOnOne(
+  supabase: Awaited<ReturnType<typeof session>>['supabase'],
+  meId: string,
+  partnerId: string,
+  metOn: string,
+  values: Record<string, string>,
+): Promise<ActionState> {
+  const { data: existing } = await supabase
+    .from('one_on_ones')
+    .select('id, reporter_id, confirmed_at')
+    .eq('met_on', metOn)
+    .or(`and(reporter_id.eq.${meId},partner_id.eq.${partnerId}),and(reporter_id.eq.${partnerId},partner_id.eq.${meId})`)
+    .maybeSingle();
+  if (existing && existing.reporter_id === partnerId && !existing.confirmed_at) {
+    const { error } = await supabase.rpc('confirm_one_on_one', { p_id: existing.id });
+    if (error) return { status: 'error', message: GENERIC, values };
+    revalidatePath('/one-on-ones');
+    revalidatePath('/dashboard');
+    return { status: 'success', message: 'The other member had already reported this one-on-one, so we confirmed theirs. It counts once for each of you.' };
+  }
+  return {
+    status: 'error',
+    message: 'This one-on-one is already reported for that day, so it wasn’t saved twice. You can see it in your one-on-one history.',
+    values,
+  };
 }
 
 export async function confirmOneOnOne(formData: FormData): Promise<void> {
@@ -440,16 +479,14 @@ export async function addGalleryPhoto(input: z.input<typeof galleryInput>): Prom
   });
   if (error) return { status: 'error', message: GENERIC };
   if (tags.length) {
-    const { error: tagError } = await supabase
-      .from('gallery_tags')
-      .insert(
-        tags.map((profileId) => ({
-          photo_id: id,
-          profile_id: profileId,
-          tagged_by: user.id,
-          status: profileId === user.id ? ('approved' as const) : ('pending' as const),
-        })),
-      );
+    const { error: tagError } = await supabase.from('gallery_tags').insert(
+      tags.map((profileId) => ({
+        photo_id: id,
+        profile_id: profileId,
+        tagged_by: user.id,
+        status: profileId === user.id ? ('approved' as const) : ('pending' as const),
+      })),
+    );
     if (tagError) {
       // Never leave a photo public that people were meant to approve first.
       await supabase.from('gallery_photos').delete().eq('id', id);

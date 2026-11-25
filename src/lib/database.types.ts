@@ -26,10 +26,19 @@ export type MemberPeriodStats = {
   visitors_brought: number;
 };
 
+/** Kinds of member activity whose changes reload open pages live (table activity_versions). */
+export type ActivityKind = 'referrals' | 'one_on_ones' | 'visitors' | 'attendance' | 'champion';
+
 export type Database = {
   __InternalSupabase: { PostgrestVersion: '12.2' };
   public: {
     Tables: {
+      activity_versions: {
+        Row: { kind: ActivityKind; version: number; changed_at: string };
+        Insert: { kind: ActivityKind; version?: number; changed_at?: string };
+        Update: { version?: number; changed_at?: string };
+        Relationships: [];
+      };
       admin_audit_log: {
         Row: {
           action: 'insert' | 'update' | 'delete';

@@ -1,3 +1,6 @@
+import { LiveRefresh } from '@/components/LiveRefresh';
+import { getActivityVersion } from '@/lib/data/live';
+import { REPORT_KINDS } from '@/lib/live-activity';
 import type { Metadata } from 'next';
 import { personName } from '@/lib/people';
 import Link from 'next/link';
@@ -47,6 +50,8 @@ function RespondButton({ id, status, label, tone }: { id: string; status: string
 export default async function OneOnOnesPage({ searchParams }: { searchParams: Promise<{ partner?: string; all?: string }> }) {
   const sp = await searchParams;
   const viewer = await requireMember('/one-on-ones');
+  // Live (owner, 2026-11-25): read before the page data; the page reloads by itself when activity changes.
+  const liveVersion = await getActivityVersion(REPORT_KINDS);
   const me = viewer.profile;
   const showAll = sp.all === '1';
   const [members, pending, mine, group, groupMonth, requests, history] = await Promise.all([
@@ -67,6 +72,7 @@ export default async function OneOnOnesPage({ searchParams }: { searchParams: Pr
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
+        <LiveRefresh version={liveVersion} kinds={REPORT_KINDS} />
         <div>
           <Link href="/dashboard" className="text-sm font-bold">
             ← Back to dashboard

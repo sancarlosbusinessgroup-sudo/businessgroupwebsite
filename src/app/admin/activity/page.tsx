@@ -1,3 +1,6 @@
+import { LiveRefresh } from '@/components/LiveRefresh';
+import { getActivityVersion } from '@/lib/data/live';
+import { REPORT_KINDS } from '@/lib/live-activity';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminNav } from '@/components/AdminNav';
@@ -5,7 +8,7 @@ import { HowThisWorks } from '@/components/HowThisWorks';
 import { ConfirmDelete } from '@/components/ConfirmDelete';
 import { EmptyState } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
-import { referralStatusLabels } from '@/lib/content';
+import { guestStatusLabels, referralStatusLabels } from '@/lib/content';
 import { formatMoney, formatShortDate } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 import { deleteMemberEvent } from '../../actions/events';
@@ -21,8 +24,10 @@ const nm = (p: Person) => (p ? `${p.first_name} ${p.last_name}` : 'Former member
 /** Everything members have filed, for admins to remove mistakes or duplicates (owner, 2026-10-23). */
 export default async function AdminActivityPage() {
   await requireAdmin();
+  // Live (owner, 2026-11-25): read before the page data; the page reloads by itself when activity changes.
+  const liveVersion = await getActivityVersion(REPORT_KINDS);
   const supabase = await createClient();
-  const [refRes, oooRes, evRes] = await Promise.all([
+  const [refRes, oooRes, evRes, visRes] = await Promise.all([
     supabase
       .from('referrals')
       .select(
@@ -42,20 +47,32 @@ export default async function AdminActivityPage() {
       .select('id, slug, title, starts_at, host:profiles(first_name, last_name)')
       .order('starts_at', { ascending: false })
       .limit(200),
+    // Visitors brought (owner, 2026-11-25): guests credited to a member who came to a meeting, as counted in the stats.
+    supabase
+      .from('guest_requests')
+      .select(
+        'id, first_name, last_name, status, created_at, member:profiles!guest_requests_referrer_id_fkey(first_name, last_name), meeting:meetings!guest_requests_meeting_id_fkey(starts_at)',
+      )
+      .not('referrer_id', 'is', null)
+      .in('status', ['visited', 'applied', 'joined'])
+      .order('created_at', { ascending: false })
+      .limit(200),
   ]);
-  if (refRes.error || oooRes.error || evRes.error) throw new Error('Could not load member activity');
+  if (refRes.error || oooRes.error || evRes.error || visRes.error) throw new Error('Could not load member activity');
   const refs = refRes.data ?? [];
   const ooos = oooRes.data ?? [];
   const events = evRes.data ?? [];
+  const visitors = visRes.data ?? [];
 
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
+        <LiveRefresh version={liveVersion} kinds={REPORT_KINDS} />
         <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Member Activity</h1>
         <AdminNav current="/admin/activity" />
         <HowThisWorks tab="/admin/activity">
-          Referral slips, one-on-ones and member events, newest first. Delete a duplicate or a mistake here; it is removed for everyone and from the stats.
-          Directory downloads are at the bottom.
+          Referral slips (including closed business), one-on-ones, visitors brought and member events, newest first. The lists update by themselves as members
+          report. Delete a duplicate or a mistake here; it is removed for everyone and from the stats. Directory downloads are at the bottom.
         </HowThisWorks>
 
         <section className="card flex flex-col gap-3 p-5" aria-labelledby="refs-h">
@@ -105,6 +122,38 @@ export default async function AdminActivityPage() {
                   />
                 </li>
               ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="card flex flex-col gap-3 p-5" aria-labelledby="vis-h">
+          <h2 id="vis-h" className="font-display m-0 text-xl font-extrabold">
+            Visitors brought ({visitors.length})
+          </h2>
+          {visitors.length === 0 ? (
+            <EmptyState title="No visitors brought yet" />
+          ) : (
+            <ul className="m-0 flex list-none flex-col p-0">
+              {visitors.map((g) => {
+                const meeting = g.meeting as unknown as { starts_at: string } | null;
+                return (
+                  <li key={g.id} className="border-line-soft flex flex-wrap items-center justify-between gap-3 border-b py-3 last:border-b-0">
+                    <span className="min-w-0">
+                      <strong>{nm(g.member as unknown as Person)}</strong> brought{' '}
+                      <strong>
+                        {g.first_name} {g.last_name}
+                      </strong>
+                      <span className="text-ink-muted block text-sm">
+                        {meeting ? `Meeting ${formatShortDate(new Date(meeting.starts_at))}` : formatShortDate(new Date(g.created_at))} ·{' '}
+                        {guestStatusLabels[g.status as keyof typeof guestStatusLabels] ?? g.status}
+                      </span>
+                    </span>
+                    <Link href="/admin/guests#guests" className="text-sm font-bold">
+                      Guest list
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>

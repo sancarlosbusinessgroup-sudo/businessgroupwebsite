@@ -1,3 +1,6 @@
+import { LiveRefresh } from '@/components/LiveRefresh';
+import { getActivityVersion } from '@/lib/data/live';
+import { REPORT_KINDS } from '@/lib/live-activity';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { EmptyState } from '@/components/ui';
@@ -13,6 +16,8 @@ export const metadata: Metadata = { title: 'Visitors brought' };
 // Report Activity → Visitors brought (owner meeting 2026-10-30): members log guests they brought to a meeting.
 export default async function VisitorsBroughtPage() {
   const viewer = await requireMember('/visitors-brought');
+  // Live (owner, 2026-11-25): read before the page data; the page reloads by itself when activity changes.
+  const liveVersion = await getActivityVersion(REPORT_KINDS);
   const me = viewer.profile;
   const supabase = await createClient();
   const admin = createAdminClient();
@@ -53,6 +58,7 @@ export default async function VisitorsBroughtPage() {
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
+        <LiveRefresh version={liveVersion} kinds={REPORT_KINDS} />
         <div>
           <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">Visitors brought</h1>
           <p className="text-ink-soft mt-2 mb-0 max-w-[70ch]">
