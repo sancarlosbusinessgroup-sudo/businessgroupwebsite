@@ -6,11 +6,15 @@ import { useClientValidation } from '@/components/useClientValidation';
 import { Notice } from '@/components/ui';
 import { idle, oneOnOneSchema } from '@/lib/validation';
 import { reportOneOnOne } from '../actions/member';
+import { withFilingNotice } from '@/components/FilingNoticeDialog';
+
+// Opens the "counts now / waits for confirmation" pop-up after a filing (owner, 2026-11-26).
+const reportOneOnOneWithNotice = withFilingNotice(reportOneOnOne);
 
 type Props = { members: { id: string; label: string }[]; today: string; defaultPartner?: string };
 
 export function ReportForm({ members, today, defaultPartner }: Props) {
-  const [state, action] = useActionState(reportOneOnOne, idle);
+  const [state, action] = useActionState(reportOneOnOneWithNotice, idle);
   const { clientErrors, onSubmit } = useClientValidation(oneOnOneSchema());
   const errors = clientErrors ?? state.errors ?? {};
   const v = state.status === 'error' ? (state.values ?? {}) : {};

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { db, expectAccessible, login, users } from './support';
+import { db, expectAccessible, login, users, closeFilingNotice } from './support';
 
 // Admin "Resend" for a failed email (2026-10-24: a bad Brevo key made every notice fail, and failed
 // emails could never be sent again). The Brevo stand-in can refuse the next email like a bad key.
@@ -37,6 +37,7 @@ test('a failed notice can be resent from Admin, once, to the original recipient 
   await page.getByLabel('Prospect name').fill(prospect);
   await page.getByRole('button', { name: 'Send referral slip' }).click();
   await expect(page.getByText('Referral slip sent.')).toBeVisible();
+  await closeFilingNotice(page);
 
   const [failed] = await logRow(prospect);
   expect(failed?.status).toBe('failed');

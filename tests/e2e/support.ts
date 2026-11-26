@@ -85,3 +85,13 @@ export function trackConsole(page: Page): string[] {
   page.on('pageerror', (e) => errors.push(e.message));
   return errors;
 }
+
+/**
+ * Closes the "counts now / waits for confirmation" pop-up that opens after filing a referral, one-on-one, closed
+ * business or visitor (owner, 2026-11-26), so a test can go on using the page. Checks it opened.
+ */
+export async function closeFilingNotice(page: Page) {
+  const dialog = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Got it' }) });
+  await dialog.getByRole('button', { name: 'Got it' }).click();
+  await dialog.waitFor({ state: 'hidden' });
+}

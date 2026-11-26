@@ -26,10 +26,7 @@ const ADDRESS = '1000 Laurel St, San Carlos, CA 94070';
 const MAPS = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ADDRESS)}`;
 
 test.describe('owner requests 2026-11-09', () => {
-  test('event text links are clickable, the venue opens Google Maps, and "Hosted by" can be changed without changing the owner', async ({
-    page,
-    browser,
-  }) => {
+  test('event text links are clickable, the venue opens Google Maps, and "Hosted by" can be changed without changing the owner', async ({ page, browser }) => {
     const title = `Open house ${Date.now().toString().slice(-6)}`;
     await login(page, users.member, undefined, '/events/new');
     // The default host name is offered as the placeholder.
@@ -45,7 +42,9 @@ test.describe('owner requests 2026-11-09', () => {
 
     // Stored: the label is separate from the host.
     const [me] = await db<{ id: string }>('profiles?select=id&first_name=eq.Morgan&last_name=eq.Member');
-    const [ev] = await db<{ slug: string; host_id: string; host_label: string }>(`member_events?select=slug,host_id,host_label&title=eq.${encodeURIComponent(title)}`);
+    const [ev] = await db<{ slug: string; host_id: string; host_label: string }>(
+      `member_events?select=slug,host_id,host_label&title=eq.${encodeURIComponent(title)}`,
+    );
     expect(ev).toMatchObject({ host_id: me!.id, host_label: 'Morgan & Co Realty' });
 
     // Visitors see the label, clickable links and the map link.

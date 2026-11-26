@@ -198,7 +198,7 @@ export async function sendReferral(_prev: ActionState, formData: FormData): Prom
   if (error) return { status: 'error', message: GENERIC, values };
   after(() => safely('referral sent', () => onReferralSent(referralId)));
   revalidateReferralPages();
-  return { status: 'success', message: 'Referral slip sent.' };
+  return { status: 'success', message: 'Referral slip sent.', filing: 'referral' };
 }
 
 /**
@@ -226,7 +226,7 @@ export async function fileClosedBusiness(_prev: ActionState, formData: FormData)
   if (error || !referralId) return { status: 'error', message: GENERIC, values };
   after(() => safely('closed business filed', () => onReferralSent(referralId)));
   revalidateReferralPages();
-  return { status: 'success', message: 'Closed business filed.' };
+  return { status: 'success', message: 'Closed business filed.', filing: 'closed_business_filed' };
 }
 
 function revalidateReferralPages() {
@@ -244,6 +244,8 @@ export async function updateReferral(_prev: ActionState, formData: FormData): Pr
   if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values };
   const { supabase, user } = await session();
   if (!user) return { status: 'error', message: 'Please log in again.' };
+  // Was it already closed business? Marking it closed now opens the "it already counts" pop-up (owner, 2026-11-26).
+  const { data: before } = await supabase.from('referrals').select('status').eq('id', parsed.data.id).maybeSingle();
   const { data, error } = await supabase
     .from('referrals')
     .update({
@@ -260,7 +262,8 @@ export async function updateReferral(_prev: ActionState, formData: FormData): Pr
   after(() => safely('referral updated', () => onReferralUpdated(refId)));
   revalidateReferralPages();
   // Keep the saved values in the form (React resets forms after an action).
-  return { status: 'success', message: 'Saved.', values };
+  const newlyClosed = parsed.data.status === 'closed_deal' && before?.status !== 'closed_deal';
+  return { status: 'success', message: 'Saved.', values, ...(newlyClosed ? { filing: 'closed_business_marked' as const } : {}) };
 }
 
 // --- One-on-ones ------------------------------------------------------------
@@ -286,7 +289,7 @@ export async function reportOneOnOne(_prev: ActionState, formData: FormData): Pr
   }
   revalidatePath('/one-on-ones');
   revalidatePath('/dashboard');
-  return { status: 'success', message: 'One-on-one reported. Thanks for keeping your activity current!' };
+  return { status: 'success', message: 'One-on-one reported. Thanks for keeping your activity current!', filing: 'one_on_one_pending' };
 }
 
 /**
@@ -311,7 +314,11 @@ async function sameDayOneOnOne(
     if (error) return { status: 'error', message: GENERIC, values };
     revalidatePath('/one-on-ones');
     revalidatePath('/dashboard');
-    return { status: 'success', message: 'The other member had already reported this one-on-one, so we confirmed theirs. It counts once for each of you.' };
+    return {
+      status: 'success',
+      message: 'The other member had already reported this one-on-one, so we confirmed theirs. It counts once for each of you.',
+      filing: 'one_on_one_confirmed',
+    };
   }
   return {
     status: 'error',

@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test';
-import { STACK, db, login, serviceKey, trackConsole, users } from './support';
+import { STACK, db, login, serviceKey, trackConsole, users, closeFilingNotice } from './support';
 
 // Live activity sync (owner, 2026-11-25). Several signed-in sessions at once, as at a live meeting: one member reports
 // (referrals, one-on-ones, closed business, visitors brought, edits and deletes) and, WITHOUT any reload, the admin's
@@ -126,6 +126,7 @@ test('a referral appears everywhere at once: Member Activity, Member Stats, the 
   await form.getByLabel('Referral value ($)').fill('1500');
   await form.getByRole('button', { name: 'Send referral slip' }).click();
   await expect(member.page.getByText('Referral slip sent.')).toBeVisible();
+  await closeFilingNotice(member.page);
 
   await expect(activity.getByRole('listitem').filter({ hasText: prospect })).toBeVisible();
   await expect(statsCell(stats, 'Morgan Member', 1)).toHaveText(String(statsRefs + 1));
@@ -161,6 +162,8 @@ test('an edit (marked closed business with a value) updates the statistics slide
   await upd.getByLabel('Status').selectOption({ label: 'Closed business' });
   await upd.getByLabel('Value ($)').fill('2500');
   await upd.getByRole('button', { name: 'Save' }).click();
+  // Marking it closed business opens the "counts now" pop-up (owner, 2026-11-26).
+  await closeFilingNotice(member2.page);
 
   await expect(statTile(deck, 'Closed business')).toHaveText(String(closed + 1));
   await expect(statTile(deck, 'Closed business ($)')).toHaveText(`$${(amount + 2500).toLocaleString('en-US')}`);
@@ -182,6 +185,7 @@ test('one-on-ones: reported, then confirmed, then a second report of the same da
   await form.getByLabel('Who did you meet with?').selectOption({ label: 'Morgan Member · Test Member Studio' });
   await form.getByRole('button', { name: 'Report one-on-one' }).click();
   await expect(member2.page.getByText(/One-on-one reported/)).toBeVisible();
+  await closeFilingNotice(member2.page);
   const row = activity.getByRole('listitem').filter({ hasText: 'Riley Second with Morgan Member' }).first();
   await expect(row).toContainText('Awaiting confirmation');
 
@@ -191,6 +195,7 @@ test('one-on-ones: reported, then confirmed, then a second report of the same da
   await mine.getByLabel('Who did you meet with?').selectOption({ label: 'Riley Second · Second Test Bakery' });
   await mine.getByRole('button', { name: 'Report one-on-one' }).click();
   await expect(member.page.getByText(/had already reported this one-on-one, so we confirmed theirs/)).toBeVisible();
+  await closeFilingNotice(member.page);
   await expect(row).toContainText('Confirmed');
   type Pair = { reporter: { first_name: string } | null; partner: { first_name: string } | null };
   const pairs = await db<Pair>(
@@ -220,6 +225,7 @@ test('visitors brought: logged visitor shows in Member Activity, Member Stats an
   await form.getByLabel('Visitor email').fill(`livia.${stamp}@example.org`);
   await form.getByRole('button', { name: 'Log visitor' }).click();
   await expect(member.page.getByText(/is logged as your visitor/)).toBeVisible();
+  await closeFilingNotice(member.page);
 
   await expect(activity.getByRole('listitem').filter({ hasText: `Livia Visitor ${stamp}` })).toContainText('Morgan Member brought');
   await expect(statsCell(stats, 'Morgan Member', 7)).toHaveText(String(statsVis + 1));
@@ -259,6 +265,7 @@ test('what a member is typing is kept: the page waits until they leave the field
   await f2.getByLabel('Prospect name').fill(other);
   await f2.getByRole('button', { name: 'Send referral slip' }).click();
   await expect(member2.page.getByText('Referral slip sent.')).toBeVisible();
+  await closeFilingNotice(member2.page);
   await expect(field).toHaveValue('Half typed na');
   await field.blur();
   await expect(mine.getByText(other).first()).toBeVisible();
@@ -282,6 +289,7 @@ test('without Realtime (blocked websocket) pages fall back to checking every few
   await form.getByLabel('Prospect name').fill(name);
   await form.getByRole('button', { name: 'Send referral slip' }).click();
   await expect(member.page.getByText('Referral slip sent.')).toBeVisible();
+  await closeFilingNotice(member.page);
   await expect(page.getByRole('listitem').filter({ hasText: name })).toBeVisible({ timeout: 15_000 });
   await stillSamePage(page);
   await ctx.close();

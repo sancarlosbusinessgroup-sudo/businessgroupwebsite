@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test';
-import { STACK, login, serviceKey, trackConsole, users } from './support';
+import { STACK, login, serviceKey, trackConsole, users, closeFilingNotice } from './support';
 
 // Live highlight (owner, 2026-11-26): when a member reports, the changed numbers on open screens (Leaderboard page,
 // dashboard box, Statistics and Leaderboards slides) count up and glow in BARP teal with a "+1", and the "Live" line says
@@ -36,6 +36,7 @@ async function fileReferral(page: Page, to = 'Riley Second · Second Test Bakery
   await form.getByLabel('Prospect name').fill(`Highlight ${stamp} ${++n}`);
   await form.getByRole('button', { name: 'Send referral slip' }).click();
   await expect(page.getByText('Referral slip sent.')).toBeVisible();
+  await closeFilingNotice(page);
 }
 
 /** The tile glows in BARP teal (#00c2cb ring) while highlighted. */

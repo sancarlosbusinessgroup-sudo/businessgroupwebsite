@@ -6,12 +6,16 @@ import { useClientValidation } from '@/components/useClientValidation';
 import { Notice } from '@/components/ui';
 import { idle, referralSchema } from '@/lib/validation';
 import { fileClosedBusiness } from '../actions/member';
+import { withFilingNotice } from '@/components/FilingNoticeDialog';
+
+// Opens the "counts now / waits for confirmation" pop-up after a filing (owner, 2026-11-26).
+const fileClosedBusinessWithNotice = withFilingNotice(fileClosedBusiness);
 
 type Option = { id: string; label: string };
 
 /** Same fields as "Give a referral", but saved already marked closed business (owner, 2026-10-25). */
 export function FileClosedBusinessForm({ members, today }: { members: Option[]; today: string }) {
-  const [state, action] = useActionState(fileClosedBusiness, idle);
+  const [state, action] = useActionState(fileClosedBusinessWithNotice, idle);
   const { clientErrors, onSubmit } = useClientValidation(referralSchema);
   const errors = clientErrors ?? state.errors ?? {};
   const v = state.status === 'error' ? (state.values ?? {}) : {};

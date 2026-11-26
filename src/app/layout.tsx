@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { FilingNoticeHost } from '@/components/FilingNoticeDialog';
 import { Footer } from '@/components/site/Footer';
 import { Header } from '@/components/site/Header';
 import { LiveChat } from '@/components/site/LiveChat';
@@ -40,6 +41,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <Header />
         <main id="main">{children}</main>
         <Footer />
+        {/* Pop-up after filing activity: counts now or waits for confirmation (owner, 2026-11-26). */}
+        {approved ? <FilingNoticeHost /> : null}
         {next || chat ? (
           <MobileMeetingBar
             meetingId={next?.id ?? null}

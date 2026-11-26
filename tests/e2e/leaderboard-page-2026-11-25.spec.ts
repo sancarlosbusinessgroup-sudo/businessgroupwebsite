@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test';
-import { STACK, expectAccessible, login, serviceKey, trackConsole, users } from './support';
+import { STACK, expectAccessible, login, serviceKey, trackConsole, users, closeFilingNotice } from './support';
 
 // Report Activity → Leaderboard, period filters and month + year on the slides (owner, 2026-11-25). Members pick any
 // month, this quarter, this year or all time; the numbers update by themselves as members report. A closed business
@@ -145,6 +145,7 @@ test('live: a closed business dated earlier this year counts in the year (page a
   await form.getByLabel('Date the business closed').fill(`${year}-01-15`);
   await form.getByRole('button', { name: 'File closed business' }).click();
   await expect(member.page.getByText('Closed business filed.')).toBeVisible();
+  await closeFilingNotice(member.page);
 
   // The year view and the slide's "Year so far" row update by themselves…
   await expect(tile(yearPage, 'Closed business')).toHaveText(String(before.yearClosed + 1));
@@ -169,6 +170,7 @@ test('live: a closed business dated earlier this year counts in the year (page a
   await ref.getByLabel('Prospect name').fill(`Today prospect ${stamp}`);
   await ref.getByRole('button', { name: 'Send referral slip' }).click();
   await expect(member.page.getByText('Referral slip sent.')).toBeVisible();
+  await closeFilingNotice(member.page);
   await expect(tile(monthPage, 'Referrals')).toHaveText(String(refsNow + 1));
   await expect(leader(monthPage, 'Referrals', 'Morgan Member')).toBeVisible();
 

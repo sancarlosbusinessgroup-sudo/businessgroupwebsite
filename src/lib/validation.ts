@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { localDateKey, pacificLocalToIso } from './dates';
+import type { FilingKind } from './filing-notices';
 import { SLIDE_KEYS, type SlideKey } from './slides';
 
 // Shared by client components (instant inline errors) and server actions (authoritative checks).
@@ -728,6 +729,8 @@ export type ActionState = {
   message?: string;
   errors?: Record<string, string>;
   values?: Record<string, string>;
+  /** Activity just filed: opens the "counts now / waits for confirmation" pop-up (owner, 2026-11-26). */
+  filing?: FilingKind;
 };
 
 export const idle: ActionState = { status: 'idle' };

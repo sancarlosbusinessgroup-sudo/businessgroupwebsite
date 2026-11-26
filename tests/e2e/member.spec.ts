@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { STACK, db, expectAccessible, login, serviceKey, trackConsole, users } from './support';
+import { STACK, db, expectAccessible, login, serviceKey, trackConsole, users, closeFilingNotice } from './support';
 
 test.describe('member area', () => {
   test.beforeEach(async ({ page }) => {
@@ -106,6 +106,7 @@ test.describe('member area', () => {
     await page.getByLabel('Private note').fill('Great fit for catering referrals.');
     await page.getByRole('button', { name: 'Report one-on-one' }).click();
     await expect(page.getByText(/One-on-one reported/)).toBeVisible();
+    await closeFilingNotice(page);
     await expect(page.getByText('Morgan Member had a one-on-one with Riley Second.').first()).toBeVisible();
 
     await page.getByRole('button', { name: 'Log out' }).click();
@@ -133,6 +134,7 @@ test.describe('member area', () => {
     await page.getByLabel('Referral value ($)').fill('3,000');
     await page.getByRole('button', { name: 'Send referral slip' }).click();
     await expect(page.getByText('Referral slip sent.')).toBeVisible();
+    await closeFilingNotice(page);
     // Labelled details, including the note, on the giver's record (owner, 2026-10-24).
     const labelled = async (slip: import('@playwright/test').Locator) => {
       await expect(slip.getByText('Name of Referral:')).toBeVisible();
@@ -154,6 +156,8 @@ test.describe('member area', () => {
     await form.getByLabel('Status').selectOption('closed_deal');
     await form.getByLabel('Value ($)').fill('3500');
     await form.getByRole('button', { name: 'Save' }).click();
+    // Marking it closed business opens the "counts now" pop-up (owner, 2026-11-26).
+    await closeFilingNotice(page);
     await expect(form.getByText('Saved')).toBeVisible();
     await page.reload();
     await expect(page.getByRole('listitem').filter({ hasText: 'Wedding cake client' }).locator('.pill', { hasText: 'Closed business' })).toBeVisible();

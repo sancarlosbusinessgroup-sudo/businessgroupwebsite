@@ -7,11 +7,16 @@ import { Notice } from '@/components/ui';
 import { referralStatusLabels } from '@/lib/content';
 import { idle, referralSchema, referralStatuses, referralUpdateSchema } from '@/lib/validation';
 import { sendReferral, updateReferral } from '../actions/member';
+import { withFilingNotice } from '@/components/FilingNoticeDialog';
+
+// Opens the "counts now / waits for confirmation" pop-up after a filing (owner, 2026-11-26).
+const sendReferralWithNotice = withFilingNotice(sendReferral);
+const updateReferralWithNotice = withFilingNotice(updateReferral);
 
 type Option = { id: string; label: string };
 
 export function SendReferralForm({ members, defaultTo, today }: { members: Option[]; defaultTo?: string; today: string }) {
-  const [state, action] = useActionState(sendReferral, idle);
+  const [state, action] = useActionState(sendReferralWithNotice, idle);
   const { clientErrors, onSubmit } = useClientValidation(referralSchema);
   const errors = clientErrors ?? state.errors ?? {};
   const v = state.status === 'error' ? (state.values ?? {}) : {};
@@ -82,7 +87,7 @@ export function UpdateReferralForm({
   today: string;
   label: string;
 }) {
-  const [state, action] = useActionState(updateReferral, idle);
+  const [state, action] = useActionState(updateReferralWithNotice, idle);
   const { clientErrors, onSubmit } = useClientValidation(referralUpdateSchema);
   const errors = clientErrors ?? state.errors ?? {};
   return (

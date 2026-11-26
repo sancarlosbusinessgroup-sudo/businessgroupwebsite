@@ -81,5 +81,5 @@ export async function logVisitorBrought(_prev: ActionState, formData: FormData):
   }
 
   for (const p of ['/visitors-brought', '/dashboard', '/admin', '/admin/stats', '/admin/champion']) revalidatePath(p);
-  return { status: 'success', message: `${d.firstName} ${d.lastName} is logged as your visitor. Thank you!` };
+  return { status: 'success', message: `${d.firstName} ${d.lastName} is logged as your visitor. Thank you!`, filing: 'visitor' };
 }

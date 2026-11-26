@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PASSWORD, STACK, db, expectAccessible, login, serviceKey, users } from './support';
+import { PASSWORD, STACK, db, expectAccessible, login, serviceKey, users, closeFilingNotice } from './support';
 
 // Phase C: emails through Brevo. The local stack points the site at a Brevo stand-in (scripts/local-stack/brevo-mock.mjs).
 
@@ -99,6 +99,7 @@ test.describe('email notifications', () => {
     await page.getByLabel('Referral value ($)').fill('1200');
     await page.getByRole('button', { name: 'Send referral slip' }).click();
     await expect(page.getByText('Referral slip sent.')).toBeVisible();
+    await closeFilingNotice(page);
     const [got] = await emailsTo(users.member, new RegExp(`New referral from Ada Admin: ${prospect}`));
     expect(got?.textContent).toContain('$1,200');
 
@@ -136,6 +137,7 @@ test.describe('email notifications', () => {
     await page.getByLabel('Prospect name').fill(prospect);
     await page.getByRole('button', { name: 'Send referral slip' }).click();
     await expect(page.getByText('Referral slip sent.')).toBeVisible();
+    await closeFilingNotice(page);
     expect(await emailsTo(users.member2, new RegExp(prospect), 2500)).toHaveLength(0);
   });
 
@@ -159,6 +161,7 @@ test.describe('email notifications', () => {
     await page.getByLabel('Who did you meet with?').selectOption({ label: 'Riley Second · Second Test Bakery' });
     await page.getByRole('button', { name: 'Report one-on-one' }).click();
     await expect(page.getByText(/One-on-one reported/)).toBeVisible();
+    await closeFilingNotice(page);
     expect(await emailsTo(users.member2, /^Please confirm your one-on-one with Ada Admin/)).not.toHaveLength(0);
   });
 

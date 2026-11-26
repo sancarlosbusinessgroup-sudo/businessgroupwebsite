@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { db, expectAccessible, login, trackConsole, users } from './support';
+import { db, expectAccessible, login, trackConsole, users, closeFilingNotice } from './support';
 
 // Closed Businesses page under Report Activity (owner, 2026-10-25): the member's open received referrals
 // with a reminder to mark them closed business, lists of closed business, and "File a closed business"
@@ -47,8 +47,12 @@ test.describe('closed businesses', () => {
     await form.getByLabel('Notes').fill('Signed in September; forgot to file it.');
     await form.getByRole('button', { name: 'File closed business' }).click();
     await expect(page.getByText('Closed business filed.')).toBeVisible();
+    await closeFilingNotice(page);
 
-    const mine = page.getByRole('region', { name: 'Closed business from my referrals' }).getByRole('listitem').filter({ hasText: 'Corporate catering contract' });
+    const mine = page
+      .getByRole('region', { name: 'Closed business from my referrals' })
+      .getByRole('listitem')
+      .filter({ hasText: 'Corporate catering contract' });
     await expect(mine.locator('.pill', { hasText: 'Closed business' })).toBeVisible();
     await expect(mine.getByText('$4,200')).toBeVisible();
     const [row] = await db<{ status: string; closed_at: string | null; amount: number }>(
@@ -62,7 +66,11 @@ test.describe('closed businesses', () => {
     // It also shows on the Referrals page as a closed slip.
     await page.goto('/referrals');
     await expect(
-      page.getByRole('region', { name: 'Referrals I gave' }).getByRole('listitem').filter({ hasText: 'Corporate catering contract' }).locator('.pill', { hasText: 'Closed business' }),
+      page
+        .getByRole('region', { name: 'Referrals I gave' })
+        .getByRole('listitem')
+        .filter({ hasText: 'Corporate catering contract' })
+        .locator('.pill', { hasText: 'Closed business' }),
     ).toBeVisible();
 
     await page.getByRole('button', { name: 'Log out' }).click();
@@ -79,6 +87,7 @@ test.describe('closed businesses', () => {
     await page.getByLabel('Prospect name').fill('Birthday party lead');
     await page.getByRole('button', { name: 'Send referral slip' }).click();
     await expect(page.getByText('Referral slip sent.')).toBeVisible();
+    await closeFilingNotice(page);
     await page.getByRole('button', { name: 'Log out' }).click();
 
     await login(page, users.member2, undefined, '/closed-business');
@@ -89,9 +98,13 @@ test.describe('closed businesses', () => {
     await form.getByLabel('Status').selectOption('closed_deal');
     await form.getByLabel('Value ($)').fill('800');
     await form.getByRole('button', { name: 'Save' }).click();
+    // Marking it closed business opens the "counts now" pop-up (owner, 2026-11-26).
+    await closeFilingNotice(page);
     // Once saved it leaves the reminder list straight away and shows under closed business.
     await expect(open.getByRole('listitem').filter({ hasText: 'Birthday party lead' })).toHaveCount(0);
-    await expect(page.getByRole('region', { name: 'Closed business I received' }).getByRole('listitem').filter({ hasText: 'Birthday party lead' }).getByText('$800')).toBeVisible();
+    await expect(
+      page.getByRole('region', { name: 'Closed business I received' }).getByRole('listitem').filter({ hasText: 'Birthday party lead' }).getByText('$800'),
+    ).toBeVisible();
     await page.reload();
     await expect(open.getByRole('listitem').filter({ hasText: 'Birthday party lead' })).toHaveCount(0);
   });

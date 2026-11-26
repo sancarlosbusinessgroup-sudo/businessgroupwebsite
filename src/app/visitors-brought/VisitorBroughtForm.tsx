@@ -6,12 +6,16 @@ import { useClientValidation } from '@/components/useClientValidation';
 import { Notice } from '@/components/ui';
 import { idle, visitorBroughtSchema } from '@/lib/validation';
 import { logVisitorBrought } from '../actions/visitors';
+import { withFilingNotice } from '@/components/FilingNoticeDialog';
+
+// Opens the "counts now / waits for confirmation" pop-up after a filing (owner, 2026-11-26).
+const logVisitorBroughtWithNotice = withFilingNotice(logVisitorBrought);
 
 type Option = { id: string; label: string };
 
 /** Log a guest you brought to a past meeting (owner meeting 2026-10-30). */
 export function VisitorBroughtForm({ meetings }: { meetings: Option[] }) {
-  const [state, action] = useActionState(logVisitorBrought, idle);
+  const [state, action] = useActionState(logVisitorBroughtWithNotice, idle);
   const { clientErrors, onSubmit } = useClientValidation(visitorBroughtSchema);
   const errors = clientErrors ?? state.errors ?? {};
   const v = state.status === 'error' ? (state.values ?? {}) : {};
