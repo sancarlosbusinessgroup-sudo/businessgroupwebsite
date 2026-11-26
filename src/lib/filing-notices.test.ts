@@ -18,7 +18,7 @@ describe('filing notices', () => {
       const n = filingNotices[k];
       expect(n.title.length).toBeGreaterThan(5);
       expect(n.body).toMatch(/stats|totals/);
-      if (n.counted) expect(n.title).toMatch(/already counts/);
+      if (n.counted) expect(n.title).toMatch(/confirmed/);
     }
   });
 });

@@ -244,7 +244,7 @@ export async function updateReferral(_prev: ActionState, formData: FormData): Pr
   if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values };
   const { supabase, user } = await session();
   if (!user) return { status: 'error', message: 'Please log in again.' };
-  // Was it already closed business? Marking it closed now opens the "it already counts" pop-up (owner, 2026-11-26).
+  // Was it already closed business? Marking it closed now opens the "is confirmed" pop-up (owner, 2026-11-26).
   const { data: before } = await supabase.from('referrals').select('status').eq('id', parsed.data.id).maybeSingle();
   const { data, error } = await supabase
     .from('referrals')

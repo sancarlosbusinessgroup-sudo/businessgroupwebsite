@@ -38,8 +38,8 @@ test('referral: "Counted now" pop-up, accessible, and it opens again for the nex
     await form.getByLabel('Refer to member').selectOption({ label: 'Riley Second · Second Test Bakery' });
     await form.getByLabel('Prospect name').fill(`Notice ${stamp} ${i}`);
     await form.getByRole('button', { name: 'Send referral slip' }).click();
-    await expectNotice(page, 'Counted now', /^Your referral already counts!$/);
-    await expect(notice(page)).toContainText('No confirmation needed.');
+    await expectNotice(page, 'Counted now', /^Your referral is confirmed!$/);
+    await expect(notice(page)).toContainText('the leaderboards and the meeting slides.');
     if (i === 1) await expectAccessible(page);
     // Escape closes it too; the page's own message stays.
     if (i === 1) await gotIt(page);
@@ -75,7 +75,7 @@ test('one-on-one: "Waiting for confirmation"; the other member reporting it too 
   await fb.getByLabel('Who did you meet with?').selectOption({ label: 'Morgan Member · Test Member Studio' });
   await fb.getByLabel('Activity date').fill(day);
   await fb.getByRole('button', { name: 'Report one-on-one' }).click();
-  await expectNotice(pb, 'Counted now', /^Your one-on-one already counts!$/);
+  await expectNotice(pb, 'Counted now', /^Your one-on-one is confirmed!$/);
   await gotIt(pb);
 
   // Clean up: remove this pair's one-on-one on that day.
@@ -95,7 +95,7 @@ test('closed business: filing one, and marking a received referral as closed, bo
   await form.getByLabel('Name of referral').fill(`Filed deal ${stamp}`);
   await form.getByLabel('Value of the business ($)').fill('900');
   await form.getByRole('button', { name: 'File closed business' }).click();
-  await expectNotice(pr, 'Counted now', /^Your closed business already counts!$/);
+  await expectNotice(pr, 'Counted now', /^Your closed business is confirmed!$/);
   await expect(notice(pr)).toContainText('group total only');
   await gotIt(pr);
   await r.close();
@@ -110,7 +110,7 @@ test('closed business: filing one, and marking a received referral as closed, bo
   await upd.getByLabel('Status').selectOption({ label: 'Closed business' });
   await upd.getByLabel('Value ($)').fill('1200');
   await upd.getByRole('button', { name: 'Save' }).click();
-  await expectNotice(pm, 'Counted now', /^Thank you! This closed business already counts$/);
+  await expectNotice(pm, 'Counted now', /^Thank you! This closed business is confirmed$/);
   await expect(notice(pm)).toContainText('credited to the member who referred it');
   await gotIt(pm);
   await m.close();
@@ -134,7 +134,7 @@ test('visitor brought: "Counted now"', async ({ page }) => {
   await form.getByLabel('Visitor last name').fill(`Notice ${stamp}`);
   await form.getByLabel('Visitor email').fill(`nora.${stamp}@example.org`);
   await form.getByRole('button', { name: 'Log visitor' }).click();
-  await expectNotice(page, 'Counted now', /^Your visitor already counts!$/);
+  await expectNotice(page, 'Counted now', /^Your visitor is confirmed$/);
   await gotIt(page);
   await expect(page.getByText(/is logged as your visitor/)).toBeVisible();
 });
