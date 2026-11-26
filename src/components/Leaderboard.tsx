@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { leaderboardMetrics } from '@/lib/content';
 import type { LeaderRow } from '@/lib/data/member';
 import { periodLabel, type Period } from '@/lib/periods';
+import { LiveNumber } from './LiveNumber';
 
 const choices: Period[] = ['month', 'quarter', 'year', 'all'];
 
@@ -61,14 +62,17 @@ export function Leaderboard({
                   {list.map((r) => (
                     <li
                       key={r.profile_id}
-                      className={`flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-[15px] ${r.profile_id === meId ? 'bg-teal-tint' : ''}`}
+                      className={`live-tile flex items-center gap-2 rounded-[10px] px-2 py-1.5 text-[15px] ${r.profile_id === meId ? 'bg-teal-tint' : ''}`}
                     >
                       <span className="text-teal-text w-5 font-extrabold">{r.rank}</span>
                       <span className="min-w-0 flex-1 truncate">
                         {r.first_name} {r.last_name}
                         {r.profile_id === meId ? ' (you)' : ''}
                       </span>
-                      <strong className="tabular-nums">{r.value}</strong>
+                      <strong className="tabular-nums">
+                        {/* Highlighted when live activity changes it, or when the member has just joined the list. */}
+                        <LiveNumber value={r.value} isNew />
+                      </strong>
                     </li>
                   ))}
                 </ol>

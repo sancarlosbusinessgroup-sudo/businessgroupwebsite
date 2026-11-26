@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GroupTotalsTiles } from '@/components/GroupTotals';
 import { Leaderboard } from '@/components/Leaderboard';
+import { LiveStatus } from '@/components/LiveNumber';
 import { LiveRefresh } from '@/components/LiveRefresh';
 import { PeriodPicker } from '@/components/PeriodPicker';
 import { requireMember } from '@/lib/auth';
@@ -28,35 +29,40 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
-        <LiveRefresh version={liveVersion} kinds={REPORT_KINDS} />
-        <div>
-          <Link href="/dashboard" className="text-sm font-bold">
-            ← Back to dashboard
-          </Link>
-          <p className="eyebrow m-0 mt-3">Networking activity</p>
-          <h1 className="font-display m-0 mt-1 text-[clamp(28px,3.4vw,40px)] font-extrabold">Leaderboard</h1>
-          <p className="text-ink-muted m-0 mt-1">The group’s numbers and its most active members. They update by themselves as members report activity.</p>
-        </div>
-
-        <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
-          <PeriodPicker name="p" value={period.value} defaultValue={pickPeriod(undefined).value} choices={periodChoices()} />
-          <p className="text-ink-muted m-0 text-sm">{describeRange(period.range)} · Pacific time</p>
-        </div>
-
-        <div className="flex flex-wrap items-start gap-5">
-          <section className="card flex min-w-0 flex-[2_1_320px] flex-col gap-1.5 p-5" aria-labelledby="totals-h">
-            <h2 id="totals-h" className="h3">
-              Group totals: {period.label}
-            </h2>
-            <GroupTotalsTiles totals={totals} label={period.label} />
-            <p className="text-ink-muted m-0 mt-2 text-sm">
-              Closed business counts in the month it closed and is shown as a group total only. One-on-ones count once confirmed.
-            </p>
-          </section>
-          <div className="min-w-0 flex-[3_1_520px]">
-            <Leaderboard rows={leaders} meId={viewer.profile.id} title={`Top members: ${period.label}`} />
+        {/* Live: data reloads by itself; changed numbers glow teal (owner, 2026-11-25/26). */}
+        <LiveRefresh version={liveVersion} kinds={REPORT_KINDS}>
+          <div>
+            <Link href="/dashboard" className="text-sm font-bold">
+              ← Back to dashboard
+            </Link>
+            <p className="eyebrow m-0 mt-3">Networking activity</p>
+            <h1 className="font-display m-0 mt-1 text-[clamp(28px,3.4vw,40px)] font-extrabold">Leaderboard</h1>
+            <p className="text-ink-muted m-0 mt-1">The group’s numbers and its most active members. They update by themselves as members report activity.</p>
           </div>
-        </div>
+
+          <div className="card flex flex-wrap items-center justify-between gap-3 p-4">
+            <PeriodPicker name="p" value={period.value} defaultValue={pickPeriod(undefined).value} choices={periodChoices()} />
+            <p className="text-ink-muted m-0 flex flex-wrap items-center gap-x-3 text-sm">
+              <span>{describeRange(period.range)} · Pacific time</span>
+              <LiveStatus />
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-start gap-5">
+            <section className="card flex min-w-0 flex-[2_1_320px] flex-col gap-1.5 p-5" aria-labelledby="totals-h">
+              <h2 id="totals-h" className="h3">
+                Group totals: {period.label}
+              </h2>
+              <GroupTotalsTiles totals={totals} label={period.label} />
+              <p className="text-ink-muted m-0 mt-2 text-sm">
+                Closed business counts in the month it closed and is shown as a group total only. One-on-ones count once confirmed.
+              </p>
+            </section>
+            <div className="min-w-0 flex-[3_1_520px]">
+              <Leaderboard rows={leaders} meId={viewer.profile.id} title={`Top members: ${period.label}`} />
+            </div>
+          </div>
+        </LiveRefresh>
       </div>
     </div>
   );

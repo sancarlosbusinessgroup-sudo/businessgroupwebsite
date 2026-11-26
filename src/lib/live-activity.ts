@@ -53,3 +53,19 @@ export function isEditing(el: Element | null | undefined): boolean {
   if ((el as HTMLElement).isContentEditable) return true;
   return el.matches(TEXT_INPUT);
 }
+
+// --- Live highlight (owner, 2026-11-26) -------------------------------------------------------------------------------
+
+/** How long a changed number glows (BARP teal) and how long it takes to count up to its new value. */
+export const LIVE_FLASH_MS = 4_000;
+export const LIVE_COUNT_MS = 700;
+
+/** The change shown next to a highlighted number ("+1", "+$2,500"); cents kept, float noise dropped. */
+export const liveDelta = (from: number, to: number) => Math.round((to - from) * 100) / 100;
+
+/** A whole number part-way from `from` to `to` (p from 0 to 1), easing out so it settles gently on the new value. */
+export function tweenValue(from: number, to: number, p: number): number {
+  const t = Math.min(1, Math.max(0, p));
+  const eased = 1 - (1 - t) ** 3;
+  return t >= 1 ? to : Math.round(from + (to - from) * eased);
+}

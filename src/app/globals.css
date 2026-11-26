@@ -439,3 +439,53 @@
   color: var(--ink);
   color-scheme: light;
 }
+
+/* Live highlight (owner, 2026-11-26): a number changed by members' activity glows in BARP teal for a few seconds
+   (LiveNumber adds .live-flash; the card around it has .live-tile). Unlayered, so it wins over utility backgrounds.
+   With motion turned off the glow still shows, it just appears and disappears without fading. */
+.live-tile {
+  transition:
+    box-shadow 1.2s ease-out,
+    background-color 1.2s ease-out;
+}
+.live-tile:has(.live-flash) {
+  background-color: var(--teal-tint);
+  box-shadow:
+    0 0 0 3px var(--brand),
+    0 0 18px rgb(0 194 203 / 0.45);
+  transition: none;
+}
+.live-delta {
+  margin-left: 0.35em;
+  font-size: 0.5em;
+  font-weight: 800;
+  color: var(--teal-text);
+  vertical-align: 0.6em;
+}
+.live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+.live-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--brand);
+}
+/* Slides keep their own light palette whatever the site's colour mode. */
+[aria-roledescription='slide'] .live-tile:has(.live-flash) {
+  box-shadow:
+    0 0 0 0.35cqw #00c2cb,
+    0 0 1.6cqw rgb(0 194 203 / 0.55);
+}
+[aria-roledescription='slide'] .live-tile:not(.live-on-dark):has(.live-flash) {
+  background-color: #e0f7f8;
+}
+[aria-roledescription='slide'] .live-delta {
+  color: #0c7b74;
+}
+[aria-roledescription='slide'] .live-on-dark .live-delta {
+  color: #ffffff;
+}

@@ -7,6 +7,7 @@ import { formatMeetingDate, formatMeetingTime, formatMoney } from '@/lib/dates';
 import { env, mediaUrl } from '@/lib/env';
 import { groupLeadership } from '@/lib/leadership';
 import { chunk, slideLabel, slideTime, type SlideKey } from '@/lib/slides';
+import { LiveNumber } from '@/components/LiveNumber';
 import type { DeckSlide } from './Deck';
 import { Icon, SilencePhone, type IconName } from './icons';
 import { Fireworks, PdfPageSlide, PowerPointSlide, SlideTimer, WebsiteSlide, YouTubeSlide } from './SlideWidgets';
@@ -707,11 +708,11 @@ export function buildSlides(d: DeckData): DeckSlide[] {
       }
       case 'statistics': {
         // Owner, 2026-11-25: big tiles for all three periods: since the last meeting, this month, the year so far.
-        const cols: [IconName, string, (t: DeckData['totals'][number]['t']) => string][] = [
-          ['chat', 'One-to-ones', (t) => String(t.one_on_ones)],
-          ['share', 'Referrals', (t) => String(t.referrals)],
-          ['badgeCheck', 'Closed business', (t) => String(t.closed_deals)],
-          ['dollar', 'Closed business ($)', (t) => formatMoney(t.closed_amount)],
+        const cols: [IconName, string, (t: DeckData['totals'][number]['t']) => number][] = [
+          ['chat', 'One-to-ones', (t) => t.one_on_ones],
+          ['share', 'Referrals', (t) => t.referrals],
+          ['badgeCheck', 'Closed business', (t) => t.closed_deals],
+          ['dollar', 'Closed business ($)', (t) => t.closed_amount],
         ];
         const grid: CSSProperties = { gridTemplateColumns: '17cqw repeat(4, minmax(0, 1fr))' };
         page(key, {
@@ -740,12 +741,13 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                   </p>
                   <ul className="col-span-4 m-0 grid list-none grid-cols-4 gap-[1.1cqw] p-0" aria-label={label}>
                     {cols.map(([, l, get]) => {
-                      const v = get(t);
+                      const n = get(t);
                       const hi = l === 'Closed business ($)';
+                      const v = hi ? formatMoney(n) : String(n);
                       return (
                         <li
                           key={l}
-                          className={`flex items-center rounded-[1.2cqw] px-[1.5cqw] py-[1cqw] ${hi ? 'text-white shadow-[0_0.5cqw_1.5cqw_rgba(10,71,169,0.28)]' : card(row !== 0)}`}
+                          className={`live-tile flex items-center rounded-[1.2cqw] px-[1.5cqw] py-[1cqw] ${hi ? 'live-on-dark text-white shadow-[0_0.5cqw_1.5cqw_rgba(10,71,169,0.28)]' : card(row !== 0)}`}
                           style={hi ? { background: 'linear-gradient(135deg, #1f7fd0, #0a47a9)' } : undefined}
                         >
                           <span
@@ -753,7 +755,8 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                             // Long numbers (e.g. "$3,000,000") get a smaller font so they stay inside the card.
                             style={{ fontSize: `${v.length <= 7 ? 3.4 : Math.max(1.7, (3.4 * 7.5) / v.length)}cqw`, ...(hi ? {} : { color: BLUE }) }}
                           >
-                            {v}
+                            {/* Counts up and glows teal when live activity changes it (owner, 2026-11-26). */}
+                            <LiveNumber value={n} format={hi ? 'money' : 'count'} />
                           </span>
                           <span className="sr-only">{l}</span>
                         </li>
@@ -800,7 +803,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                             {rows.length ? (
                               <ol className="m-0 flex list-none flex-col gap-[0.5cqw] p-0">
                                 {rows.map((r) => (
-                                  <li key={r.profile_id} className="flex items-center gap-[0.8cqw] text-[1.6cqw]">
+                                  <li key={r.profile_id} className="live-tile flex items-center gap-[0.8cqw] rounded-[0.8cqw] text-[1.6cqw]">
                                     <span
                                       className="flex h-[2.3cqw] w-[2.3cqw] flex-none items-center justify-center rounded-full text-[1.2cqw] font-extrabold text-white"
                                       style={{ background: color }}
@@ -811,7 +814,7 @@ export function buildSlides(d: DeckData): DeckSlide[] {
                                       {r.first_name} {r.last_name.slice(0, 1)}.
                                     </span>
                                     <strong className="tabular-nums" style={{ color: NAVY }}>
-                                      {r.value}
+                                      <LiveNumber value={r.value} isNew />
                                     </strong>
                                   </li>
                                 ))}

@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { activitySignature, isEditing, needsRefresh, pollDelayMs, POLL_FAST_MS, POLL_SLOW_MS, REPORT_KINDS } from './live-activity';
+import {
+  activitySignature,
+  isEditing,
+  LIVE_COUNT_MS,
+  LIVE_FLASH_MS,
+  liveDelta,
+  needsRefresh,
+  pollDelayMs,
+  POLL_FAST_MS,
+  POLL_SLOW_MS,
+  REPORT_KINDS,
+  tweenValue,
+} from './live-activity';
 
 describe('activitySignature', () => {
   const rows = [
@@ -71,5 +83,29 @@ describe('isEditing', () => {
     expect(isEditing(make('<input type="submit">'))).toBe(false);
     expect(isEditing(document.body)).toBe(false);
     expect(isEditing(null)).toBe(false);
+  });
+});
+
+describe('live highlight helpers (owner, 2026-11-26)', () => {
+  it('liveDelta is the change, without float noise', () => {
+    expect(liveDelta(10, 11)).toBe(1);
+    expect(liveDelta(26293, 70043)).toBe(43750);
+    expect(liveDelta(0.1, 0.3)).toBe(0.2);
+    expect(liveDelta(5, 4)).toBe(-1);
+  });
+  it('tweenValue starts at the old number, ends exactly on the new one, and only shows whole numbers on the way', () => {
+    expect(tweenValue(10, 20, 0)).toBe(10);
+    expect(tweenValue(10, 20, 1)).toBe(20);
+    expect(tweenValue(0, 43750.5, 1)).toBe(43750.5);
+    const mid = tweenValue(10, 20, 0.5);
+    expect(Number.isInteger(mid)).toBe(true);
+    expect(mid).toBeGreaterThan(15); // eases out: past halfway at half time
+    expect(tweenValue(20, 10, 0.5)).toBeLessThan(15);
+    expect(tweenValue(10, 20, -1)).toBe(10);
+    expect(tweenValue(10, 20, 2)).toBe(20);
+  });
+  it('the highlight lasts a few seconds and the count-up under one second', () => {
+    expect(LIVE_FLASH_MS).toBeGreaterThanOrEqual(3000);
+    expect(LIVE_COUNT_MS).toBeLessThan(1000);
   });
 });

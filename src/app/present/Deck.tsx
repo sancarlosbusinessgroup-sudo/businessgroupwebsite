@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode } from 'react';
+import { LiveScope } from '@/components/LiveNumber';
 import { useLiveActivity } from '@/components/useLiveActivity';
 import { SLIDE_KINDS } from '@/lib/live-activity';
 
@@ -124,11 +125,14 @@ export function Deck({
             className="bg-band border-line @container relative aspect-video w-[min(100%,calc((100dvh-5rem)*16/9))] overflow-hidden rounded-xl border shadow-sm"
             aria-roledescription="slide"
           >
-            {slides.map((s, n) => (
-              <div key={s.id} hidden={n !== shown} aria-label={`${s.label} (slide ${n + 1} of ${slides.length})`} role="group" className="absolute inset-0">
-                {s.node}
-              </div>
-            ))}
+            {/* Numbers that live activity changes glow teal for a few seconds (owner, 2026-11-26). */}
+            <LiveScope version={liveVersion}>
+              {slides.map((s, n) => (
+                <div key={s.id} hidden={n !== shown} aria-label={`${s.label} (slide ${n + 1} of ${slides.length})`} role="group" className="absolute inset-0">
+                  {s.node}
+                </div>
+              ))}
+            </LiveScope>
           </div>
         </div>
         <div className="border-band-line flex flex-wrap items-center justify-between gap-3 border-t px-4 py-2.5">
@@ -156,9 +160,10 @@ export function Deck({
             >
               <span
                 aria-hidden="true"
-                className={`inline-block h-2 w-2 rounded-full ${live.status === 'connecting' ? 'bg-current opacity-40' : 'bg-[#12a89d]'}`}
+                className={`inline-block h-2 w-2 rounded-full ${live.status === 'connecting' ? 'bg-current opacity-40' : 'bg-[#00c2cb]'}`}
               />
               Live
+              {live.updatedAt ? ` · updated ${live.updatedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : ''}
             </span>
             <button type="button" className="btn btn-ghost-band btn-sm" onClick={refresh} disabled={refreshing} aria-describedby="deck-refreshed">
               {refreshing ? 'Refreshing…' : 'Refresh'}

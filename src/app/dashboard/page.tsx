@@ -1,3 +1,4 @@
+import { LiveStatus } from '@/components/LiveNumber';
 import { LiveRefresh } from '@/components/LiveRefresh';
 import { getActivityVersion } from '@/lib/data/live';
 import { REPORT_KINDS } from '@/lib/live-activity';
@@ -57,141 +58,146 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <div className="bg-canvas">
       <div className="container-site flex flex-col gap-6 pt-8 pb-16">
-        <LiveRefresh version={liveVersion} kinds={REPORT_KINDS} />
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-ink-muted m-0 text-[15px]">{formatLongToday()}</p>
-            <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">
-              {greeting}, {me.first_name}
-            </h1>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link className="btn btn-outline btn-sm" href="/profile">
-              Edit my profile
-            </Link>
-            <Link className="btn btn-primary btn-sm" href="/one-on-ones">
-              + Report activity
-            </Link>
-          </div>
-        </div>
-
-        {welcome ? <Notice tone="success">Thanks, {me.first_name}! Your onboarding is complete. Welcome to the group.</Notice> : null}
-        {needsOnboarding ? (
-          <Notice tone="info">
-            Welcome aboard! Please <Link href="/onboarding">complete your onboarding</Link> so members know who to refer to you.
-          </Notice>
-        ) : null}
-
-        {photoTags.count ? (
-          <Notice tone="info">
-            You’re tagged in {photoTags.count === 1 ? 'a photo' : `${photoTags.count} photos`} waiting for your approval.{' '}
-            <Link href="/gallery#tagged">Approve or decline</Link>
-          </Notice>
-        ) : null}
-
-        <div className="flex flex-wrap gap-5">
-          <div className="min-w-0 flex-[3_1_520px]">
-            <NextMeetingCard meeting={next} member />
-          </div>
-          <section className="card min-w-0 flex-[2_1_320px] p-5" aria-labelledby="pending-h">
-            <h2 id="pending-h" className="h3">
-              Pending confirmations
-            </h2>
-            <p className="text-ink-muted m-0 mb-2.5 text-sm">Confirm one-on-ones someone else reported with you.</p>
-            {pending.length === 0 ? (
-              <EmptyState title="You're all caught up" />
-            ) : (
-              <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
-                {pending.map((p) => (
-                  <li key={p.id} className="border-line flex items-center justify-between gap-2.5 rounded-xl border p-3">
-                    <div className="text-[15px]">
-                      <strong>{personName(p.reporter)} had a one-on-one with you</strong>
-                      <div className="text-ink-muted text-[13px]">{formatShortDate(new Date(p.met_on + 'T12:00:00Z'))}</div>
-                    </div>
-                    <form action={confirmOneOnOne}>
-                      <input type="hidden" name="id" value={p.id} />
-                      <button type="submit" className="btn btn-outline btn-sm">
-                        Confirm
-                      </button>
-                    </form>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
-
-        <div className="flex flex-wrap items-start gap-5">
-          <div className="flex min-w-0 flex-[3_1_520px] flex-col gap-5">
-            <Leaderboard rows={leaders} period={lbPeriod} meId={me.id} hrefFor={(p) => (p === 'month' ? '/dashboard' : `/dashboard?lb=${p}`)} />
-
-            <section className="card flex flex-col gap-3.5 p-5" aria-labelledby="report-h">
-              <h2 id="report-h" className="h3">
-                Report activity
-              </h2>
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
-                {[
-                  { href: '/one-on-ones', t: 'One-on-one', d: 'Log a meeting with another member' },
-                  { href: '/referrals', t: 'Referral slip', d: 'Pass business to another member' },
-                  { href: '/closed-business', t: 'Closed business', d: 'Mark a referral you received as closed business' },
-                  { href: '/meetings', t: 'Sign up to speak', d: '5-min education or 10-min presentation' },
-                ].map((a) => (
-                  <Link
-                    key={a.t}
-                    href={a.href}
-                    className="border-line bg-surface text-ink hover:border-teal hover:text-ink flex flex-col gap-1.5 rounded-[14px] border p-4 no-underline"
-                  >
-                    <strong className="text-heading">{a.t}</strong>
-                    <span className="text-ink-muted text-sm">{a.d}</span>
-                  </Link>
-                ))}
-              </div>
-            </section>
-
-            <WeeklyAskForm current={me.weekly_ask} updated={me.weekly_ask_updated_at ? formatShortDate(new Date(me.weekly_ask_updated_at)) : null} />
-            {/* Owner, 2026-10-31: the member's own events, right under My ask this week. */}
-            <MyEventsCard
-              events={myEvents}
-              userId={me.id}
-              hostName={`${me.first_name} ${me.last_name}`}
-              minStart={isoToPacificLocal(new Date(nowMs()).toISOString())}
-            />
-          </div>
-
-          <div className="flex min-w-0 flex-[2_1_320px] flex-col gap-5">
-            <section className="card flex flex-col gap-1.5 p-5" aria-labelledby="group-h">
-              <h2 id="group-h" className="h3">
-                {totalsPeriod.isCurrentMonth ? 'Group this month' : `Group totals: ${totalsPeriod.label}`}
-              </h2>
-              <PeriodPicker name="gt" value={totalsPeriod.value} defaultValue={pickPeriod(undefined).value} choices={periodChoices()} label="Period" />
-              <GroupTotalsTiles totals={totals} label={totalsPeriod.label} />
-              <Link href="/leaderboard" className="mt-1 text-sm font-bold">
-                Full leaderboard and totals →
+        {/* Live: data reloads by itself; changed numbers glow teal (owner, 2026-11-25/26). */}
+        <LiveRefresh version={liveVersion} kinds={REPORT_KINDS}>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-ink-muted m-0 text-[15px]">{formatLongToday()}</p>
+              <h1 className="font-display m-0 text-[clamp(28px,3.4vw,40px)] font-extrabold">
+                {greeting}, {me.first_name}
+              </h1>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link className="btn btn-outline btn-sm" href="/profile">
+                Edit my profile
               </Link>
-              {recent.length === 0 ? (
-                <p className="text-ink-muted m-0 mt-2 text-[15px]">No one-on-ones reported in the last 30 days.</p>
+              <Link className="btn btn-primary btn-sm" href="/one-on-ones">
+                + Report activity
+              </Link>
+            </div>
+          </div>
+
+          {welcome ? <Notice tone="success">Thanks, {me.first_name}! Your onboarding is complete. Welcome to the group.</Notice> : null}
+          {needsOnboarding ? (
+            <Notice tone="info">
+              Welcome aboard! Please <Link href="/onboarding">complete your onboarding</Link> so members know who to refer to you.
+            </Notice>
+          ) : null}
+
+          {photoTags.count ? (
+            <Notice tone="info">
+              You’re tagged in {photoTags.count === 1 ? 'a photo' : `${photoTags.count} photos`} waiting for your approval.{' '}
+              <Link href="/gallery#tagged">Approve or decline</Link>
+            </Notice>
+          ) : null}
+
+          <div className="flex flex-wrap gap-5">
+            <div className="min-w-0 flex-[3_1_520px]">
+              <NextMeetingCard meeting={next} member />
+            </div>
+            <section className="card min-w-0 flex-[2_1_320px] p-5" aria-labelledby="pending-h">
+              <h2 id="pending-h" className="h3">
+                Pending confirmations
+              </h2>
+              <p className="text-ink-muted m-0 mb-2.5 text-sm">Confirm one-on-ones someone else reported with you.</p>
+              {pending.length === 0 ? (
+                <EmptyState title="You're all caught up" />
               ) : (
-                <ul className="m-0 mt-2 list-none p-0">
-                  {recent.map((o) => (
-                    <li key={o.id} className="border-line-soft flex justify-between gap-3 border-t py-3 text-[15px]">
-                      <span>
-                        <strong>{personName(o.reporter)}</strong> had a one-on-one with {personName(o.partner)}
-                      </span>
-                      <span className="text-ink-muted flex-none">{formatShortDate(new Date(o.met_on + 'T12:00:00Z')).replace(/, \d{4}$/, '')}</span>
+                <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+                  {pending.map((p) => (
+                    <li key={p.id} className="border-line flex items-center justify-between gap-2.5 rounded-xl border p-3">
+                      <div className="text-[15px]">
+                        <strong>{personName(p.reporter)} had a one-on-one with you</strong>
+                        <div className="text-ink-muted text-[13px]">{formatShortDate(new Date(p.met_on + 'T12:00:00Z'))}</div>
+                      </div>
+                      <form action={confirmOneOnOne}>
+                        <input type="hidden" name="id" value={p.id} />
+                        <button type="submit" className="btn btn-outline btn-sm">
+                          Confirm
+                        </button>
+                      </form>
                     </li>
                   ))}
                 </ul>
               )}
             </section>
-            <InviteCard
-              link={`${env.siteUrl}/visit?ref=${me.referral_code}`}
-              guests={guests}
-              meetings={guestMeetings}
-              memberName={`${me.first_name} ${me.last_name}`.trim()}
-            />
-            <InstallAppCard />
           </div>
-        </div>
+
+          <div className="flex flex-wrap items-start gap-5">
+            <div className="flex min-w-0 flex-[3_1_520px] flex-col gap-5">
+              <Leaderboard rows={leaders} period={lbPeriod} meId={me.id} hrefFor={(p) => (p === 'month' ? '/dashboard' : `/dashboard?lb=${p}`)} />
+
+              <section className="card flex flex-col gap-3.5 p-5" aria-labelledby="report-h">
+                <h2 id="report-h" className="h3">
+                  Report activity
+                </h2>
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
+                  {[
+                    { href: '/one-on-ones', t: 'One-on-one', d: 'Log a meeting with another member' },
+                    { href: '/referrals', t: 'Referral slip', d: 'Pass business to another member' },
+                    { href: '/closed-business', t: 'Closed business', d: 'Mark a referral you received as closed business' },
+                    { href: '/meetings', t: 'Sign up to speak', d: '5-min education or 10-min presentation' },
+                  ].map((a) => (
+                    <Link
+                      key={a.t}
+                      href={a.href}
+                      className="border-line bg-surface text-ink hover:border-teal hover:text-ink flex flex-col gap-1.5 rounded-[14px] border p-4 no-underline"
+                    >
+                      <strong className="text-heading">{a.t}</strong>
+                      <span className="text-ink-muted text-sm">{a.d}</span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+
+              <WeeklyAskForm current={me.weekly_ask} updated={me.weekly_ask_updated_at ? formatShortDate(new Date(me.weekly_ask_updated_at)) : null} />
+              {/* Owner, 2026-10-31: the member's own events, right under My ask this week. */}
+              <MyEventsCard
+                events={myEvents}
+                userId={me.id}
+                hostName={`${me.first_name} ${me.last_name}`}
+                minStart={isoToPacificLocal(new Date(nowMs()).toISOString())}
+              />
+            </div>
+
+            <div className="flex min-w-0 flex-[2_1_320px] flex-col gap-5">
+              <section className="card flex flex-col gap-1.5 p-5" aria-labelledby="group-h">
+                <h2 id="group-h" className="h3">
+                  {totalsPeriod.isCurrentMonth ? 'Group this month' : `Group totals: ${totalsPeriod.label}`}
+                </h2>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <PeriodPicker name="gt" value={totalsPeriod.value} defaultValue={pickPeriod(undefined).value} choices={periodChoices()} label="Period" />
+                  <LiveStatus className="text-ink-muted text-sm" />
+                </div>
+                <GroupTotalsTiles totals={totals} label={totalsPeriod.label} />
+                <Link href="/leaderboard" className="mt-1 text-sm font-bold">
+                  Full leaderboard and totals →
+                </Link>
+                {recent.length === 0 ? (
+                  <p className="text-ink-muted m-0 mt-2 text-[15px]">No one-on-ones reported in the last 30 days.</p>
+                ) : (
+                  <ul className="m-0 mt-2 list-none p-0">
+                    {recent.map((o) => (
+                      <li key={o.id} className="border-line-soft flex justify-between gap-3 border-t py-3 text-[15px]">
+                        <span>
+                          <strong>{personName(o.reporter)}</strong> had a one-on-one with {personName(o.partner)}
+                        </span>
+                        <span className="text-ink-muted flex-none">{formatShortDate(new Date(o.met_on + 'T12:00:00Z')).replace(/, \d{4}$/, '')}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+              <InviteCard
+                link={`${env.siteUrl}/visit?ref=${me.referral_code}`}
+                guests={guests}
+                meetings={guestMeetings}
+                memberName={`${me.first_name} ${me.last_name}`.trim()}
+              />
+              <InstallAppCard />
+            </div>
+          </div>
+        </LiveRefresh>
       </div>
     </div>
   );
