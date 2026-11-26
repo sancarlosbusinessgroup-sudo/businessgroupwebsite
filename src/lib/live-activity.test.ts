@@ -58,14 +58,14 @@ describe('isEditing', () => {
     document.body.innerHTML = html;
     return document.body.firstElementChild;
   };
-  it('is true in text fields, text areas and selects', () => {
+  it('is true in text fields and text areas', () => {
     expect(isEditing(make('<input type="text">'))).toBe(true);
     expect(isEditing(make('<input>'))).toBe(true);
     expect(isEditing(make('<input type="date">'))).toBe(true);
     expect(isEditing(make('<textarea></textarea>'))).toBe(true);
-    expect(isEditing(make('<select></select>'))).toBe(true);
   });
-  it('is false on buttons, checkboxes and the page itself', () => {
+  it('is false on menus, buttons, checkboxes and the page itself', () => {
+    expect(isEditing(make('<select></select>'))).toBe(false);
     expect(isEditing(make('<button>Go</button>'))).toBe(false);
     expect(isEditing(make('<input type="checkbox">'))).toBe(false);
     expect(isEditing(make('<input type="submit">'))).toBe(false);

@@ -6,7 +6,7 @@ import { resolveNotes, resolveSlides, resolveTimers, type SlideKey, type SlideNo
 import { getUpcomingMemberEvents, type CalendarItem, fromMeeting } from './events';
 import { finalizeMeetingChampions, getChampionAwards, getChampionPeriods, getChampionRanking, getMeetingChampionRanking, type ChampionAward } from './champion';
 import { MEETING_CHAMPION_FROM, meetingDateLabel, monthOf, monthRange, previousMonth } from '../champion';
-import { getGroupTotals, getGroupTotalsWindow, getLeaderboardWindow, type GroupTotals, type LeaderRow } from './member';
+import { getGroupTotals, getGroupTotalsWindow, getLeaderboard, type GroupTotals, type LeaderRow } from './member';
 import { getCategorySeats, getLeadership, getMeetingBySlug, getUpcomingMeetings, type MeetingWithSpeakers, type Speaker } from './public';
 
 // Everything the meeting slide deck shows, loaded as the signed-in member (RLS applies).
@@ -40,8 +40,10 @@ export type DeckData = {
   asks: { first_name: string; last_name: string; business_name: string; weekly_ask: string }[];
   five: SpeakerCard | null;
   ten: SpeakerCard | null;
+  /** Statistics slide rows: since the last meeting, this month, the year so far (owner, 2026-11-25: all three as tiles). */
   totals: { label: string; t: GroupTotals }[];
-  leaders: LeaderRow[];
+  /** Leaderboards slides (owner, 2026-11-25): one for this month, one for the year so far. */
+  leaderboards: { suffix: string; label: string; rows: LeaderRow[] }[];
   events: CalendarItem[];
   next: (MeetingWithSpeakers & { five: SpeakerCard | null; ten: SpeakerCard | null }) | null;
   /**
@@ -58,6 +60,9 @@ export type DeckData = {
   /** Members whose birthday is in the meeting's month (owner meeting 2026-10-30): a slide before the BARP Champion. */
   birthdays: { id: string; name: string; day: number; avatar: string | null }[];
 };
+
+const monthLabel = (d: Date) => d.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'America/Los_Angeles' });
+const yearLabel = (d: Date) => d.toLocaleDateString('en-US', { year: 'numeric', timeZone: 'America/Los_Angeles' });
 
 function fail(what: string, error: { message: string } | null): never {
   throw new Error(`Could not load ${what}${error ? `: ${error.message}` : ''}`);
@@ -107,7 +112,7 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
   const nextSpeakers = ((nextRes.data as MeetingWithSpeakers | null)?.meeting_speakers ?? []) as Speaker[];
   const speakerIds = [...meeting.meeting_speakers, ...nextSpeakers].map((s) => s.profile_id).filter((x): x is string => !!x);
   const meetingMonth = Number(meetingDay.slice(5, 7));
-  const [visitorsRes, newRes, asksRes, avatarsRes, seats, cycleT, monthT, yearT, leaders, groupEvents, memberEvents, leadership, birthdaysRes] =
+  const [visitorsRes, newRes, asksRes, avatarsRes, seats, cycleT, monthT, yearT, leadersMonth, leadersYear, groupEvents, memberEvents, leadership, birthdaysRes] =
     await Promise.all([
       supabase.rpc('meeting_visitors', { p_meeting: meeting.id }),
       supabase
@@ -128,7 +133,8 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
       getGroupTotalsWindow(cycleWindow),
       getGroupTotals(periodRange({ period: 'month' })),
       getGroupTotals(periodRange({ period: 'year' })),
-      getLeaderboardWindow(cycleWindow),
+      getLeaderboard(periodRange({ period: 'month' })),
+      getLeaderboard(periodRange({ period: 'year' })),
       getUpcomingMeetings(12),
       getUpcomingMemberEvents(12),
       getLeadership(),
@@ -211,10 +217,13 @@ export async function getDeckData(slug: string): Promise<DeckData | null> {
     ten: card('presentation'),
     totals: [
       { label: 'Since the last meeting', t: cycleT },
-      { label: 'This month', t: monthT },
-      { label: 'This year', t: yearT },
+      { label: `This month · ${monthLabel(new Date())}`, t: monthT },
+      { label: `Year so far · ${yearLabel(new Date())}`, t: yearT },
     ],
-    leaders,
+    leaderboards: [
+      { suffix: 'this month', label: `This month · ${monthLabel(new Date())}`, rows: leadersMonth },
+      { suffix: 'year so far', label: `Year so far · ${yearLabel(new Date())}`, rows: leadersYear },
+    ],
     events,
     champion,
     birthdays: (birthdaysRes.data ?? []).map((b) => ({

@@ -67,7 +67,9 @@ test.describe('meeting slides follow the new agenda', () => {
       '60-second infomercial and reporting',
       'Introduction of Visitors',
       'Statistics',
-      'Leaderboards',
+      // Owner, 2026-11-25: two leaderboards slides, this month and the year so far (test-plan 172).
+      'Leaderboards (this month)',
+      'Leaderboards (year so far)',
       'BARP Champion',
       '5-minute educational presentation',
       '10-minute presentation',
@@ -146,6 +148,13 @@ test.describe('meeting slides follow the new agenda', () => {
     // After the leaderboards: "BARP Champion", coming soon (owner, 2026-10-23); from 2026-11-23 the meeting's champion
     // (the leader since the previous meeting) when anyone has points.
     await goToSlide(deck, page, 'Leaderboards');
+    await page.keyboard.press('ArrowRight'); // the year's leaderboards (owner, 2026-11-25)
+    await expect(
+      deck
+        .getByRole('group')
+        .filter({ visible: true })
+        .getByText(/^Year so far · \d{4}$/),
+    ).toBeVisible();
     await page.keyboard.press('ArrowRight');
     await expect(deck.getByRole('heading', { name: 'BARP Champion' })).toBeVisible();
     await expect(

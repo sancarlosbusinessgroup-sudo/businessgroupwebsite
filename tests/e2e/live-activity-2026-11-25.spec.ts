@@ -54,7 +54,7 @@ const statTile = (page: Page, label: string) =>
     .locator('span.font-display');
 const slideLeader = (page: Page, board: string, who: string) =>
   page
-    .locator('[role="group"][aria-label^="Leaderboards (slide "]')
+    .locator('[role="group"][aria-label^="Leaderboards (this month) (slide "]')
     .getByRole('heading', { name: board, exact: true })
     .locator('xpath=ancestor::div[contains(@class, "overflow-hidden")][1]')
     .locator('li', { hasText: who })
@@ -209,7 +209,7 @@ test('one-on-ones: reported, then confirmed, then a second report of the same da
 });
 
 test('visitors brought: logged visitor shows in Member Activity, Member Stats and the slides leaderboard', async () => {
-  await showSlide(deck, 'Leaderboards');
+  await showSlide(deck, 'Leaderboards (this month)');
   const slideVis = await num(slideLeader(deck, 'Visitors brought', 'Morgan'));
   const statsVis = await num(statsCell(stats, 'Morgan Member', 7));
 
@@ -224,7 +224,7 @@ test('visitors brought: logged visitor shows in Member Activity, Member Stats an
   await expect(activity.getByRole('listitem').filter({ hasText: `Livia Visitor ${stamp}` })).toContainText('Morgan Member brought');
   await expect(statsCell(stats, 'Morgan Member', 7)).toHaveText(String(statsVis + 1));
   await expect(slideLeader(deck, 'Visitors brought', 'Morgan')).toHaveText(String(slideVis + 1));
-  await expect(deck.locator('[role="group"][aria-label^="Leaderboards (slide "]')).toBeVisible();
+  await expect(deck.locator('[role="group"][aria-label^="Leaderboards (this month) (slide "]')).toBeVisible();
   for (const p of [activity, stats, deck]) await stillSamePage(p);
 });
 

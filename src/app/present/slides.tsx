@@ -706,136 +706,129 @@ export function buildSlides(d: DeckData): DeckSlide[] {
         break;
       }
       case 'statistics': {
-        const cycle = d.totals[0]?.t;
-        const tiles: [IconName, string, string][] = cycle
-          ? [
-              ['chat', String(cycle.one_on_ones), 'One-to-ones'],
-              ['share', String(cycle.referrals), 'Referrals'],
-              ['badgeCheck', String(cycle.closed_deals), 'Closed business'],
-              ['dollar', formatMoney(cycle.closed_amount), 'Closed business ($)'],
-            ]
-          : [];
+        // Owner, 2026-11-25: big tiles for all three periods: since the last meeting, this month, the year so far.
+        const cols: [IconName, string, (t: DeckData['totals'][number]['t']) => string][] = [
+          ['chat', 'One-to-ones', (t) => String(t.one_on_ones)],
+          ['share', 'Referrals', (t) => String(t.referrals)],
+          ['badgeCheck', 'Closed business', (t) => String(t.closed_deals)],
+          ['dollar', 'Closed business ($)', (t) => formatMoney(t.closed_amount)],
+        ];
+        const grid: CSSProperties = { gridTemplateColumns: '17cqw repeat(4, minmax(0, 1fr))' };
         page(key, {
           title: 'Statistics',
           body: (
-            <>
-              {cycle ? (
-                <ul className="m-0 grid list-none grid-cols-4 gap-[1.4cqw] p-0" aria-label="Since the last meeting">
-                  {tiles.map(([icon, v, l], i) => {
-                    const hi = i === tiles.length - 1;
-                    return (
-                      <li
-                        key={l}
-                        className={`flex flex-col gap-[0.8cqw] rounded-[1.4cqw] px-[1.6cqw] py-[1.4cqw] ${hi ? 'text-white shadow-[0_0.6cqw_1.8cqw_rgba(10,71,169,0.3)]' : card(true)}`}
-                        style={hi ? { background: 'linear-gradient(135deg, #1f7fd0, #0a47a9)' } : undefined}
-                      >
-                        <Badge name={icon} size={3.6} light={hi} />
-                        <span
-                          className="font-display leading-none font-extrabold whitespace-nowrap tabular-nums"
-                          // Long numbers (e.g. "$3,000,000") get a smaller font so they stay inside the card.
-                          style={{ fontSize: `${v.length <= 7 ? 3.8 : Math.max(1.8, (3.8 * 7.5) / v.length)}cqw`, ...(hi ? {} : { color: BLUE }) }}
+            <div className="flex flex-col gap-[1cqw]">
+              <div className="grid items-end gap-[1.1cqw]" style={grid} aria-hidden="true">
+                <span />
+                {cols.map(([icon, l]) => (
+                  <span key={l} className="flex items-center gap-[0.7cqw] text-[1.45cqw] font-bold" style={{ color: BLUE }}>
+                    <Badge name={icon} size={2.6} />
+                    {l}
+                  </span>
+                ))}
+              </div>
+              {d.totals.map(({ label, t }, row) => (
+                <div key={label} className="grid items-stretch gap-[1.1cqw]" style={grid}>
+                  <p className="font-display m-0 flex flex-col self-center leading-tight" style={{ color: row === 0 ? NAVY : MUTED }}>
+                    <span className="text-[1.7cqw] font-extrabold">{label.split(' · ')[0]}</span>
+                    {label.includes(' · ') ? (
+                      <span className="text-[1.3cqw] font-semibold">
+                        <span className="sr-only">, </span>
+                        {label.split(' · ')[1]}
+                      </span>
+                    ) : null}
+                  </p>
+                  <ul className="col-span-4 m-0 grid list-none grid-cols-4 gap-[1.1cqw] p-0" aria-label={label}>
+                    {cols.map(([, l, get]) => {
+                      const v = get(t);
+                      const hi = l === 'Closed business ($)';
+                      return (
+                        <li
+                          key={l}
+                          className={`flex items-center rounded-[1.2cqw] px-[1.5cqw] py-[1cqw] ${hi ? 'text-white shadow-[0_0.5cqw_1.5cqw_rgba(10,71,169,0.28)]' : card(row !== 0)}`}
+                          style={hi ? { background: 'linear-gradient(135deg, #1f7fd0, #0a47a9)' } : undefined}
                         >
-                          {v}
-                        </span>
-                        <span className="text-[1.6cqw] font-semibold" style={hi ? undefined : { color: INK }}>
-                          {l}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : null}
-              <p className="m-0 text-[1.5cqw]" style={{ color: MUTED }}>
-                Since the last meeting. Month and year so far:
-              </p>
-              <table className="w-full max-w-[80cqw] border-separate border-spacing-x-[1cqw] text-left">
-                <thead>
-                  <tr>
-                    <th scope="col" className="text-[1.5cqw]">
-                      <span className="sr-only">Period</span>
-                    </th>
-                    {['One-to-ones', 'Referrals', 'Closed business', 'Closed business ($)'].map((h) => (
-                      <th key={h} scope="col" className="text-[1.3cqw] font-bold tracking-[0.08em] uppercase" style={{ color: BLUE }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.totals.slice(1).map(({ label, t }) => (
-                    <tr key={label}>
-                      <th scope="row" className="text-[1.7cqw] font-semibold" style={{ color: MUTED }}>
-                        {label}
-                      </th>
-                      {[t.one_on_ones, t.referrals, t.closed_deals, formatMoney(t.closed_amount)].map((v, n) => (
-                        <td key={n} className="font-display text-[2.4cqw] font-extrabold tabular-nums" style={{ color: NAVY }}>
-                          {v}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
+                          <span
+                            className="font-display leading-none font-extrabold whitespace-nowrap tabular-nums"
+                            // Long numbers (e.g. "$3,000,000") get a smaller font so they stay inside the card.
+                            style={{ fontSize: `${v.length <= 7 ? 3.4 : Math.max(1.7, (3.4 * 7.5) / v.length)}cqw`, ...(hi ? {} : { color: BLUE }) }}
+                          >
+                            {v}
+                          </span>
+                          <span className="sr-only">{l}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
           ),
         });
         break;
       }
       case 'leaderboards': {
+        // Owner, 2026-11-25: two slides, this month and the year so far (was since the last meeting).
         const icons: Record<string, IconName> = { one_on_ones: 'chat', referrals: 'share', closed_deals: 'badgeCheck', visitors: 'userPlus' };
-        page(key, {
-          title: 'Leaderboards',
-          body: (
-            <div className="flex flex-col gap-[1.2cqw]">
-              {/* Owner, 2026-11-25: counts since the last meeting (they start again at every meeting), live on Refresh / R. */}
-              <Muted>Since the last meeting</Muted>
-              <div className="grid gap-[1.6cqw]" style={{ gridTemplateColumns: `repeat(${leaderboardMetrics.length}, minmax(0, 1fr))` }}>
-                {leaderboardMetrics.map((m, i) => {
-                  const rows = d.leaders.filter((r) => r.metric === m.key);
-                  const color = STEP_COLORS[i + 1] ?? BLUE;
-                  return (
-                    <div key={m.key} className={`${card()} flex flex-col overflow-hidden`}>
-                      {/* Coloured header with a pointer, as in the roadmap sample. */}
-                      <div className="relative flex items-center gap-[0.9cqw] px-[1.3cqw] py-[1cqw] text-white" style={{ background: color }}>
-                        <Icon name={icons[m.key] ?? 'award'} style={{ width: '2.2cqw', height: '2.2cqw' }} />
-                        <h3 className="font-display m-0 text-[1.55cqw] font-extrabold text-white">{m.label}</h3>
-                        <span
-                          className="absolute -bottom-[0.9cqw] left-1/2 h-[1.8cqw] w-[1.8cqw] -translate-x-1/2 rotate-45"
-                          style={{ background: color }}
-                          aria-hidden="true"
-                        />
-                      </div>
-                      <div className="px-[1.1cqw] pt-[1.6cqw] pb-[1.1cqw]">
-                        {rows.length ? (
-                          <ol className="m-0 flex list-none flex-col gap-[0.5cqw] p-0">
-                            {rows.map((r) => (
-                              <li key={r.profile_id} className="flex items-center gap-[0.8cqw] text-[1.6cqw]">
-                                <span
-                                  className="flex h-[2.3cqw] w-[2.3cqw] flex-none items-center justify-center rounded-full text-[1.2cqw] font-extrabold text-white"
-                                  style={{ background: color }}
-                                >
-                                  {r.rank}
-                                </span>
-                                <span className="min-w-0 flex-1 truncate" style={{ color: INK }}>
-                                  {r.first_name} {r.last_name.slice(0, 1)}.
-                                </span>
-                                <strong className="tabular-nums" style={{ color: NAVY }}>
-                                  {r.value}
-                                </strong>
-                              </li>
-                            ))}
-                          </ol>
-                        ) : (
-                          <Muted>Nothing yet.</Muted>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ),
-        });
+        for (const board of d.leaderboards)
+          page(
+            key,
+            {
+              title: 'Leaderboards',
+              body: (
+                <div className="flex flex-col gap-[1.2cqw]">
+                  <p className="font-display m-0 text-[1.9cqw] font-extrabold" style={{ color: NAVY }}>
+                    {board.label}
+                  </p>
+                  <div className="grid gap-[1.6cqw]" style={{ gridTemplateColumns: `repeat(${leaderboardMetrics.length}, minmax(0, 1fr))` }}>
+                    {leaderboardMetrics.map((m, i) => {
+                      const rows = board.rows.filter((r) => r.metric === m.key);
+                      const color = STEP_COLORS[i + 1] ?? BLUE;
+                      return (
+                        <div key={m.key} className={`${card()} flex flex-col overflow-hidden`}>
+                          {/* Coloured header with a pointer, as in the roadmap sample. */}
+                          <div className="relative flex items-center gap-[0.9cqw] px-[1.3cqw] py-[1cqw] text-white" style={{ background: color }}>
+                            <Icon name={icons[m.key] ?? 'award'} style={{ width: '2.2cqw', height: '2.2cqw' }} />
+                            <h3 className="font-display m-0 text-[1.55cqw] font-extrabold text-white">{m.label}</h3>
+                            <span
+                              className="absolute -bottom-[0.9cqw] left-1/2 h-[1.8cqw] w-[1.8cqw] -translate-x-1/2 rotate-45"
+                              style={{ background: color }}
+                              aria-hidden="true"
+                            />
+                          </div>
+                          <div className="px-[1.1cqw] pt-[1.6cqw] pb-[1.1cqw]">
+                            {rows.length ? (
+                              <ol className="m-0 flex list-none flex-col gap-[0.5cqw] p-0">
+                                {rows.map((r) => (
+                                  <li key={r.profile_id} className="flex items-center gap-[0.8cqw] text-[1.6cqw]">
+                                    <span
+                                      className="flex h-[2.3cqw] w-[2.3cqw] flex-none items-center justify-center rounded-full text-[1.2cqw] font-extrabold text-white"
+                                      style={{ background: color }}
+                                    >
+                                      {r.rank}
+                                    </span>
+                                    <span className="min-w-0 flex-1 truncate" style={{ color: INK }}>
+                                      {r.first_name} {r.last_name.slice(0, 1)}.
+                                    </span>
+                                    <strong className="tabular-nums" style={{ color: NAVY }}>
+                                      {r.value}
+                                    </strong>
+                                  </li>
+                                ))}
+                              </ol>
+                            ) : (
+                              <Muted>Nothing yet.</Muted>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ),
+            },
+            board.suffix,
+          );
         break;
       }
       case 'champion': {

@@ -83,3 +83,58 @@ export function describeRange(r: DateRange): string {
   if (r.from && r.to) return `${f(r.from)} – ${f(addDays(r.to, -1))}`;
   return r.from ? `Since ${f(r.from)}` : `Before ${f(r.to as string)}`;
 }
+
+// --- Period picker (owner, 2026-11-25) --------------------------------------------------------------------------------
+// Members choose which numbers to see on the Leaderboard page and the dashboard's group totals: any month (default: this
+// month), this quarter, this year or all time. Values travel in the address: "2026-11", "quarter", "year", "all".
+
+export type PickedPeriod = {
+  /** Value in the address ("2026-11", "quarter", "year", "all"). */
+  value: string;
+  /** For headings: "November 2026", "This quarter", "2026 so far", "All time". */
+  label: string;
+  range: DateRange;
+  isCurrentMonth: boolean;
+};
+
+const MONTH = /^(\d{4})-(\d{2})$/;
+const monthName = (y: number, m: number) =>
+  new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+/** The range of one calendar month ("2026-11"), or null if it isn't a real month. */
+export function monthRange(ym: string): DateRange | null {
+  const m = MONTH.exec(ym);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  if (mo < 1 || mo > 12 || y < 2000 || y > 2100) return null;
+  return { from: key(y, mo, 1), to: key(y, mo + 1, 1) };
+}
+
+/** Reads the picker's value; anything unknown (or a future month) means this month. */
+export function pickPeriod(value: string | undefined, now: Date = new Date()): PickedPeriod {
+  const { y, m } = parts(localDateKey(now));
+  const current = `${y}-${String(m).padStart(2, '0')}`;
+  if (value === 'quarter' || value === 'year' || value === 'all') {
+    const range = periodRange({ period: value }, now);
+    const label = value === 'quarter' ? 'This quarter' : value === 'year' ? `${y} so far` : 'All time';
+    return { value, label, range, isCurrentMonth: false };
+  }
+  const ym = value && monthRange(value) && value <= current ? value : current;
+  const [yy, mm] = ym.split('-').map(Number) as [number, number];
+  return { value: ym, label: monthName(yy, mm), range: monthRange(ym) as DateRange, isCurrentMonth: ym === current };
+}
+
+/** Picker options: this month and the 11 before it, then this quarter, this year, all time. */
+export function periodChoices(now: Date = new Date(), months = 12): { value: string; label: string }[] {
+  const { y, m } = parts(localDateKey(now));
+  const out: { value: string; label: string }[] = [];
+  for (let i = 0; i < months; i++) {
+    const d = new Date(Date.UTC(y, m - 1 - i, 15));
+    const yy = d.getUTCFullYear();
+    const mm = d.getUTCMonth() + 1;
+    out.push({ value: `${yy}-${String(mm).padStart(2, '0')}`, label: `${monthName(yy, mm)}${i === 0 ? ' (this month)' : ''}` });
+  }
+  out.push({ value: 'quarter', label: 'This quarter' }, { value: 'year', label: `This year (${y})` }, { value: 'all', label: 'All time' });
+  return out;
+}

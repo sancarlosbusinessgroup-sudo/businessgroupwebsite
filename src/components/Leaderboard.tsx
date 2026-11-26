@@ -5,31 +5,48 @@ import { periodLabel, type Period } from '@/lib/periods';
 
 const choices: Period[] = ['month', 'quarter', 'year', 'all'];
 
-/** Top members per metric: names and counts only (decision 3). */
-export function Leaderboard({ rows, period, meId, hrefFor }: { rows: LeaderRow[]; period: Period; meId?: string; hrefFor: (p: Period) => string }) {
+/**
+ * Top members per metric: names and counts only (decision 3). With `hrefFor` (dashboard) it has period tabs; the
+ * Leaderboard page picks the period with its own filter and passes a `title` instead.
+ */
+export function Leaderboard({
+  rows,
+  period = 'month',
+  meId,
+  hrefFor,
+  title = 'Leaderboard',
+}: {
+  rows: LeaderRow[];
+  period?: Period;
+  meId?: string;
+  hrefFor?: (p: Period) => string;
+  title?: string;
+}) {
   return (
     <section className="card flex flex-col gap-4 p-5" aria-labelledby="lb-h">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="lb-h" className="h3">
-          Leaderboard
+          {title}
         </h2>
-        <nav aria-label="Leaderboard period" className="bg-line-soft flex flex-wrap gap-1 rounded-full p-1">
-          {choices.map((p) => (
-            <Link
-              key={p}
-              href={hrefFor(p)}
-              scroll={false}
-              aria-current={p === period ? 'true' : undefined}
-              className={`font-display flex min-h-9 items-center rounded-full px-3 text-[13px] font-bold no-underline ${
-                p === period ? 'bg-surface text-heading' : 'text-ink-muted'
-              }`}
-            >
-              {periodLabel(p)
-                .replace(/^This /, '')
-                .replace(/^\w/, (c) => c.toUpperCase())}
-            </Link>
-          ))}
-        </nav>
+        {hrefFor ? (
+          <nav aria-label="Leaderboard period" className="bg-line-soft flex flex-wrap gap-1 rounded-full p-1">
+            {choices.map((p) => (
+              <Link
+                key={p}
+                href={hrefFor(p)}
+                scroll={false}
+                aria-current={p === period ? 'true' : undefined}
+                className={`font-display flex min-h-9 items-center rounded-full px-3 text-[13px] font-bold no-underline ${
+                  p === period ? 'bg-surface text-heading' : 'text-ink-muted'
+                }`}
+              >
+                {periodLabel(p)
+                  .replace(/^This /, '')
+                  .replace(/^\w/, (c) => c.toUpperCase())}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
       </div>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
         {leaderboardMetrics.map((m) => {

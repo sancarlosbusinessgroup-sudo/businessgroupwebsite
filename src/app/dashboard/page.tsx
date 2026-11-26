@@ -15,9 +15,11 @@ import { getMyUpcomingEvents } from '@/lib/data/events';
 import { requireMember } from '@/lib/auth';
 import { getNextMeeting, guestMeetingOptions } from '@/lib/data/public';
 import { getGroupTotals, getLeaderboard, getMyGuests, getOneOnOnes, getPendingConfirmations } from '@/lib/data/member';
-import { formatLongToday, formatMoney, formatShortDate, isoToPacificLocal, nowMs } from '@/lib/dates';
+import { formatLongToday, formatShortDate, isoToPacificLocal, nowMs } from '@/lib/dates';
 import { env } from '@/lib/env';
-import { isPeriod, periodRange, type Period } from '@/lib/periods';
+import { isPeriod, periodChoices, periodRange, pickPeriod, type Period } from '@/lib/periods';
+import { GroupTotalsTiles } from '@/components/GroupTotals';
+import { PeriodPicker } from '@/components/PeriodPicker';
 import { createClient } from '@/lib/supabase/server';
 import { confirmOneOnOne } from '../actions/member';
 
@@ -25,17 +27,19 @@ export const metadata: Metadata = { title: 'Dashboard' };
 
 const LB_PERIODS: Period[] = ['month', 'quarter', 'year', 'all'];
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ lb?: string; welcome?: string }> }) {
-  const { lb, welcome } = await searchParams;
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ lb?: string; welcome?: string; gt?: string }> }) {
+  const { lb, welcome, gt } = await searchParams;
   const viewer = await requireMember('/dashboard');
   // Live (owner, 2026-11-25): read before the page data; the page reloads by itself when activity changes.
   const liveVersion = await getActivityVersion(REPORT_KINDS);
   const me = viewer.profile;
   const lbPeriod: Period = isPeriod(lb) && LB_PERIODS.includes(lb) ? lb : 'month';
+  // Group totals: this month by default, or the month / quarter / year / all time the member picks (owner, 2026-11-25).
+  const totalsPeriod = pickPeriod(gt);
   const supabase = await createClient();
   const [next, totals, leaders, pending, recent, guests, onboarding, guestMeetings, myEvents, photoTags] = await Promise.all([
     getNextMeeting(),
-    getGroupTotals(periodRange({ period: 'month' })),
+    getGroupTotals(totalsPeriod.range),
     getLeaderboard(periodRange({ period: lbPeriod })),
     getPendingConfirmations(me.id),
     getOneOnOnes({ days: 30, limit: 3 }),
@@ -157,25 +161,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <div className="flex min-w-0 flex-[2_1_320px] flex-col gap-5">
             <section className="card flex flex-col gap-1.5 p-5" aria-labelledby="group-h">
               <h2 id="group-h" className="h3">
-                Group this month
+                {totalsPeriod.isCurrentMonth ? 'Group this month' : `Group totals: ${totalsPeriod.label}`}
               </h2>
-              <dl className="mt-1.5 grid grid-cols-2 gap-2.5">
-                {[
-                  { k: 'One-on-ones', v: totals.one_on_ones },
-                  { k: 'Referrals', v: totals.referrals },
-                  { k: 'Closed business', v: totals.closed_deals },
-                  { k: 'Visitors', v: totals.visitors },
-                  { k: 'Closed business ($)', v: formatMoney(totals.closed_amount) },
-                ].map((t) => (
-                  <div
-                    key={t.k}
-                    className={`border-teal-tint flex flex-col-reverse rounded-xl border p-3 ${t.k === 'Closed business ($)' ? 'col-span-2' : ''}`}
-                  >
-                    <dt className="text-ink-muted text-xs font-bold tracking-[0.08em] uppercase">{t.k}</dt>
-                    <dd className="font-display m-0 text-2xl font-extrabold tabular-nums">{t.v}</dd>
-                  </div>
-                ))}
-              </dl>
+              <PeriodPicker name="gt" value={totalsPeriod.value} defaultValue={pickPeriod(undefined).value} choices={periodChoices()} label="Period" />
+              <GroupTotalsTiles totals={totals} label={totalsPeriod.label} />
+              <Link href="/leaderboard" className="mt-1 text-sm font-bold">
+                Full leaderboard and totals →
+              </Link>
               {recent.length === 0 ? (
                 <p className="text-ink-muted m-0 mt-2 text-[15px]">No one-on-ones reported in the last 30 days.</p>
               ) : (

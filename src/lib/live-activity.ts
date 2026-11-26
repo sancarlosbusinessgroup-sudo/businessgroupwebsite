@@ -41,11 +41,12 @@ export const pollDelayMs = (realtimeConnected: boolean) => (realtimeConnected ? 
 /** Several changes close together (e.g. a Zoom attendance import) cause one reload. */
 export const DEBOUNCE_MS = 300;
 
-const TEXT_INPUT = 'input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]):not([type=reset]):not([type=hidden]), textarea, select';
+const TEXT_INPUT = 'input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]):not([type=reset]):not([type=hidden]), textarea';
 
 /**
  * True while the member is typing in a form field: a reload then waits until they leave the field, so a live update never
- * gets in the way of what they are filling in.
+ * gets in the way of what they are filling in. Menus (select) don't count: a choice made in one survives a reload, and
+ * the period filter keeps focus on its menu, which must not hold back live updates.
  */
 export function isEditing(el: Element | null | undefined): boolean {
   if (!el || typeof el.matches !== 'function') return false;

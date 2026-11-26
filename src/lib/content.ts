@@ -39,6 +39,8 @@ export const memberNav: readonly NavItem[] = [
       { href: '/closed-business', label: 'Closed Businesses' },
       // Owner meeting 2026-10-30: members log the visitors they brought.
       { href: '/visitors-brought', label: 'Visitors brought' },
+      // Owner, 2026-11-25: group totals and top members for any month, quarter, year or all time, live.
+      { href: '/leaderboard', label: 'Leaderboard' },
     ],
   },
   { href: '/members', label: 'Directory' },
